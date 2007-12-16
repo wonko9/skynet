@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'         
+
+begin
+  mq = Skynet::MessageQueue.new
+rescue Skynet::ConnectionError
+  if Skynet::MessageQueue.adapter == :tuplespace
+    pid = fork do
+      exec("#{Skynet::CONFIG[:SKYNET_PATH]}/bin/skynet_tuplespace_server start")
+    end
+    sleep 3
+  end
+end
+
+
+Skynet.new

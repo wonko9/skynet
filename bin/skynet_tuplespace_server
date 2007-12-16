@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'daemons'
+require 'pp'
+
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'         
+
+# require File.expand_path(File.dirname(__FILE__)) + "/../lib/skynet_tuplespace_server.rb"
+
+options = { 
+  :port   => 7647,
+  :logfile => Skynet::CONFIG[:SKYNET_PATH] + "/log/skynet_tuplespace_server.log",
+  :loglevel => "DEBUG",
+  :piddir => Skynet::CONFIG[:SKYNET_LOG_DIR]
+}
+
+OptionParser.new do |opt|
+  opt.banner = "Usage: skynet_tuplespace_server (start|stop|run) [options]"  
+  opt.on('-t', '--ontop TRUE', 'Dont Daemonize') do |v| 
+    options[:ontop] = true if v.upcase == "TRUE" or v == "1"
+  end
+  opt.on('-p', '--port PORT', 'Port to listen on. default 7647') do |v| 
+    options[:port] = v.to_i
+  end
+  opt.on('-o', '--log LOGFILE', 'Logfile to log to') do |v|
+    options[:logfile] = v
+  end
+  opt.on('-l', '--loglevel LOGLEVEL', 'Log level defaults to DEBUG') do |v|
+    options[:loglevel] = v
+  end
+  opt.on('-d', '--piddir PIDDIR', 'Directory to put pidfile') do |v|
+    options[:piddir] = File.expand_path(v)
+  end
+  opt.on('-u', '--drburi Drb URI', 'What DRbURI to use') do |v|
+    if v =~ %r{druby://}
+      options[:drburi] = v
+    else
+      options[:drburi] = "druby://#{v}"
+    end
+  end
+
+  opt.parse!(ARGV)
+end
+
+Daemons.run_proc("skynet_tuplespace_server#{options[:port]}",
+{
+  :dir_mode => :normal,
+  :dir      => options[:piddir],
+  :backtrace  => true,
+  # :monitor    => true,
+  :ontop      => options[:ontop] || false
+}) do
+  server = Skynet::Server.new(options)
+end
