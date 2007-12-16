@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'rubygems'
+require 'skynet'
+
+irb = RUBY_PLATFORM =~ /(:?mswin|mingw)/ ? 'irb.bat' : 'irb'
+
+options = { :irb => irb }
+OptionParser.new do |opt|
+  opt.banner = "Usage: console [environment] [options]"
+  opt.on("--irb=[#{irb}]", 'Invoke a different irb.') { |v| options[:irb] = v }
+  opt.parse!(ARGV)
+end
+
+libs =  " -r irb/completion"
+libs << " -r rubygems"
+libs << " -r skynet"
+libs << " -r skynet_console_helper"
+# libs << " -r skynet"
+
+exec "#{options[:irb]} #{libs} --simple-prompt"

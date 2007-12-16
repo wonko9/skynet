@@ -95,7 +95,7 @@ class Skynet
     def take_worker_status
       begin               
         mq.take_worker_status(@worker_info,0.00001)
-      rescue Skynet::QueueTimeout => e
+      rescue Skynet::RequestExpiredError, Skynet::QueueTimeout => e
         error "Couldnt take worker status for #{hostname} pid: #{process_id}"
       end
     end
@@ -111,7 +111,6 @@ class Skynet
     end
     
     def notify_task_begun(task)
-      # take_worker_status
       task[:processed] = @processed
       task[:started_at] = Time.now.to_i
       mq.write_worker_status(@worker_info.merge(task))
@@ -119,7 +118,6 @@ class Skynet
     
     def notify_task_complete
       @processed += 1
-      # take_worker_status
 
       mq.write_worker_status(
         @worker_info.merge({
@@ -171,7 +169,6 @@ class Skynet
         message = nil      
         begin               
           if @die             
-            take_worker_status
             exit                                  
           elsif @respawn
             raise Skynet::Worker::RespawnWorker.new 

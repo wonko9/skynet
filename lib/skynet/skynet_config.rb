@@ -1,12 +1,13 @@
 class Skynet       
-  LOGDIR = File.expand_path(File.dirname(__FILE__)) + "/../../log"
+  LOGDIR = "/var/log"
   
   CONFIG = {
     :ENABLE                         => true,
     :SOLO                           => false,
     :SKYNET_LOG_DIR                 => LOGDIR,
-    :SKYNET_PIDS_FILE               => "#{LOGDIR}/skynet.pid",
-    :SKYNET_LOG_FILE                => "#{LOGDIR}/skynet.log",
+    :SKYNET_PID_DIR                 => "/tmp",
+    :SKYNET_PIDS_FILE               => "/tmp/skynet.pid",
+    :SKYNET_LOG_FILE                => STDOUT,
     :SKYNET_LOG_LEVEL               => Logger::ERROR,
     :SKYNET_LOCAL_MANAGER_URL       => "druby://localhost:40000",
     :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::TupleSpace",

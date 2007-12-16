@@ -60,10 +60,7 @@ hoe = Hoe.new(GEM_NAME, VERS) do |p|
   # == Optional
   p.changes = p.paragraphs_of("History.txt", 0..1).join("\n\n")
   p.extra_deps = [
-    ['drb'],
-    ['forwardable'],
-    ['daemons'],
-    ['rinda/tuplespace'],
+    ['daemons',">= 1"],
     ]
     # An array of rubygem dependencies [name, version], e.g. [ ['active_support', '>= 1.3.1'] ]
   

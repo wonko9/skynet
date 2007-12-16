@@ -4,6 +4,7 @@ Manifest.txt
 README.txt
 Rakefile
 bin/skynet
+bin/skynet_console
 bin/skynet_tuplespace_server
 config/hoe.rb
 config/requirements.rb
@@ -14,6 +15,7 @@ lib/skynet/message_queue_adapters/mysql.rb
 lib/skynet/message_queue_adapters/tuple_space.rb
 lib/skynet/skynet_active_record_extensions.rb
 lib/skynet/skynet_config.rb
+lib/skynet/skynet_console_helper.rb
 lib/skynet/skynet_debugger.rb
 lib/skynet/skynet_guid_generator.rb
 lib/skynet/skynet_job.rb

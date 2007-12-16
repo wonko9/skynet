@@ -138,6 +138,7 @@ class Skynet
         newver = ver ? ver : curver + 1
         debug "WRITING CURRENT WORKER REV #{newver}"
         write(Skynet::WorkerVersionMessage.new(:version=>newver))
+        newver
       end
 
       def clear_outstanding_tasks

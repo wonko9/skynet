@@ -11,9 +11,7 @@ class Skynet
 
     Skynet::CONFIG[:PERCENTAGE_OF_TASK_ONLY_WORKERS]    ||= 0.7
     Skynet::CONFIG[:PERCENTAGE_OF_MASTER_ONLY_WORKERS]  ||= 0.2
-    
-    Skynet::CONFIG[:WORKER_CHECK_DELAY] ||= 40
-            
+                
     def self.debug_class_desc
       "MANAGER"
     end                  
@@ -221,7 +219,7 @@ class Skynet
         sleep 0.01
         wpid
       end                  
-      error "DISTRO", worker_types
+      info "DISTRO", worker_types
       check_started_workers 
     end
                     

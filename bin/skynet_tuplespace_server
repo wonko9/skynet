@@ -6,13 +6,11 @@ require 'pp'
 
 require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'         
 
-# require File.expand_path(File.dirname(__FILE__)) + "/../lib/skynet_tuplespace_server.rb"
-
 options = { 
   :port   => 7647,
-  :logfile => Skynet::CONFIG[:SKYNET_PATH] + "/log/skynet_tuplespace_server.log",
+  :logfile => Skynet::CONFIG[:SKYNET_LOG_FILE],
   :loglevel => "DEBUG",
-  :piddir => Skynet::CONFIG[:SKYNET_LOG_DIR]
+  :piddir => Skynet::CONFIG[:SKYNET_PID_DIR]
 }
 
 OptionParser.new do |opt|
