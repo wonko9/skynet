@@ -334,6 +334,8 @@ class Skynet
 
     def self.start(options={})
       options[:worker_type] ||= :any
+      
+      error "STARTING WORKER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
@@ -359,7 +361,7 @@ class Skynet
         exit          
       rescue Skynet::Worker::RespawnWorker => e
         warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING"
-        cmd = "RAILS_ENV=#{RAILS_ENV} ruby #{Skynet::COFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]}"
+        cmd = "RAILS_ENV=#{RAILS_ENV} ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]}"
         pid = fork_and_exec(cmd)
         warn "parent_pid: #{$$}, child_pid: #{pid}"
         exit

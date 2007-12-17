@@ -501,11 +501,11 @@ class Skynet
         end
 
         if Time.now.to_f > start.to_f + timeout
-          info "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
+          debug "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
           raise Skynet::RequestExpiredError.new
         else    
           sleepy = rand(sleep_time * 0.5 )
-          info "EMPTY QUEUE #{temperature(payload_type)} SLEEPING: #{sleep_time} / #{sleepy}"
+          debug "EMPTY QUEUE #{temperature(payload_type)} SLEEPING: #{sleep_time} / #{sleepy}"
           sleep sleepy
           return false 
         end

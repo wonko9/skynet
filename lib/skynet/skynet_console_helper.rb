@@ -18,3 +18,7 @@ end
 def set_worker_version(*args)
   mq.set_worker_version(*args)
 end
+
+def manager
+  @manager ||= DRbObject.new(nil,Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+end
