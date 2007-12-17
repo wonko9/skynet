@@ -10,7 +10,7 @@ require 'skynet_logger'
 require 'skynet_config'
 
 Skynet::CONFIG[:SKYNET_PATH]    ||= File.expand_path(File.dirname(__FILE__) +"/..")
-Skynet::CONFIG[:LAUNCHER_PATH]  ||= File.expand_path(ENV['_'])
+# Skynet::CONFIG[:LAUNCHER_PATH]  ||= File.expand_path(ENV['_'])
 
 require 'skynet_debugger'
 require 'skynet_message'
