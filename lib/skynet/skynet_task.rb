@@ -30,6 +30,7 @@ class Skynet
       if process.is_a?(Proc)
         @marshalable = false
       end
+      @process = process
     end  
     
     def can_marshal?
