@@ -51,15 +51,6 @@ class Skynet
 
                    
 
-    # def stats
-    #   t1 = Time.now
-    #   tasks = list_tasks
-    #   results = list_results
-    #   t2 = Time.now - t1
-    #   p_tasks = tasks.partition {|task| task[9] == 0}
-    #   {:taken_tasks => p_tasks[1].size, :untaken_tasks => p_tasks[0].size, :results => list_results.size, :time => t2.to_f}
-    # end
-
     def print_stats
       "TAKEN TASKS: #{list_tasks(1).size}, UNTAKEN_TASKS: #{list_tasks(0).size} RESULTS: #{list_results.size}"
     end
@@ -73,26 +64,6 @@ class Skynet
 	    self.set_worker_version(newver)
 			newver
 		end
-
-
-    # def write_manager_status(task, timeout=nil)
-    #   mq.write(Skynet::ManagerStatusMessage.new(task), timeout)
-    # end
-    # 
-    # def take_manager_status(task, timeout=nil)
-    #   template = Skynet::ManagerStatusMessage.new([:status, :manager, MACHINE_NAME])
-    #   mq.take(template, timeout)
-    # end
-
-    # def read_all_manager_statuses
-    #   ms = Skynet::ManagerStatusMessage.new([:status, :manager])
-    #   manager_messages = mq.read_all(ms).collect {|ret| Skynet::ManagerStatusMessage.new(ret)}#.sort{ |a,b| a.hostname <=> b.hostname }
-    # end
-
-
-    # def monitor_loop(refresh=3)
-    #   loop { ansi_clear; puts monitor_view; sleep refresh}
-    # end
 
     def ansi_clear
       puts "\033[2J\033[H"

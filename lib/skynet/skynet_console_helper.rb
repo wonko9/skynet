@@ -3,8 +3,8 @@ def mq
   @mq ||= Skynet::MessageQueue.new
 end                       
 
-def status
-  mq.status
+def stats
+  mq.stats
 end
 
 def increment_worker_version

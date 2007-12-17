@@ -28,6 +28,10 @@ class Skynet
       @@ts = nil
       @@curhostidx = 0
 
+      def self.debug_class_desc
+        "TUPLESPACE"
+      end
+
       def self.adapter
         :tuplespace
       end
@@ -162,6 +166,14 @@ class Skynet
         return task_tuples + result_tuples
       end  
 
+      def stats
+        t1 = Time.now
+        tasks = list_tasks
+        results = list_results
+        t2 = Time.now - t1
+        p_tasks = tasks.partition {|task| task[9] == 0}
+        {:taken_tasks => p_tasks[1].size, :untaken_tasks => p_tasks[0].size, :results => list_results.size, :time => t2.to_f}
+      end
       
       private
 

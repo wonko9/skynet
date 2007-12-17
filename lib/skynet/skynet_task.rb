@@ -17,12 +17,23 @@ class Skynet
       unless opts[:task_id] and opts[:process] and opts[:map_or_reduce]
         raise ConstructorError.new("Must provide task_id, process and map_or_reduce")      
       end
+      @marshalable = true
       @task_id = opts[:task_id].to_i
       @data    = opts[:data]
-      @process = opts[:process]
+      self.process = opts[:process]
       @name    = opts[:name]
       @map_or_reduce = opts[:map_or_reduce]
       @result_timeout = opts[:result_timeout]
+    end
+    
+    def process=(process)
+      if process.is_a?(Proc)
+        @marshalable = false
+      end
+    end  
+    
+    def can_marshal?
+      @marshalable
     end
     
     def task_or_master
@@ -38,11 +49,11 @@ class Skynet
     end
     
     def run
-      debug "running task #{name} task_id:#{task_id} MorR:#{map_or_reduce}"
+      debug "running task #{name} task_id:#{task_id} MorR:#{map_or_reduce} PROCESS CLASS: #{@process.class}"
       begin
         if @process.class == Proc
           debug " - #{@map_or_reduce} using Proc"
-          @result = @process.call @data
+          @process.call @data
         elsif @map_or_reduce == :master
           debug " - as master"
           job = Skynet::Job.new(@process)

@@ -227,7 +227,7 @@ class Skynet
           notify_worker_stop
           raise e          
         rescue Skynet::RequestExpiredError => e
-          debug "request expired"
+          # debug "request expired"
           if new_version_respawn?
             notify_worker_stop
             raise Skynet::Worker::RespawnWorker.new
@@ -332,8 +332,9 @@ class Skynet
       pid
     end
 
-    def self.start
-      options = {:worker_type => :any }
+    def self.start(options={})
+      options[:worker_type] ||= :any
+
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
         opt.on('-ot', '--worker_type WORKERTYPE', "master, task or any") do |v|

@@ -334,12 +334,11 @@ class Skynet
       true
     end
 
-    def self.start
-      options = { 
-        :add_workers    => nil,
-        :remove_workers => nil,
-        :use_rails      => false
-      }
+    def self.start(options={})
+      options[:add_workers]    ||= nil
+      options[:remove_workers] ||= nil
+      options[:use_rails]      ||= false
+      
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
         opt.on('-r', '--restart-workers', 'Restart Workers') do |v| 

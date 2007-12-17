@@ -1,10 +1,10 @@
 class Skynet
   include SkynetDebugger
-  def self.new(*args)            
-    if ARGV.detect {|a| a =~ /worker_type/ }
-      Skynet::Worker.start
+  def self.new(options={})            
+    if options[:worker_type] or ARGV.detect {|a| a =~ /worker_type/ }
+      Skynet::Worker.start(options)
     else
-      Skynet::Manager.start
+      Skynet::Manager.start(options)
     end
   end
 end
