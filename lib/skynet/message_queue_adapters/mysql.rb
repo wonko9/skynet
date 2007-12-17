@@ -42,7 +42,7 @@ class Skynet
             SkynetMessageQueue.establish_connection Skynet::CONFIG[:QUEUE_DATABASE]
             SkynetWorkerQueue.establish_connection Skynet::CONFIG[:QUEUE_DATABASE]
           rescue ActiveRecord::AdapterNotSpecified => e
-            error "#{Skynet::CONFIG[:QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
+            warn "#{Skynet::CONFIG[:QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
           end
         end
         @@db_set = true
@@ -319,7 +319,7 @@ class Skynet
           :time               => Time.now.to_f
          }
 
-        stat_rows = SkynetWorkerQueue.connection.select(%{
+        stat_rows = SkynetWorkerQueue.connection.select_all(%{
           SELECT tasktype, payload_type, iteration, count(id) as number_of_tasks
           FROM skynet_message_queues
           GROUP BY tasktype, payload_type, iteration          
@@ -354,7 +354,7 @@ class Skynet
           WHERE skynet_worker_queues.tasksubtype = 'worker'                
         SQL
         
-        stat_rows = SkynetWorkerQueue.connection.select("#{stat_sql} GROUP BY hostname, map_or_reduce").each do |row|
+        stat_rows = SkynetWorkerQueue.connection.select_all("#{stat_sql} GROUP BY hostname, map_or_reduce").each do |row|
           servers[row["hostname"]] ||= {            
             :processed             => 0,
             :hostname              => row["hostname"],
@@ -372,7 +372,7 @@ class Skynet
           stats[:idle_workers]                          += row["number_of_workers"].to_i
         end   
 
-        SkynetWorkerQueue.connection.select(%{
+        SkynetWorkerQueue.connection.select_all(%{
           #{stat_sql} AND skynet_worker_queues.iteration IS NOT NULL
           GROUP BY hostname, map_or_reduce
         }).each do |row|

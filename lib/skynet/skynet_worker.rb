@@ -251,7 +251,7 @@ class Skynet
           fatal e.message
           break          
         rescue Interrupt, SystemExit => e
-          error "Exiting..."
+          warn "Exiting..."
           notify_worker_stop
           break
         rescue Exception => e
@@ -335,8 +335,6 @@ class Skynet
     def self.start(options={})
       options[:worker_type] ||= :any
       
-      error "STARTING WORKER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
         opt.on('-ot', '--worker_type WORKERTYPE', "master, task or any") do |v|

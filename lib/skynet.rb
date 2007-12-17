@@ -31,3 +31,4 @@ rescue LoadError => e
 end
 require 'mapreduce_test'
 require 'skynet_launcher'
+require 'skynet_console'

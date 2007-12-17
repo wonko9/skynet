@@ -32,7 +32,7 @@ class Skynet
       setup_signals
       
       starting = workers_to_start(@workers_requested)
-      error "Starting #{starting} workers.  #{@workers_requested - starting} already running."
+      warn "Starting #{starting} workers.  #{@workers_requested - starting} already running."
       add_worker(starting)
     end
     
@@ -59,7 +59,7 @@ class Skynet
       begin
         50.times do |ii|
           workers = worker_queue
-          error "Checking started workers, #{workers.size} out of #{@number_of_workers} after the #{(ii+1)}th try..."
+          warn "Checking started workers, #{workers.size} out of #{@number_of_workers} after the #{(ii+1)}th try..."
           break if workers.size >= @number_of_workers        
           sleep (@number_of_workers - workers.size)
         end                                          
@@ -69,9 +69,9 @@ class Skynet
 
       @all_workers_started = true
 
-      error "FINISHED STARTING ALL #{workers.size} WORKERS"
+      warn "FINISHED STARTING ALL #{workers.size} WORKERS"
       if workers.size > @number_of_workers
-        error "EXPECTED #{@number_of_workers}" 
+        warn "EXPECTED #{@number_of_workers}" 
         @number_of_workers = workers.size
       end
     end
@@ -121,14 +121,14 @@ class Skynet
     def check_number_of_workers(q_pids)
       if @shutdown         
         if not @masters_dead
-          error "Shutting down masters.  #{q_pids.size} workers still running." if q_pids.size > 0
+          warn "Shutting down masters.  #{q_pids.size} workers still running." if q_pids.size > 0
           workers_to_kill = worker_queue.select do |w| 
             w.map_or_reduce == "master" and @workers_running.include?(w.process_id)
           end                           
 
           worker_pids_to_kill = workers_to_kill.collect { |w| w.process_id }
           if worker_pids_to_kill and not worker_pids_to_kill.empty?
-            error "FOUND MORE RUNNING MASTERS WE HAVEN'T KILLED:", worker_pids_to_kill                                                    
+            warn "FOUND MORE RUNNING MASTERS WE HAVEN'T KILLED:", worker_pids_to_kill                                                    
             remove_worker(worker_pids_to_kill)                                        
           end
 
@@ -142,7 +142,7 @@ class Skynet
             return check_number_of_workers(worker_queue_pids)
           end
         else
-          error "Shutting down.  #{q_pids.size} workers still running." if q_pids.size > 0
+          warn "Shutting down.  #{q_pids.size} workers still running." if q_pids.size > 0
         end
         if q_pids.size < 1
           info "No more workers running."
@@ -192,7 +192,7 @@ class Skynet
     def add_worker(workers=1)
       num_task_only_workers = (workers * Skynet::CONFIG[:PERCENTAGE_OF_TASK_ONLY_WORKERS]).to_i
       num_master_only_workers = (workers * Skynet::CONFIG[:PERCENTAGE_OF_MASTER_ONLY_WORKERS]).to_i
-      error "Adding #{workers} WORKERS. Task Workers: #{num_task_only_workers}, Master Workers: #{num_master_only_workers} Master & Task Workers: #{workers - num_task_only_workers - num_master_only_workers}"
+      warn "Adding #{workers} WORKERS. Task Workers: #{num_task_only_workers}, Master Workers: #{num_master_only_workers} Master & Task Workers: #{workers - num_task_only_workers - num_master_only_workers}"
       
       @all_workers_started = false
       worker_types = {:task => 0, :master => 0, :any => 0}
@@ -211,7 +211,7 @@ class Skynet
         wpid = self.fork_and_exec(cmd)
         @workers_by_type[worker_type] ||= []
         @workers_by_type[worker_type] << wpid
-        error "Adding Worker ##{ii} PID: #{wpid} WORKER_TYPE?:#{worker_type}"
+        warn "Adding Worker ##{ii} PID: #{wpid} WORKER_TYPE?:#{worker_type}"
         @mutex.synchronize do
           @number_of_workers += 1
         end
@@ -236,7 +236,7 @@ class Skynet
         @workers_running.delete(wpid)
         @number_of_workers -= 1
         @workers_running.delete(wpid)      
-        error "REMOVING WORKER #{wpid}"
+        warn "REMOVING WORKER #{wpid}"
         # error "SHUTTING DOWN #{wpid} MR:",worker_queue.detect{|w|w.process_id == wpid}
         @signaled_workers << wpid
         Process.kill("INT",wpid)      
@@ -247,18 +247,29 @@ class Skynet
     def signal_workers(signal,worker_type=nil)
       worker_queue.each do |worker|
         next if worker_type and not @workers_by_type[worker_type].include?(worker.process_id)
-        error "SHUTTING DOWN #{worker.process_id} MR: #{worker.map_or_reduce}"
+        warn "SHUTTING DOWN #{worker.process_id} MR: #{worker.map_or_reduce}"
         @workers_running.delete(worker.process_id)
         Process.kill(signal,worker.process_id)
         @signaled_workers << worker.process_id
       end
     end 
     
+    def restart_all_workers
+      hostnames = {}
+      mq.read_all_worker_statuses.each do |status|
+        hostnames[status.hostname] = true
+      end
+      hostnames.keys.each do |remote_hostname|
+        manager = DRbObject.new(nil,"druby://#{remote_hostname}:40000")
+        manager.restart_workers
+      end
+    end
+    
     def restart_workers
       @all_workers_started = false
       signal_workers("HUP")
       @workers_running = {}
-      sleep 5
+      sleep @number_of_workers
       check_started_workers
     end
 
@@ -341,6 +352,17 @@ class Skynet
       
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
+        opt.on('-ra', '--restart-all-workers', 'Restart All Workers') do |v| 
+          puts "Restarting ALL workers on ALL machines."
+          begin
+            manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+            manager.restart_all_workers
+            exit
+          rescue DRb::DRbConnError => e
+            puts "No manager running at #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}  ERROR: #{e.inspect}"
+            exit
+          end
+        end
         opt.on('-r', '--restart-workers', 'Restart Workers') do |v| 
           puts "Restarting workers on this machine."
           begin
@@ -366,9 +388,6 @@ class Skynet
         opt.on('-w', '--workers WORKERS', 'Number of workers to start.') do |v| 
           options[:workers] = v.to_i
         end               
-        # opt.on('-p', '--pid-file PIDFILE', 'Path of pid file.') do |v|
-        #   options[:pid_file] = v
-        # end
 
         opt.parse!(ARGV)
       end
@@ -382,13 +401,11 @@ class Skynet
         begin
           manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])    
           if options[:add_workers]
-            warn "ADDING #{options[:add_workers]} workers"
             pids = manager.add_worker(options[:add_workers])
-            warn "PIDS: #{pids.inspect}"
+            warn "ADDING #{options[:add_workers]} workers PIDS: #{pids.inspect}"
           elsif options[:remove_workers]
-            warn "REMOVING #{options[:remove_workers]} workers"
             pids = manager.remove_workers(options[:remove_workers])
-            warn "PIDS: #{pids.inspect}"
+            warn "REMOVING #{options[:remove_workers]} workers PIDS: #{pids.inspect}"
           end
         rescue DRb::DRbConnError => e
           warn "Couldnt add or remove workers. There are probably no workers running. At least I couldn't find a skynet_manager around at #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]} #{e.inspect}"
@@ -404,12 +421,10 @@ class Skynet
           ts = Skynet::MessageQueue.new
         rescue Skynet::ConnectionError => e
           fatal "Couldn't get MessageQueue! #{e.message}"
-          # report = ExceptionReport.new(e)
-          # report.save
           raise Skynet::ConnectionError.new("ERROR!  Couldn't get MessageQueue! #{e.message}")
         end
 
-        debug "CONTINUING TO START : There IS an available MessageQueue",options
+        debug "CONTINUING TO START : There IS an available MessageQueue", options
 
         # create main pid file
         File.open(options[:pid_file], 'w') do |file|
