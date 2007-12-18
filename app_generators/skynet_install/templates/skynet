@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+<% if in_rails %>
+require File.dirname(__FILE__) + '/../config/boot'
+require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
+<% end %>
+
+require 'skynet'         
+
+Skynet::CONFIG[:LAUNCHER_PATH]      = File.expand_path(__FILE__)
+Skynet::CONFIG[:SKYNET_LOG_LEVEL]   = Logger::ERROR
+
+begin
+  mq = Skynet::MessageQueue.new
+rescue Skynet::ConnectionError
+  if Skynet::MessageQueue.adapter == :tuplespace
+    pid = fork do
+      exec("skynet_tuplespace_server start")
+    end
+    sleep 3
+  end
+end
+
+
+Skynet.new

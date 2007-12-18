@@ -3,8 +3,14 @@ License.txt
 Manifest.txt
 README.txt
 Rakefile
+app_generators/skynet_install/USAGE
+app_generators/skynet_install/skynet_install_generator.rb
+app_generators/skynet_install/templates/migration.rb
+app_generators/skynet_install/templates/skynet
+app_generators/skynet_install/templates/skynet_console
 bin/skynet
 bin/skynet_console
+bin/skynet_install
 bin/skynet_tuplespace_server
 config/hoe.rb
 config/requirements.rb
@@ -15,6 +21,7 @@ lib/skynet/message_queue_adapters/mysql.rb
 lib/skynet/message_queue_adapters/tuple_space.rb
 lib/skynet/skynet_active_record_extensions.rb
 lib/skynet/skynet_config.rb
+lib/skynet/skynet_console.rb
 lib/skynet/skynet_console_helper.rb
 lib/skynet/skynet_debugger.rb
 lib/skynet/skynet_guid_generator.rb
@@ -43,9 +50,13 @@ tasks/website.rake
 test/mysql_message_queue_adaptor_test.rb
 test/skynet_manager_test.rb
 test/skynet_message_test.rb
+test/test_generator_helper.rb
 test/test_helper.rb
+test/test_install-skynet_generator.rb
 test/test_skynet.rb
+test/test_skynet_install_generator.rb
 test/tuplespace_message_queue_test.rb
+tmtags
 website/index.html
 website/index.txt
 website/javascripts/rounded_corners_lite.inc.js

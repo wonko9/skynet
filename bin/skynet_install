@@ -1,0 +1,12 @@
+require 'rubygems'
+require 'rubigen'
+
+if %w(-v --version).include? ARGV.first
+  require 'skynet_install/version'
+  puts "#{File.basename($0)} #{SkynetInstall::VERSION::STRING}"
+  exit(0)
+end
+
+require 'rubigen/scripts/generate'
+RubiGen::Base.use_application_sources! :skynet_install
+RubiGen::Scripts::Generate.new.run(ARGV, :generator => 'skynet_install')

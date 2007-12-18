@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+files_to_require = []
+<% if in_rails %>
+files_to_require << File.dirname(__FILE__) + '/../config/boot'
+files_to_require << File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
+files_to_require.each { |file| require file }
+<% end %>
+
+require 'rubygems'
+require 'skynet'                                     
+
+Skynet::CONFIG[:LAUNCHER_PATH]          = File.expand_path(__FILE__)
+Skynet::CONFIG[:SKYNET_LOG_LEVEL]       = Logger::ERROR
+
+Skynet::Console.start(files_to_require)
