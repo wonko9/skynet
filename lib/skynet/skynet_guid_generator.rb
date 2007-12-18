@@ -48,11 +48,11 @@ class Skynet
         end
 
         Mutex.new.synchronize do
-          timeprt = Time.now.to_f - 870678000   # figure it out
+          timeprt = Time.now.to_f - 1186210800   # figure it out
           timeprt = timeprt * 1000
           @@pid_ctr += 1
 
-          guid_parts = [[timeprt,26],[Skynet::UniqueDBNumGenerator.server_num,12],[@@pid_id,19],[@@pid_ctr,6]]
+          guid_parts = [[timeprt,28],[Skynet::UniqueDBNumGenerator.server_num,12],[@@pid_id,17],[@@pid_ctr,6]]
           
           guid = 0
           guid_parts.each do |part, bitlength|
