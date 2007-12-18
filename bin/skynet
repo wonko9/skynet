@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'         
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
-Skynet::CONFIG[:WORKER_CHECK_DELAY] = 4
+Skynet::CONFIG[:WORKER_CHECK_DELAY]     = 4
 Skynet::CONFIG[:LAUNCHER_PATH]          = File.expand_path(__FILE__)
 
 begin

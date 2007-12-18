@@ -333,10 +333,14 @@ class Skynet
     end
 
     def self.start(options={})
-      options[:worker_type] ||= :any
+      options[:worker_type]    ||= :any
+      options[:required_libs]  ||= []
       
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
+        opt.on('-r', '--required LIBRARY', 'Include the specified libraries') do |v|
+          options[:required_libs] << v
+        end
         opt.on('-ot', '--worker_type WORKERTYPE', "master, task or any") do |v|
           if ["any","master","task"].include?(v)
             options[:worker_type] = v
@@ -346,6 +350,15 @@ class Skynet
         end
         opt.parse!(ARGV)
       end
+
+      options[:required_libs].each do |adlib|
+        begin
+          require adlib
+        rescue MissingSourceFile => e
+          error "The included lib #{adlib} was not found: #{e.inspect}"
+          exit
+        end
+      end        
 
       # worker_script_path = (Skynet::CONFIG[:WORKER_SCRIPT_PATH] || File.dirname(__FILE__)) << "/skynet_worker"
 
@@ -360,6 +373,7 @@ class Skynet
       rescue Skynet::Worker::RespawnWorker => e
         warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING"
         cmd = "RAILS_ENV=#{RAILS_ENV} ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]}"
+        cmd << "-r #{options[:required_libs].join(' -r ')}" if options[:required_libs] and not options[:required_libs].empty?
         pid = fork_and_exec(cmd)
         warn "parent_pid: #{$$}, child_pid: #{pid}"
         exit

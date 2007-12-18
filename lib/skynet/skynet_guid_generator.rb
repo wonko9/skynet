@@ -1,10 +1,9 @@
 require 'socket'
-# require File.join(File.dirname(__FILE__), '/geni_guid_generator/version')
 
 begin
   require 'fastthread'
 rescue LoadError
-  puts 'fastthread not installed, using thread instead'
+  # puts 'fastthread not installed, using thread instead'
   require 'thread'
 end
 

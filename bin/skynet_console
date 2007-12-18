@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'skynet'
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
-Skynet::Console.new
+Skynet::CONFIG[:LAUNCHER_PATH]          = File.expand_path(__FILE__)
+Skynet::CONFIG[:SKYNET_LOG_LEVEL]       = Logger::ERROR
+
+Skynet::Console.start

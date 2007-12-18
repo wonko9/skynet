@@ -16,16 +16,20 @@ class Skynet
       "MANAGER"
     end                  
         
-    def initialize(script_path,workers_requested)
-      @script_path = script_path
+
+    attr_accessor :required_libs
+    
+    def initialize(script_path,workers_requested,adlibs=[])
       info "Skynet Launcher Path: [#{@script_path}]"
-      @mutex = Mutex.new
+      @script_path          = script_path
+      @mutex                = Mutex.new
       @workers_requested    = workers_requested
+      @required_libs        = adlibs
       @number_of_workers    = 0
       @workers_by_type      = {:master => [], :task => [], :any => []}
       @signaled_workers     = []
       @workers_running      = {}
-      @all_workers_started  = false
+      @all_workers_started  = false                      
     end   
     
     def start_workers
@@ -43,8 +47,8 @@ class Skynet
         pids.each do |worker_pid|
           if worker_alive?(worker_pid)          
             @workers_running[worker_pid] = Time.now
-            @number_of_workers += 1
-            workers_to_start -= 1
+            @number_of_workers  += 1
+            workers_to_start    -= 1
           else
             take_worker_status(worker_pid)
           end
@@ -209,6 +213,7 @@ class Skynet
           worker_types[:any] += 1
         end                          
         cmd = "#{@script_path} --worker_type=#{worker_type}"
+        cmd << " -r #{required_libs.join(' -r ')}" if required_libs and not required_libs.empty?
         wpid = self.fork_and_exec(cmd)
         @workers_by_type[worker_type] ||= []
         @workers_by_type[worker_type] << wpid
@@ -350,7 +355,7 @@ class Skynet
       options[:add_workers]    ||= nil
       options[:remove_workers] ||= nil
       options[:use_rails]      ||= false
-      
+      options[:required_libs]  ||= []
       OptionParser.new do |opt|
         opt.banner = "Usage: skynet [options]"
         opt.on('', '--restart-all-workers', 'Restart All Workers') do |v| 
@@ -364,7 +369,7 @@ class Skynet
             exit
           end
         end
-        opt.on('-r', '--restart-workers', 'Restart Workers') do |v| 
+        opt.on('', '--restart-workers', 'Restart Workers') do |v| 
           puts "Restarting workers on this machine."
           begin
             manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
@@ -389,13 +394,24 @@ class Skynet
         opt.on('-w', '--workers WORKERS', 'Number of workers to start.') do |v| 
           options[:workers] = v.to_i
         end               
+        opt.on('-r', '--required LIBRARY', 'Require the specified libraries') do |v|
+          options[:required_libs] << File.expand_path(v)
+        end
 
         opt.parse!(ARGV)
       end
-
+      
       options[:workers]   ||=  Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4
       options[:pid_file]  ||=  File.dirname(Skynet::CONFIG[:SKYNET_PIDS_FILE]) + "/skynet_worker.pid"
 
+      options[:required_libs].each do |adlib|
+        begin
+          require adlib
+        rescue MissingSourceFile => e
+          error "The included lib #{adlib} was not found: #{e.inspect}"
+          exit
+        end
+      end        
 
       # Handle add or remove workers
       if options[:add_workers] or options[:remove_workers]
@@ -434,7 +450,7 @@ class Skynet
 
         begin                                                                                                                   
           info "STARTING THE MANAGER!!!!!!!!!!!"
-          @manager = Skynet::Manager.new(Skynet::CONFIG[:LAUNCHER_PATH],options[:workers])
+          @manager = Skynet::Manager.new(Skynet::CONFIG[:LAUNCHER_PATH],options[:workers],options[:required_libs])
           DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
           info "WORKER MANAGER URI: #{DRb.uri}"
           @manager.start_workers
