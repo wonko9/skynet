@@ -35,7 +35,9 @@ class Skynet
   module GuidGenerator
 
     @@pid_ctr = 0
+
     def get_unique_id(nodb=nil)
+
       if defined?(Skynet::CONFIG) and Skynet::CONFIG[:GUID_GENERATOR]
         Skynet::CONFIG[:GUID_GENERATOR].call
       else
@@ -53,14 +55,14 @@ class Skynet
           guid_parts = [[timeprt,26],[Skynet::UniqueDBNumGenerator.server_num,12],[@@pid_id,19],[@@pid_ctr,6]]
           
           guid = 0
-          
           guid_parts.each do |part, bitlength|
             guid = guid << bitlength
             guid += part.to_i % (2 ** bitlength)
-            guid
           end
+          guid
         end
       end
     end
+
   end
 end
