@@ -16,7 +16,7 @@ module Enumerable
       :reduce_timeout         => 3600,
       :master_timeout         => 3600,
       :master_result_timeout  => 3600,
-      :async                  => true
+      :async                  => false
     }                                
 
     jobopts[:map_reduce_class] = klass.to_s if klass

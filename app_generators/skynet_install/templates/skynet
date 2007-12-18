@@ -8,7 +8,15 @@ require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
 require 'skynet'         
 
 Skynet::CONFIG[:LAUNCHER_PATH]      = File.expand_path(__FILE__)
+Skynet::CONFIG[:SKYNET_LOG_FILE]    = Logger::ERROR
 Skynet::CONFIG[:SKYNET_LOG_LEVEL]   = Logger::ERROR
+<% if in_rails %>
+Skynet::CONFIG[:SKYNET_PIDS_FILE]   = File.expand_path("../log/skynet.pid"),
+Skynet::CONFIG[:SKYNET_LOG_FILE]    = File.expand_path("../log/skynet.log"),
+<% else %>
+Skynet::CONFIG[:SKYNET_PIDS_FILE]   = File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pid"),
+Skynet::CONFIG[:SKYNET_LOG_FILE]    = File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.log"),
+<% end %>
 
 begin
   mq = Skynet::MessageQueue.new

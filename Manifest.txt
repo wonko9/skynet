@@ -52,7 +52,6 @@ test/skynet_manager_test.rb
 test/skynet_message_test.rb
 test/test_generator_helper.rb
 test/test_helper.rb
-test/test_install-skynet_generator.rb
 test/test_skynet.rb
 test/test_skynet_install_generator.rb
 test/tuplespace_message_queue_test.rb

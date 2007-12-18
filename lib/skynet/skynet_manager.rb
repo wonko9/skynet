@@ -76,6 +76,7 @@ class Skynet
       end
     end
     
+# the main application loop
     def run
       loop do         
         next unless @all_workers_started
@@ -351,8 +352,8 @@ class Skynet
       options[:use_rails]      ||= false
       
       OptionParser.new do |opt|
-        opt.banner = "Usage: worker [options]"
-        opt.on('-ra', '--restart-all-workers', 'Restart All Workers') do |v| 
+        opt.banner = "Usage: skynet [options]"
+        opt.on('', '--restart-all-workers', 'Restart All Workers') do |v| 
           puts "Restarting ALL workers on ALL machines."
           begin
             manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
