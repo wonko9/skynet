@@ -144,7 +144,7 @@ class Skynet
         rows = update(%{
           update skynet_message_queues 
           set tasktype = "#{message.tasktype}", 
-          raw_payload = '#{message.raw_payload}',
+          raw_payload = "#{::Mysql.escape_string(message.raw_payload)}",
           payload_type = "#{message.payload_type}",
           tran_id = NULL
           #{timeout_sql}
