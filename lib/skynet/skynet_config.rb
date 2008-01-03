@@ -52,7 +52,7 @@ class Skynet
         result = yield
       end
     rescue Exception => e
-      warn "Something bad happened #{e.inspect} #{e.backtrace.join("\n")}"
+      error "Something bad happened #{e.inspect} #{e.backtrace.join("\n")}"
     end
     return result
   end

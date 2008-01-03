@@ -1,15 +1,18 @@
 class ActiveRecord::Base
-  def send_later(method,opts)
+  def send_later(method,opts=nil,save=nil)
+    raise NoMethodError.new("Method: #{method} doesn't exist in #{self.class}") unless self.respond_to?(method)
     data = { 
-      :model_class => self.class, 
+      :model_class => self.class.to_s, 
       :model_id => self.id, 
-      :method => method, 
-      :opts => opts.to_yaml 
+      :method => method,       
     }
+    data[:save] = 1 if save
+    data[:opts] = opts.to_yaml if opts
+    
     jobopts = {
       :solo      => true,
       :map_tasks => 1,
-      :map_data => data,
+      :map_data => [data],
       :name => "send_later #{self.class}##{method}",
       :map_name => "",
       :map_timeout      => 1.hour,
@@ -19,7 +22,7 @@ class ActiveRecord::Base
       :map_reduce_class     =>  Skynet::ActiveRecordAsync
     }   
     job = Skynet::AsyncJob.new(jobopts)
-    job.run
+    job.run_master
   end
 end
 
@@ -32,12 +35,23 @@ class <<ActiveRecord::Base
 end  
 
 class Skynet::ActiveRecordAsync
+  include SkynetDebugger
   
   def self.map(datas)
-    datas.each do |data|    
-      model = data[:model_class].constantize.find(data[:model_id])
-      model.send(data[:method],YAML.load(data[:opts]))
+    datas.each do |data| 
+      begin            
+        model = data[:model_class].constantize.find(data[:model_id])
+        if data[:opts]
+          model.send(data[:method].to_sym, YAML.load(data[:opts]))
+        else
+          model.send(data[:method].to_sym)
+        end
+        model.save if data[:save]
+      rescue Exception => e
+        error "Error in #{self} #{e.inspect}"
+      end
     end
+    return
   end
 end
 
