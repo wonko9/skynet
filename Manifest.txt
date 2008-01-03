@@ -44,9 +44,11 @@ script/destroy
 script/generate
 script/txt2html
 setup.rb
+sometest.rb
 tasks/deployment.rake
 tasks/environment.rake
 tasks/website.rake
+test/all_models_test.rb
 test/mysql_message_queue_adaptor_test.rb
 test/skynet_manager_test.rb
 test/skynet_message_test.rb

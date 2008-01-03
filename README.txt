@@ -54,6 +54,7 @@ Skynet was designed to make doing easy things easy and hard things possible.   T
 
 Skynet includes an addition to ActiveRecord that is very powerful.   
 
+=== distributed_find
   $ YourModel.distributed_find(:all).each(YourClass)
 or
   $ YourModel.distributed_find(:all).each(:somemethod)
@@ -61,6 +62,12 @@ or
 In the first example, a find is 'virtually' run with your model class, and the results are distributed to the skynet workers.  If you've implemented a self.map method in YourClass, the retrieved objects will be passed (as arrays) on all the workers.
 
 In the second example, once the objects of YourModel are distributed, each worker merely calls :somemethod against each object.
+
+=== send_later
+
+  $ model_object.send_later(:method,options,:save)
+  
+Sometimes you have a method you want to call on a model asynchronously.  Using :send_later you can call a method, pass it options, and decide whether you want Skynet to save that model or not once its done calling your method.
 
 == EXAMPLES:
 
