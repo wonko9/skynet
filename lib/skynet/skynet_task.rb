@@ -3,7 +3,7 @@ class Skynet
     
     include SkynetDebugger
         
-    require 'ostruct'
+    # require 'ostruct'
 
     class ConstructorError < StandardError
     end
@@ -13,16 +13,20 @@ class Skynet
     
     @@log = nil
     
+    def self.debug_class_desc
+      "TASK"
+    end
+    
     def initialize(opts = {})
       unless opts[:task_id] and opts[:process] and opts[:map_or_reduce]
         raise ConstructorError.new("Must provide task_id, process and map_or_reduce")      
       end
-      @marshalable = true
-      @task_id = opts[:task_id].to_i
-      @data    = opts[:data]
-      self.process = opts[:process]
-      @name    = opts[:name]
-      @map_or_reduce = opts[:map_or_reduce]
+      @marshalable    = true
+      @task_id        = opts[:task_id].to_i
+      @data           = opts[:data]
+      self.process    = opts[:process]
+      @name           = opts[:name]
+      @map_or_reduce  = opts[:map_or_reduce]
       @result_timeout = opts[:result_timeout]
     end
     
@@ -68,8 +72,5 @@ class Skynet
       end
     end
     
-    def self.debug_class_desc
-      "TASK"
-    end
   end  ## END class Task
 end

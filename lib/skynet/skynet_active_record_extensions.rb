@@ -1,13 +1,49 @@
+class ActiveRecord::Base
+  def send_later(method,opts)
+    data = { 
+      :model_class => self.class, 
+      :model_id => self.id, 
+      :method => method, 
+      :opts => opts.to_yaml 
+    }
+    jobopts = {
+      :solo      => true,
+      :map_tasks => 1,
+      :map_data => data,
+      :name => "send_later #{self.class}##{method}",
+      :map_name => "",
+      :map_timeout      => 1.hour,
+      :reduce_timeout   => 1.hour,
+      :master_timeout   => 8.hours,
+      :master_result_timeout => 1.minute,
+      :map_reduce_class     =>  Skynet::ActiveRecordAsync
+    }   
+    job = Skynet::AsyncJob.new(jobopts)
+    job.run
+  end
+end
+
 class <<ActiveRecord::Base
   def distributed_find(*args)
     all = ActiveRecord::Mapreduce.find(*args)
     all.model_class = self
     all
   end
+end  
+
+class Skynet::ActiveRecordAsync
+  
+  def self.map(datas)
+    datas.each do |data|    
+      model = data[:model_class].constantize.find(data[:model_id])
+      model.send(data[:method],YAML.load(data[:opts]))
+    end
+  end
 end
 
-
 module ActiveRecord  
+  
+  
   class Mapreduce
     BATCH_SIZE=1000 unless defined?(BATCH_SIZE)
     

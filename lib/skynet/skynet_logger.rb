@@ -4,8 +4,8 @@ require 'logger'
 
 class Skynet  
 
-	class Error < StandardError
-	end
+  class Error < StandardError
+  end
 
   class Logger < ::Logger
     if respond_to?(:format_message)
@@ -13,7 +13,7 @@ class Skynet
     end
     
     @@log = nil
-
+    
     def self.get
       if not @@log
         @@log = self.new(Skynet::CONFIG[:SKYNET_LOG_FILE])
@@ -25,10 +25,8 @@ class Skynet
     def self.log=(log)
       @@log = log
     end
-
   end
-  
-  
+    
   # This module can be mixed in to add logging methods to your class.
   module Loggable
     def debug

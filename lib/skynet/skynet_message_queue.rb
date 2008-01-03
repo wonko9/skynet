@@ -59,11 +59,11 @@ class Skynet
       list_tasks + list_results
     end
 
-		def increment_worker_version
-			newver = self.get_worker_version + 1
-	    self.set_worker_version(newver)
-			newver
-		end
+    def increment_worker_version
+      newver = self.get_worker_version + 1
+      self.set_worker_version(newver)
+      newver
+    end
 
     def ansi_clear
       puts "\033[2J\033[H"

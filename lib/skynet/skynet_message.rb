@@ -1,27 +1,26 @@
 class Skynet
   class Message
+
+    include SkynetDebugger
     
     class BadMessage < Skynet::Error
     end
     
-    include SkynetDebugger
-
-    # http://errtheblog.com/post/22 -- Back Double At Ya
     class << self
       attr_accessor :fields
     end
 
     self.fields = {
-      0 => :tasktype,
-      1 => :drburi,
-      2 => :task_id,
-      3 => :job_id,
-      4 => :payload,
-      5 => :payload_type,
-      6 => :name,
-      7 => :expiry,
-      8 => :expire_time,
-      9 => :iteration,
+      0  => :tasktype,
+      1  => :drburi,
+      2  => :task_id,
+      3  => :job_id,
+      4  => :payload,
+      5  => :payload_type,
+      6  => :name,
+      7  => :expiry,
+      8  => :expire_time,
+      9  => :iteration,
       10 => :version
     }
 
@@ -230,7 +229,7 @@ class Skynet
        fields.values.each do |field|
          case field
          when :iteration
-           opts[:iteration] = message.iteration + 1
+           opts[:iteration]   = message.iteration + 1
          when :expire_time
            opts[:expire_time] = Time.now.to_i + message.expiry
          else
@@ -307,26 +306,7 @@ class Skynet
         end
       end
     end
-
   end
-
-  # class ManagerStatusMessage < Skynet::Message
-  #   self.fields = { 
-  #     0  => :tasktype,
-  #     1  => :tasksubtype,
-  #     2  => :hostname,
-  #     3  => :port,
-  #     4  => :process_id,
-  #     5  => :started_at
-  #   }
-  #   self.fields.values.each { |method| attr_accessor method }
-  # 
-  #   def initialize(opts)
-  #     super
-  #     self.tasktype    = :status
-  #     self.tasksubtype = :manager
-  #   end
-  # end
 
   class WorkerStatusMessage < Skynet::Message
     self.fields = {

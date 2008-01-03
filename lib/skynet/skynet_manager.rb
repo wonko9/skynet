@@ -110,6 +110,7 @@ class Skynet
            error "Missing worker #{wpid} from worker queue. Removing and/or killing."
            Process.kill("TERM",wpid) if worker_alive?(wpid)
            @workers_running.delete(wpid)
+           q_pids.delete(wpid)
          end
       end
       
@@ -119,38 +120,46 @@ class Skynet
           take_worker_status(wpid)
           @workers_running.delete(wpid)
           @number_of_workers -= 1
+          q_pids.delete(wpid)
         end
       end
+      q_pids
     end                          
+                        
+    def worker_shutdown(q_pids)
+      if not @masters_dead
+        warn "Shutting down masters.  #{q_pids.size} workers still running." if q_pids.size > 0
+        workers_to_kill = worker_queue.select do |w| 
+          w.map_or_reduce == "master" and @workers_running.include?(w.process_id)
+        end                           
 
+        worker_pids_to_kill = workers_to_kill.collect { |w| w.process_id }
+        if worker_pids_to_kill and not worker_pids_to_kill.empty?
+          warn "FOUND MORE RUNNING MASTERS WE HAVEN'T KILLED:", worker_pids_to_kill                                                    
+          remove_worker(worker_pids_to_kill)                                        
+        end
+
+        if not worker_queue.detect { |w| w.map_or_reduce == "master" }
+          signal_workers("INT")
+          @masters_dead = true
+          sleep 1
+          return check_number_of_workers(worker_queue_pids)
+        else
+          sleep 4
+          return check_number_of_workers(worker_queue_pids)
+        end
+      else
+        warn "Shutting down.  #{q_pids.size} workers still running." if q_pids.size > 0
+      end
+      if q_pids.size < 1
+        info "No more workers running."
+      end        
+    end      
+    
     def check_number_of_workers(q_pids)
       if @shutdown         
-        if not @masters_dead
-          warn "Shutting down masters.  #{q_pids.size} workers still running." if q_pids.size > 0
-          workers_to_kill = worker_queue.select do |w| 
-            w.map_or_reduce == "master" and @workers_running.include?(w.process_id)
-          end                           
-
-          worker_pids_to_kill = workers_to_kill.collect { |w| w.process_id }
-          if worker_pids_to_kill and not worker_pids_to_kill.empty?
-            warn "FOUND MORE RUNNING MASTERS WE HAVEN'T KILLED:", worker_pids_to_kill                                                    
-            remove_worker(worker_pids_to_kill)                                        
-          end
-
-          if not worker_queue.detect { |w| w.map_or_reduce == "master" }
-            signal_workers("INT")
-            @masters_dead = true
-            sleep 1
-            return check_number_of_workers(worker_queue_pids)
-          else
-            sleep 4
-            return check_number_of_workers(worker_queue_pids)
-          end
-        else
-          warn "Shutting down.  #{q_pids.size} workers still running." if q_pids.size > 0
-        end
+        worker_shutdown(q_pids)
         if q_pids.size < 1
-          info "No more workers running."
           exit
         end        
       elsif q_pids.size != @number_of_workers
@@ -271,6 +280,16 @@ class Skynet
       end
     end
     
+    def hard_restart_workers
+      @all_workers_started = false
+      signal_workers("TERM")
+      @restart = true
+      signal_workers("INT",:master)
+      signal_workers("INT",:any)
+      sleep @number_of_workers
+      check_started_workers
+    end
+
     def restart_workers
       @all_workers_started = false
       signal_workers("HUP")

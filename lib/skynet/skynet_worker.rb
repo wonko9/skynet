@@ -1,9 +1,7 @@
-class Skynet
-  
+class Skynet  
   class Worker
 
-    include SkynetDebugger
-    
+    include SkynetDebugger    
     include Skynet::GuidGenerator
 
     RETRY_TIME = 2
@@ -32,19 +30,19 @@ class Skynet
     end
     
     def initialize(worker_type=:any)
-      @worker_id = get_unique_id(1).to_i
-			@mq = Skynet::MessageQueue.new
-			@worker_type = worker_type.to_sym
-      @processed = 0
+      @worker_id    = get_unique_id(1).to_i
+      @mq           = Skynet::MessageQueue.new
+      @worker_type  = worker_type.to_sym
+      @processed    = 0
       debug "THIS WORKER TAKES #{worker_type}"
 
-	    @worker_info = { 
-	      :hostname   => hostname,
-	      :process_id => process_id,
-        :worker_type => payload_type, 
-        :worker_id  => worker_id,
-        :version    => mq.get_worker_version
-	    }
+      @worker_info = { 
+        :hostname     => hostname,
+        :process_id   => process_id,
+        :worker_type  => payload_type, 
+        :worker_id    => worker_id,
+        :version      => mq.get_worker_version
+      }
     end
 
     def process_id
@@ -105,7 +103,7 @@ class Skynet
         @worker_info.merge({
           :name       => "waiting for #{@worker_type}",
           :processed  => 0,
-          :started_at    => Time.now.to_i
+          :started_at => Time.now.to_i
         })
       )
     end
@@ -123,7 +121,7 @@ class Skynet
         @worker_info.merge({
           :task_id       => 0,
           :job_id        => 0,
-          :name       => "waiting for #{@worker_type}",
+          :name          => "waiting for #{@worker_type}",
           :processed     => @processed,
           :map_or_reduce => nil,
           :started_at    => Time.now.to_i
