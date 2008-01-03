@@ -1,11 +1,11 @@
 h1. skynet
 
-h1. &#x2192; 'skynet'
+<a href="http://rubyforge.org/projects/skynet/">RubyForge Home</a><br />
+<a href="doc/index.html">Documentation</a>
 
+h2. What is Skynet
 
-h2. Getting Started
-
-Skynet is an open source Ruby implementation of Google's Map/Reduce framework, created at Geni. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.
+Skynet is an open source Ruby implementation of Google's Map/Reduce framework, created at Geni.com. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.
 
 Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed system with no single point of failure. It uses a "peer recovery" system where workers watch out for each other. If a worker dies or fails for any reason, another worker will notice and pick up that task. Skynet also has no special 'master' servers, only workers which can act as a master for any task at any time. Even these master tasks can fail and will be picked up by other workers.
 
@@ -32,9 +32,10 @@ This starts a skynet tuple space message queue and 4 workers.   You can now run 
   $ skynet_console
 
 Here are some commands you can run.  
-  > stats
-  > manager.worker_pids
-  > [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)
+
+  $ stats
+  $ manager.worker_pids
+  $ [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)
   
 That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It's not a very useful task, but it shows how easy it is to use.
 
