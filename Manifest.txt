@@ -63,3 +63,8 @@ website/index.txt
 website/javascripts/rounded_corners_lite.inc.js
 website/stylesheets/screen.css
 website/template.rhtml
+website_old/index.html
+website_old/index.txt
+website_old/javascripts/rounded_corners_lite.inc.js
+website_old/stylesheets/screen.css
+website_old/template.rhtml

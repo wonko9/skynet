@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <link rel="stylesheet" href="stylesheets/screen.css" type="text/css" media="screen" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>
+      skynet
+  </title>
+  <script src="javascripts/rounded_corners_lite.inc.js" type="text/javascript"></script>
+<style>
+
+</style>
+  <script type="text/javascript">
+    window.onload = function() {
+      settings = {
+          tl: { radius: 10 },
+          tr: { radius: 10 },
+          bl: { radius: 10 },
+          br: { radius: 10 },
+          antiAlias: true,
+          autoPad: true,
+          validTags: ["div"]
+      }
+      var versionBox = new curvyCorners(settings, document.getElementById("version"));
+      versionBox.applyCornersToAll();
+    }
+  </script>
+</head>
+<body>
+<div id="main">
+
+    <h1>skynet</h1>
+    <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/skynet"; return false'>
+      <p>Get Version</p>
+      <a href="http://rubyforge.org/projects/skynet" class="numbers">0.9.1</a>
+    </div>
+    <h1>&#x2192; &#8216;skynet&#8217;</h1>
+
+
+	<h2>Getting Started</h2>
+
+
+	<p>Skynet is an open source Ruby implementation of Google&#8217;s Map/Reduce framework, created at Geni. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.</p>
+
+
+	<p>Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed system with no single point of failure. It uses a &#8220;peer recovery&#8221; system where workers watch out for each other. If a worker dies or fails for any reason, another worker will notice and pick up that task. Skynet also has no special &#8216;master&#8217; servers, only workers which can act as a master for any task at any time. Even these master tasks can fail and will be picked up by other workers.</p>
+
+
+	<h2>Installing</h2>
+
+
+	<p>Skynet can be installed via RubyGems:</p>
+
+
+	<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">skynet</span></pre></p>
+
+
+	<h2><span class="caps">GETTING STARTED</span></h2>
+
+
+	<p>Skynet works by putting &#8220;tasks&#8221; on a message queue which are picked up by skynet workers, who execute the tasks, then put their results back on the message queue.   Skynet works best when it runs with your code.  For example, you might have a rails app and want some code you&#8217;ve already written to run asynchronously or in a distributed way.   Skynet can run within your code by installing a skynet launcher into your app.   Running this skynet launcher within your app guarantees all skynet workers will have access to your code.   This will be covered later.</p>
+
+
+	<p>Skynet currently supports 2 message queue systems, TupleSpace and Mysql.   By default, the TupleSpace queue is used as it is the easiest to set up, though it is less powerful and less scaleable for large installations.</p>
+
+
+	<h2><span class="caps">RUNING SKYNET FOR THE FIRST TIME</span></h2>
+
+
+	<p>Since Skynet is a distributed system, it requires you have a skynet message queue as well as any number of skynet workers running.  To start a skynet message queue and a small number of workers:</p>
+
+
+	<pre><code>$ skynet</code></pre>
+
+
+	<p>This starts a skynet tuple space message queue and 4 workers.   You can now run the Skynet Console to play with skynet a little.</p>
+
+
+	<pre><code>$ skynet_console</code></pre>
+
+
+	<p>Here are some commands you can run.  
+  &gt; stats
+  &gt; manager.worker_pids
+  &gt; [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)</p>
+
+
+	<p>That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It&#8217;s not a very useful task, but it shows how easy it is to use.</p>
+
+
+	<h2><span class="caps">RUNING SKYNET IN YOUR APPLICATION</span></h2>
+
+
+	<p>To be really useful, you&#8217;ll want to run skynet in your own application.   To do that run:</p>
+
+
+	<pre><code>$ skynet_install [--rails] YOUR_APP_DIRECTORY</code></pre>
+
+
+	<p>If you pass&#8212;rails it will assume it is installing in a rails app.   Once it is installed in your application, you can run skynet with</p>
+
+
+	<pre><code>$ ./script/skynet
+$ ./script/skynet_console</code></pre>
+
+
+	<h2><span class="caps">USAGE</span>:</h2>
+
+
+	<p>Skynet was designed to make doing easy things easy and hard things possible.   The easiest way to use skynet is to create a new class with a self.map class method.  You can optionally include self.reduce, self.reduce_partitioner, self.map_partitioner as well.  Each of those methods should expect a single array (regardless of what data you pass).   Then, simple create an array and call mapreduce on it passing your class name.   Skynet will figure out which methods your class supports and use them accordingly.</p>
+
+
+	<h2><span class="caps">USING SKYNET IN RAILS</span></h2>
+
+
+	<p>Skynet includes a few additions to ActiveRecord that are very powerful.</p>
+
+
+	<h3>distributed_find</h3>
+
+
+	<pre><code>$ YourModel.distributed_find(:all).each(YourClass)</code></pre>
+
+
+	<p>or</p>
+
+
+	<pre><code>$ YourModel.distributed_find(:all).each(:somemethod)</code></pre>
+
+
+	<p>In the first example, a find is &#8216;virtually&#8217; run with your model class, and the results are distributed to the skynet workers.  If you&#8217;ve implemented a self.map method in YourClass, the retrieved objects will be passed (as arrays) on all the workers.</p>
+
+
+	<p>In the second example, once the objects of YourModel are distributed, each worker merely calls :somemethod against each object.</p>
+
+
+	<h3>send_later</h3>
+
+
+	<pre><code>$ model_object.send_later(:method,options,:save)</code></pre>
+
+
+	<p>Sometimes you have a method you want to call on a model asynchronously.  Using :send_later you can call a method, pass it options, and decide whether you want Skynet to save that model or not once its done calling your method.</p>
+
+
+	<h2>Contact</h2>
+
+
+	<p>Comments are welcome. Send an email to <a href="mailto:adam@geni.com">Adam Pisoni</a></p>
+
+
+	<h2><span class="caps">LICENSE</span>:</h2>
+
+
+	<p>(The <span class="caps">MIT</span> License)</p>
+
+
+	<p>Copyright&#169; 2007 Adam Pisoni, Geni.com</p>
+
+
+	<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+&#8220;Software&#8221;), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+
+	<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+
+	<p><span class="caps">THE SOFTWARE IS PROVIDED</span> &#8220;AS IS&#8221;, <span class="caps">WITHOUT WARRANTY OF ANY KIND</span>,
+<span class="caps">EXPRESS OR IMPLIED</span>, INCLUDING <span class="caps">BUT NOT LIMITED TO THE WARRANTIES OF</span>
+<span class="caps">MERCHANTABILITY</span>, FITNESS <span class="caps">FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT</span>.
+<span class="caps">IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY</span>
+<span class="caps">CLAIM</span>, DAMAGES <span class="caps">OR OTHER LIABILITY</span>, WHETHER <span class="caps">IN AN ACTION OF CONTRACT</span>,
+<span class="caps">TORT OR OTHERWISE</span>, ARISING <span class="caps">FROM</span>, OUT <span class="caps">OF OR IN CONNECTION WITH THE</span>
+<span class="caps">SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE</span>.</p>
+    <p class="coda">
+      <a href="FIXME email">FIXME full name</a>, 2nd January 2008<br>
+      Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
+    </p>
+</div>
+
+<!-- insert site tracking codes here, like Google Urchin -->
+
+</body>
+</html>
