@@ -10,16 +10,16 @@ class ActiveRecord::Base
     data[:opts] = opts.to_yaml if opts
     
     jobopts = {
-      :solo      => true,
-      :map_tasks => 1,
-      :map_data => [data],
-      :name => "send_later #{self.class}##{method}",
-      :map_name => "",
-      :map_timeout      => 1.hour,
-      :reduce_timeout   => 1.hour,
-      :master_timeout   => 8.hours,
+      :single                => true,
+      :map_tasks             => 1,
+      :map_data              => [data],
+      :name                  => "send_later #{self.class}##{method}",
+      :map_name              => "",
+      :map_timeout           => 1.hour,
+      :reduce_timeout        => 1.hour,
+      :master_timeout        => 8.hours,
       :master_result_timeout => 1.minute,
-      :map_reduce_class     =>  Skynet::ActiveRecordAsync
+      :map_reduce_class      =>  Skynet::ActiveRecordAsync
     }   
     job = Skynet::AsyncJob.new(jobopts)
     job.run_master
