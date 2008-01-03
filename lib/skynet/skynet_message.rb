@@ -26,8 +26,12 @@ class Skynet
 
     self.fields.values.each do |method| 
       next if method == :payload
+      next if method == :tasktype
+      next if method == :payload_type
       attr_accessor method
     end
+    
+    attr_reader :payload_type, :tasktype
   
     def initialize(opts)
       if opts.is_a?(Array)
@@ -269,7 +273,6 @@ class Skynet
   class WorkerVersionMessage < Skynet::Message
     
     self.fields = self.superclass.fields
-    self.fields.values.each { |method| attr_accessor method }
   
     def initialize(opts)
       super
