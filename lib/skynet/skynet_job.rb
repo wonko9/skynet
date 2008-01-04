@@ -1,19 +1,3 @@
-# require 'ruby2ruby'   # XXX this will break unless people have the fix to Ruby2Ruby
-##### ruby2ruby fix from ruby2ruby.rb ############
-### XXX This is bad.  Some people rely on an exception being thrown if a method is missing! BULLSHIT!
-# class NilClass # Objective-C trick
-  # def method_missing(msg, *args, &block)
-  #   nil
-  # end
-# end
-##############################
-
-# Users should create instances of this class. Rather than subclassing,
-# jobs are specialized by assigning lambdas to map, reduce, and partition.
-# This allows the instance to easily create sub-tasks and marshal the map
-# and reduce code for sending to workers.
-#
-
 class Skynet		
   class Job
     include SkynetDebugger
@@ -47,31 +31,101 @@ class Skynet
       "JOB"
     end
 
-    def initialize(opts = {})                            
-      @name                  = opts[:name]                  
-      @map_name              = opts[:map_name]              
-      @reduce_name           = opts[:reduce_name]           
-      @silent                = opts[:silent]                
-      @master                = opts[:master]                
-      @async                 = opts[:async]                 
-      @solo                  = opts[:solo]                  
-      @single                = opts[:single]                
-      @version               = opts[:version]               if opts[:version]
-      @map_tasks             = opts[:map_tasks]             || 2               
-      @reduce_tasks          = opts[:reduce_tasks]          || 1               
-      @map_timeout           = opts[:map_timeout]           || 60
-      @reduce_timeout        = opts[:reduce_timeout]        || 60
-      @master_timeout        = opts[:master_timeout]        || 60
-      @result_timeout        = opts[:result_timeout]        || 1200
-      @start_after           = opts[:start_after]           || 0               
-      @master_result_timeout = opts[:master_result_timeout] || 1200
+    # Skynet::Job is the main interface to Skynet.   You create a job object giving 
+    # it the starting data (map_data), along with what class has the map/reduce
+    # functions in it.   Even though Skynet is distributed, when you call run on
+    # a plain Skynet::Job, it will still block in your current process until it has completed
+    # your task.   If you want to go on to do other things you'll want to use Skynet::AsyncJob
+    # instead.  Skynet::AsyncJob has the same interface as Skynet::Job except you can call
+    # run_master (synonym for run) which will immediately return to you a job_id which you
+    # can later use to look up your result, if you care to see it.
+    #     
+    # There are many global configuration options which can be controlled through Skynet::CONFIG
+    #
+    # Example Usage:
+    # 
+    #   class MapReduceTest
+    #   
+    #     def self.run
+    #       job = Skynet::Job.new(
+    #         :map_tasks => 2, 
+    #         :reduce_tasks => 1,
+    #         :map_reduce_class => self,
+    #         :map_data => [OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 3})]
+    #       )    
+    #       results = job.run
+    #     end
+    #   
+    #     def self.map(profiles)
+    #       result = Array.new
+    #       profiles.each do |profile|
+    #         result << [profile.created_by, 1] if profile.created_by
+    #       end
+    #       result
+    #     end
+    #   
+    #     def self.reduce(pairs)
+    #       totals = Hash.new
+    #       pairs.each do |pair|
+    #         created_by, count = pair[0], pair[1]
+    #         totals[created_by] ||= 0
+    #         totals[created_by] += count
+    #       end
+    #       totals
+    #     end
+    #   end
+    # 
+    #   MapReduceTest.run
+    #
+    # There are many other options to control various defaults and timeouts.
+    #
+    # Options are:
+    # <tt>:map_data</tt>
+    #    map_data is an ARRAY of data Skynet::Job will split up and distribute among
+    #    your workers.  Even if your map_data is a single element, it must be passed as
+    #    a single element array.
+    #
+    # <tt>:map_reduce_class</tt>
+    #   Skynet::Job will look for class methods named self.map, self.reduce, self.map_partitioner, 
+    #   self.reduce_partitioner in your map_reduce_class.  The only method requires is self.map.
+    #   Each of these methods must accept an array.  Examples above.
+    #
+    # <tt>:name</tt>, <tt>:map_name</tt>, <tt>:reduce_name</tt>
+    #   These name methods are merely for debugging while watching the Skynet logs or the Skynet queue.
+    #   If you do not supply names, it will try and provide sensible ones based on your class names.
+    #
+    # TIMEOUTS
+    # <tt>:master_timeout</tt>, <tt>:map_timeout</tt>, <tt>:reduce_timeout</tt>, <tt>master_result_timeout</tt>, <tt>result_timeout</tt>
+    #   These control how long skynet should wait for particular actions to be finished.  
+    #   The master_timeout controls how long the master should wait for ALL map/reduce tasks ie. the entire job to finish.
+    #   The master_result_timeout controls how long the final result should wait in the queue before being expired.
+    #   The map and reduce timeouts control how long individual map and reduce tasks shoudl take.
+    #   
+    def initialize(options = {})                            
+      @map_data              = options[:map_data]
+      @name                  = options[:name]                  
+      @map_name              = options[:map_name]              
+      @reduce_name           = options[:reduce_name]           
+      @silent                = options[:silent]                
+      @master                = options[:master]                
+      @async                 = options[:async]                 
+      @solo                  = options[:solo]                  
+      @single                = options[:single]                
+      @version               = options[:version]               if options[:version]
+      @map_tasks             = options[:map_tasks]             || 2               
+      @reduce_tasks          = options[:reduce_tasks]          || 1               
+      @map_timeout           = options[:map_timeout]           || 60
+      @reduce_timeout        = options[:reduce_timeout]        || 60
+      @master_timeout        = options[:master_timeout]        || 60
+      @result_timeout        = options[:result_timeout]        || 1200
+      @start_after           = options[:start_after]           || 0               
+      @master_result_timeout = options[:master_result_timeout] || 1200
                   
-      @map_data = opts[:map_data]
-      if opts[:map_reduce_class]
-        self.map_reduce_class = opts[:map_reduce_class]
+      if options[:map_reduce_class]
+        self.map_reduce_class = options[:map_reduce_class]
       else
-        self.map    = opts[:map] if opts[:map]
-        self.reduce = opts[:reduce] if opts[:reduce]
+        self.map    = options[:map] if options[:map]
+        self.reduce = options[:reduce] if options[:reduce]
       end
 
       @job_id = task_id
@@ -427,9 +481,9 @@ class Skynet
            
    ## XXX Partitioning doesn't work yet!!!!!
     
-    def initialize(opts = {})
-      opts[:async] = true
-      super(opts)      
+    def initialize(options = {})
+      options[:async] = true
+      super(options)      
     end
 
 
@@ -605,3 +659,13 @@ class Skynet
   end
   
 end
+
+# require 'ruby2ruby'   # XXX this will break unless people have the fix to Ruby2Ruby
+##### ruby2ruby fix from ruby2ruby.rb ############
+### XXX This is bad.  Some people rely on an exception being thrown if a method is missing! BULLSHIT!
+# class NilClass # Objective-C trick
+  # def method_missing(msg, *args, &block)
+  #   nil
+  # end
+# end
+##############################

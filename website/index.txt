@@ -1,6 +1,6 @@
 h1. skynet
 
-<a href="http://rubyforge.org/projects/skynet/">RubyForge Home</a><br />
+<a href="http://rubyforge.org/projects/skynet/">Skynet RubyForge Home</a><br />
 <a href="doc/index.html">Documentation</a>
 
 h2. What is Skynet
@@ -76,6 +76,38 @@ h3. send_later
   $ model_object.send_later(:method,options,:save)
   
 Sometimes you have a method you want to call on a model asynchronously.  Using :send_later you can call a method, pass it options, and decide whether you want Skynet to save that model or not once its done calling your method.
+
+h2. Creating Skynet Jobs
+
+The main interface to Skynet is through Skynet::AsyncJob or Skynet::Job
+
+  job = Skynet::AsyncJob.new(options)
+  job.run_master
+  
+There are many options you can pass or change once you have a job object.
+
+  :map_data
+  :map_reduce_class
+  :name
+  :map_name
+  :reduce_name
+  :master                
+  :async                 
+  :solo                  
+  :single
+  :version
+  :map_tasks
+  :reduce_tasks
+  :map_timeout
+  :reduce_timeout
+  :master_timeout
+  :result_timeout
+  :start_after
+  :master_result_timeout
+  
+Most of the time, you will only need to pass a map_reduce_class and map_data.  All other options just give you finer grain control.   map_data must be an array.   The map_reduce_class must AT LEAST implement a self.map class method.  It may also implement self.reduce, self.reduce_partitioner, and self.map_partitioner.  Skynet will assume it can use all of those methods in the map_reduce_class you pass.
+
+Your map and reduce class methods should ALWAYS assume they are being passed an array.  Your map method must always return an array as well.
 
 h2. Contact
 

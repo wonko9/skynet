@@ -169,7 +169,7 @@ class Skynet
           if @die             
             exit                                  
           elsif @respawn
-            raise Skynet::Worker::RespawnWorker.new 
+            raise Skynet::Worker::RespawnWorker.new("Caught TERM")
           end
 
           if local_mem = max_memory_reached?
@@ -221,14 +221,14 @@ class Skynet
           # debug "STEP 6.1 RESULT_MESSAGE:", result_message
           notify_task_complete          
         rescue Skynet::Worker::RespawnWorker => e  
-          info "Respawning and taking worker status"
+          info "Respawning and taking worker status #{e.message}"
           notify_worker_stop
           raise e          
         rescue Skynet::RequestExpiredError => e
           # debug "request expired"
           if new_version_respawn?
             notify_worker_stop
-            raise Skynet::Worker::RespawnWorker.new
+            raise Skynet::Worker::RespawnWorker.new(e.message)
           end
           sleep 1
           # debug "WORKER [#{$$}] LOOPING AGAIN"
@@ -369,7 +369,7 @@ class Skynet
         fatal e.message
         exit          
       rescue Skynet::Worker::RespawnWorker => e
-        warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING"
+        warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING #{e.message}"
         cmd = "RAILS_ENV=#{RAILS_ENV} ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]}"
         cmd << "-r #{options[:required_libs].join(' -r ')}" if options[:required_libs] and not options[:required_libs].empty?
         pid = fork_and_exec(cmd)

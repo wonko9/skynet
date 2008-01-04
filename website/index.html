@@ -35,7 +35,7 @@
       <p>Get Version</p>
       <a href="http://rubyforge.org/projects/skynet" class="numbers">0.9.1</a>
     </div>
-    <p><a href="http://rubyforge.org/projects/skynet/">RubyForge Home</a><br />
+    <p><a href="http://rubyforge.org/projects/skynet/">Skynet RubyForge Home</a><br />
 <a href="doc/index.html">Documentation</a></p>
 
 
@@ -147,6 +147,45 @@ $ ./script/skynet_console</code></pre>
 	<p>Sometimes you have a method you want to call on a model asynchronously.  Using :send_later you can call a method, pass it options, and decide whether you want Skynet to save that model or not once its done calling your method.</p>
 
 
+	<h2>Creating Skynet Jobs</h2>
+
+
+	<p>The main interface to Skynet is through Skynet::AsyncJob or Skynet::Job</p>
+
+
+	<pre><code>job = Skynet::AsyncJob.new(options)
+job.run_master</code></pre>
+
+
+	<p>There are many options you can pass or change once you have a job object.</p>
+
+
+	<pre><code>:map_data
+:map_reduce_class
+:name
+:map_name
+:reduce_name
+:master                
+:async                 
+:solo                  
+:single
+:version
+:map_tasks
+:reduce_tasks
+:map_timeout
+:reduce_timeout
+:master_timeout
+:result_timeout
+:start_after
+:master_result_timeout</code></pre>
+
+
+	<p>Most of the time, you will only need to pass a map_reduce_class and map_data.  All other options just give you finer grain control.   map_data must be an array.   The map_reduce_class must <span class="caps">AT LEAST</span> implement a self.map class method.  It may also implement self.reduce, self.reduce_partitioner, and self.map_partitioner.  Skynet will assume it can use all of those methods in the map_reduce_class you pass.</p>
+
+
+	<p>Your map and reduce class methods should <span class="caps">ALWAYS</span> assume they are being passed an array.  Your map method must always return an array as well.</p>
+
+
 	<h2>Contact</h2>
 
 
@@ -183,7 +222,7 @@ included in all copies or substantial portions of the Software.</p>
 <span class="caps">TORT OR OTHERWISE</span>, ARISING <span class="caps">FROM</span>, OUT <span class="caps">OF OR IN CONNECTION WITH THE</span>
 <span class="caps">SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE</span>.</p>
     <p class="coda">
-      <a href="FIXME email">FIXME full name</a>, 2nd January 2008<br>
+      <a href="mailto:apisoni@geni.com">Adam Pisoni</a>, 2nd January 2008<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>

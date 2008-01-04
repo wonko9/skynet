@@ -56,4 +56,63 @@ class Skynet
     end
     return result
   end
+  
+  # Skynet has many global configuration options.
+  # You can access specific options via Skynet::CONFIG[:OPTION] = ?
+  # You can set many options via                                          
+  #
+  #    Skynet.configure(:OPTION => option, :ANOTHEROPTION => anotheroption)
+  #
+  # If you want specific configuration to only apply to a block of code you can pass configure a block
+  #
+  #    Skynet.configure(:SOMEOPTION => 'value') do
+  #       run code here
+  #    end
+  #
+  # Config Options and current defaults:
+  #   :ENABLE                            => true,
+  #   :SOLO                              => false,
+  #   :SKYNET_LOG_DIR                    => LOGDIR,
+  #   :SKYNET_PID_DIR                    => "/tmp",
+  #   :SKYNET_PIDS_FILE                  => "/tmp/skynet.pid",
+  #   :SKYNET_LOG_FILE                   => STDOUT,
+  #   :SKYNET_LOG_LEVEL                  => Logger::ERROR,
+  #   :SKYNET_LOCAL_MANAGER_URL          => "druby://localhost:40000",
+  #   :TUPLESPACE_DRBURIS              => ["druby://localhost:47647"]
+  #   :USE_RINGSERVER                    => true,
+  #   :SERVER_HOSTS                      => ["localhost:7647"],
+  #   :MESSAGE_QUEUE_ADAPTER             => "Skynet::MessageQueueAdapter::TupleSpace",
+  #   :QUEUE_DATABASE                  => "skynet_queue",
+  #   :MYSQL_TEMPERATURE_CHANGE_SLEEP  => 40,
+  #   :NEXT_TASK_TIMEOUT                 => 60,
+  #   :WORKER_CHECK_DELAY                => 40,
+  #   :GUID_GENERATOR                  => nil,
+  #   :NUMBER_OF_WORKERS                 => 4,
+  #   :PERCENTAGE_OF_TASK_ONLY_WORKERS   => 0.7,
+  #   :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2
+  #
+  #  ENABLE turns Skynet on or off.
+  #
+  #  SOLO turns on SOLO mode where Skynet can run in the current process without workers.  
+  #  Its almost a Skynet emulation mode
+  #
+  # MESSAGE_QUEUE_ADAPTER
+  # Skynet comes with 2 message queue adaptors 
+  #   Skynet::MessageQueueAdapter::TupleSpace 
+  #   Skynet::MessageQueueAdapter::Mysql
+  # The default is TupleSpace which is an in memory database.
+  # The mysql MQ takes running a migration that comes with skynet_install
+  #
+  # The following only apply to the TupleSpace adapter
+  #   :TUPLESPACE_DRBURIS              => ["druby://localhost:47647"]
+  #   :USE_RINGSERVER                    => true,
+  #   :SERVER_HOSTS                      => ["localhost:7647"],
+  #
+  # The following only apply to the Mysql adapter
+  #   :QUEUE_DATABASE                  => "skynet_queue",
+  #   :MYSQL_TEMPERATURE_CHANGE_SLEEP  => 40,
+  #   :NEXT_TASK_TIMEOUT                 => 60,
+  #   :WORKER_CHECK_DELAY                => 40,  
+  class Config     
+  end
 end

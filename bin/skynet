@@ -1,5 +1,26 @@
 #!/usr/bin/env ruby
 
+# This is the main skynet starter script.
+# It can be used to start the skynet_tuplespace_server as well as all skynet workers.
+# It is important that this script has access to your code. If you want to run
+# skynet within your code you'll want to read about bin/skynet_install[link:files/bin/skynet_install.html]
+#
+# Usage: skynet [options]
+#     -w, --workers WORKERS            Number of workers to start.  The default is 4 and is stored in Skynet::CONFIG[:NUMBER_OF_WORKERS]
+#     -i, --increment-worker-version   Increment Worker Version
+#     -a, --add-workers WORKERS        Number of workers to add.
+#     -k, --remove-workers WORKERS     Number of workers to remove.
+#     -r, --required LIBRARY           Require the specified libraries
+#         --restart-all-workers        Restart All Workers                                      
+#         --restart-workers            Restart Workers                                      
+#
+# If you have chosen to use the TupleSpace message queue adapter this script will see if there is an available TS first
+# and start one if there is not.  You can also start the bin/skynet_tuplespace_server[link:files/bin/skynet_tuplespace_server.html] manually.  
+#
+# Running skynet starts a Skynet::Manager which in turn spawns the Skynet::Worker processes with the appropriate options.
+# You only need to run skynet once per machine.  If you want to add more workers, use the appropriate flags above to do so.
+# Only one manager should be running per machine.  The Skynet::Manager does not dole out tasks
+
 require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
 Skynet::CONFIG[:WORKER_CHECK_DELAY]     = 4
@@ -15,6 +36,5 @@ rescue Skynet::ConnectionError
     sleep 3
   end
 end
-
 
 Skynet.new
