@@ -94,13 +94,39 @@ class Skynet
     #   These name methods are merely for debugging while watching the Skynet logs or the Skynet queue.
     #   If you do not supply names, it will try and provide sensible ones based on your class names.
     #
-    # TIMEOUTS
+    # <tt>:master</tt> BOOL
+    #   Normally, skynet does all the work of distributing the map and reduce tasks in your current process.  
+    #   That is to say, the process that's holding that job object.  If you create a master job or use
+    #   run_master instead of just run it will turn the whole job itself into a task which will be picked
+    #   up by a worker.  That worker will then distribute the tasks for you.   All Skynet::AsyncJob jobs are
+    #   masters jobs.
+    #
     # <tt>:master_timeout</tt>, <tt>:map_timeout</tt>, <tt>:reduce_timeout</tt>, <tt>master_result_timeout</tt>, <tt>result_timeout</tt>
     #   These control how long skynet should wait for particular actions to be finished.  
     #   The master_timeout controls how long the master should wait for ALL map/reduce tasks ie. the entire job to finish.
     #   The master_result_timeout controls how long the final result should wait in the queue before being expired.
     #   The map and reduce timeouts control how long individual map and reduce tasks shoudl take.
-    #   
+    #
+    # <tt>:single</tt> BOOL
+    #   By default the master task distributes the map and reduce tasks to other workers.  
+    #   In single mode the master will take care of the map and reduce tasks by itself.
+    #   This is handy when you really want to just perform some single action asyncronously.
+    #   In this case you're merely using Skynet to postpone some action. In single mode, the
+    #   first worker that picks up your task will just complete it as opposed to trying to distribute
+    #   it to another worker.
+    #
+    # <tt>:start_after</tt> Time
+    #   Sometimes you may want to delay a task until after a certain time.
+    #
+    #<tt>:solo</tt> BOOL
+    #   One normally turns solo mode in in Skynet::Config using Skynet::CONFIG[:SOLO] = true
+    #   In solo mode, Skynet jobs do not add items to a Skynet queue. Instead they do all
+    #   work in place.  It's like a Skynet simulation mode.  It will complete all tasks
+    #   without Skynet running.  Great for testing.   
+    #
+    #<tt>:version</tt> Fixnum
+    #   Skynet workers run at a specific version and only look for jobs with their correct version.
+    #   If you do not provide a version the current version will be used.
     def initialize(options = {})                            
       @map_data              = options[:map_data]
       @name                  = options[:name]                  
@@ -477,9 +503,11 @@ class Skynet
         
   end ### END class Skynet::Job 
   
-  class AsyncJob < Skynet::Job
-           
-   ## XXX Partitioning doesn't work yet!!!!!
+  class AsyncJob < Skynet::Job           
+   # Skynet::AsyncJob is for Skynet jobs you want to run asyncronously.
+   # Normally when you run a Skynet::Job it blocks until the job is complete.
+   # Running an Async job merely returns a job_id which can be used later to retrieve the results.
+   # See Skynet::Job for full documentation
     
     def initialize(options = {})
       options[:async] = true
@@ -503,6 +531,7 @@ class Skynet
       @reduce = klass
     end 
     
+    # Run this skynet job, returning the job_id once the job is queued.
     def run_master
       if solo?
         run_job
@@ -549,6 +578,7 @@ class Skynet
       end
     end
     
+    # Synonym for run_master
     def run
       if solo?
         super
@@ -560,7 +590,6 @@ class Skynet
   end ### END class Skynet::AsyncJob 
 
   # Collection of partitioning utilities
-  #
   module Partitioner
   
     # Split one block of data into partitions
@@ -629,8 +658,7 @@ class Skynet
         partitioned_data
       end
     end
-  
-  
+    
     # Smarter partitioner for array data, generates simple sum of array[0]
     # and ensures that all arrays sharing that key go into the same partition.
     #

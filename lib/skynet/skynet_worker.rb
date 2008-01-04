@@ -225,13 +225,14 @@ class Skynet
           notify_worker_stop
           raise e          
         rescue Skynet::RequestExpiredError => e
-          # debug "request expired"
-          if new_version_respawn?
-            notify_worker_stop
-            raise Skynet::Worker::RespawnWorker.new(e.message)
-          end
+
+          ## This caused big problems
+          # if new_version_respawn?
+          #   notify_worker_stop
+          #   raise Skynet::Worker::RespawnWorker.new("New version respawn after Skynet::RequestExpiredError #{e.backtrace.join("\n")}")
+          # end
+
           sleep 1
-          # debug "WORKER [#{$$}] LOOPING AGAIN"
           next
         rescue Skynet::ConnectionError, DRb::DRbConnError => e
           conerror += 1

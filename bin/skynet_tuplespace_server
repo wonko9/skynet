@@ -1,5 +1,16 @@
 #!/usr/bin/env ruby
 
+# SkynetTupleSpace server is one of the message queues you can use with Skynet.   Make sure you set:
+#   Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER] = "Skynet::MessageQueueAdapter::TupleSpace"
+#
+# Usage: skynet_tuplespace_server (start|stop|run) [options]
+#     -t, --ontop TRUE                 Dont Daemonize
+#     -p, --port PORT                  Port to listen on. default 7647
+#     -o, --log LOGFILE                Logfile to log to
+#     -l, --loglevel LOGLEVEL          Log level defaults to DEBUG
+#     -d, --piddir PIDDIR              Directory to put pidfile
+#     -u, --drburi Drb URI             What DRbURI to use
+
 require 'rubygems'
 require 'daemons'
 require 'pp'

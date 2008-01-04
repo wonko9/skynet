@@ -10,7 +10,7 @@ Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed sys
 
 == DOCUMENTATION
 
-Feel free to read on if you want more of an overview of Skynet. More specific documentation can be found here:
+Feel free to read on if you want more of an overview of Skynet with some specific examples. More specific documentation can be found here:
 
 Skynet::Job, Skynet::Config, bin/skynet[link:files/bin/skynet.html], bin/skynet_install[link:files/bin/skynet_install.html]
 
@@ -49,7 +49,7 @@ Since Skynet is a distributed system, it requires you have a skynet message queu
 
   $ skynet
 
-This starts a skynet tuple space message queue and 4 workers.   You can now run the Skynet Console to play with skynet a little.
+This starts a skynet tuple space message queue and 4 workers.   You can now run the skynet_console[link:files/bin/skynet_console.html] to play with skynet a little.
 
   $ skynet_console
 
@@ -101,30 +101,14 @@ The main interface to Skynet is through Skynet::AsyncJob or Skynet::Job
   job = Skynet::AsyncJob.new(options)
   job.run_master
   
-There are many options you can pass or change once you have a job object.
-
-  :map_data
-  :map_reduce_class
-  :name
-  :map_name
-  :reduce_name
-  :master                
-  :async                 
-  :solo                  
-  :single
-  :version
-  :map_tasks
-  :reduce_tasks
-  :map_timeout
-  :reduce_timeout
-  :master_timeout
-  :result_timeout
-  :start_after
-  :master_result_timeout
+There are many options you can pass or change once you have a job object.  See Skynet::Job for more info.
   
 Most of the time, you will only need to pass a map_reduce_class and map_data.  All other options just give you finer grain control.   map_data must be an array.   The map_reduce_class must AT LEAST implement a self.map class method.  It may also implement self.reduce, self.reduce_partitioner, and self.map_partitioner.  Skynet will assume it can use all of those methods in the map_reduce_class you pass.
 
 Your map and reduce class methods should ALWAYS assume they are being passed an array.  Your map method must always return an array as well.
+
+== CONTACT:
+  Adam Pisoni, Geni.com (apisoni at geni.com)
 
 == LICENSE:
 

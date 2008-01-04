@@ -20,6 +20,9 @@
 # Running skynet starts a Skynet::Manager which in turn spawns the Skynet::Worker processes with the appropriate options.
 # You only need to run skynet once per machine.  If you want to add more workers, use the appropriate flags above to do so.
 # Only one manager should be running per machine.  The Skynet::Manager does not dole out tasks
+#
+# You should set all of your Skynet::CONFIG (or Skynet.configure()) options here (or in one of your environment files.)
+# See Skynet::Config for more information on configuration options.
 
 require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 

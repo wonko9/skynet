@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby -w
 
-# Rinda RingServer
-
 require 'rinda/ring'
 require 'rinda/tuplespace'
 require 'rubygems'
