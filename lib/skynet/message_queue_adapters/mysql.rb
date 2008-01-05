@@ -552,18 +552,25 @@ class Skynet
 #        "POW(#{(rand(40) + 40) * 0.01})"
 # its almost like the temperature table needs to store the POW and adjust that to be adaptive.  Like some % of the time it
 # uses the one in the table, and some % it tries a new one and scores it.
-        temperature = SkynetWorkerQueue.connection.select_value(%{select (
-          CASE WHEN (@t:=FLOOR(
-          POW(@c:=(SELECT count(*) FROM #{message_queue_table} WHERE #{conditions}
-        ),#{Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW]}))) < 1 THEN 1 ELSE @t END) from skynet_queue_temperature WHERE #{temp_q_conditions} 
-        })
-        if temperature
-          update("UPDATE skynet_queue_temperature SET temperature = #{temperature} WHERE #{temp_q_conditions}")
-          @@temperature[payload_type.to_sym] = temperature.to_f
-        else
-          sleepy = rand Skynet::CONFIG[:MYSQL_TEMPERATURE_CHANGE_SLEEP]
-          sleep sleepy          
-          @@temperature[payload_type.to_sym] = SkynetWorkerQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
+        begin
+          temperature = SkynetWorkerQueue.connection.select_value(%{select (
+            CASE WHEN (@t:=FLOOR(
+            POW(@c:=(SELECT count(*) FROM #{message_queue_table} WHERE #{conditions}
+          ),#{Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW]}))) < 1 THEN 1 ELSE @t END) from skynet_queue_temperature WHERE #{temp_q_conditions} 
+          })
+          if temperature
+            update("UPDATE skynet_queue_temperature SET temperature = #{temperature} WHERE #{temp_q_conditions}")
+            @@temperature[payload_type.to_sym] = temperature.to_f
+          else
+            sleepy = rand Skynet::CONFIG[:MYSQL_TEMPERATURE_CHANGE_SLEEP]
+            sleep sleepy          
+            @@temperature[payload_type.to_sym] = SkynetWorkerQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
+          end
+        rescue ActiveRecord::StatementInvalid => e
+          if e.message =~ /gone away/
+            ActiveRecord::Base.connection.reconnect!
+            SkynetWorkerQueue.connection.reconnect!
+          end
         end
         # update("UPDATE skynet_queue_temperature SET type = '#{payload_type}', temperature = CASE WHEN @t:=FLOOR(SQRT(select count(*) from #{message_queue_table} WHERE #{conditions})) < 1 THEN 1 ELSE @t END")
         # tasks = SkynetMessageQueue.connection.select_value("select count(*) from #{message_queue_table} WHERE #{conditions}").to_i

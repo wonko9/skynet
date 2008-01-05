@@ -254,7 +254,9 @@ class Skynet
           notify_worker_stop
           break
         rescue Exception => e
-          error "#{e.inspect} #{e.backtrace.join("\n")}"
+          error "skynet_worker.rb:#{__LINE__} #{e.inspect} #{e.backtrace.join("\n")}"
+          exceptions += 1
+          break if exceptions > 1000
           #mq.take(@next_worker_message.task_template,0.0005) if message
           if message
             mq.write_error(message,"#{e.inspect} #{e.backtrace.join("\n")}",(task.respond_to?(:result_timeout) ? task.result_timeout : 200))
