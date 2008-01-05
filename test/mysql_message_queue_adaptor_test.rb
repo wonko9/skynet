@@ -3,9 +3,6 @@ ENV["RAILS_ENV"] = "test"
 require 'test/unit'
 require '../lib/skynet.rb'
 
-
-# Tests for the partitioners.
-#
 class MysqlMessageQueueTest < Test::Unit::TestCase
   
   def setup

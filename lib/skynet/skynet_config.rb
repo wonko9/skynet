@@ -15,6 +15,8 @@ class Skynet
     # :MESSAGE_QUEUE_ADAPTER           => "Skynet::MessageQueueAdapter::Mysql",
     # :QUEUE_DATABASE                  => "skynet_queue",
     # :MYSQL_TEMPERATURE_CHANGE_SLEEP  => 40,
+    # :MYSQL_MESSAGE_QUEUE_TAPLE       => "skynet_message_queues",
+    # :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
     :NEXT_TASK_TIMEOUT                 => 60,
     :USE_RINGSERVER                    => true,
     :SERVER_HOSTS                      => ["localhost:7647"],
@@ -85,6 +87,9 @@ class Skynet
   #   :MESSAGE_QUEUE_ADAPTER             => "Skynet::MessageQueueAdapter::TupleSpace",
   #   :QUEUE_DATABASE                    => "skynet_queue",
   #   :MYSQL_TEMPERATURE_CHANGE_SLEEP    => 40,
+  #   :MYSQL_QUEUE_TEMP_POW              => 0.6,
+  #   :MYSQL_MESSAGE_QUEUE_TAPLE         => "skynet_message_queues",
+  #   :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
   #   :NEXT_TASK_TIMEOUT                 => 60,
   #   :WORKER_CHECK_DELAY                => 40,
   #   :GUID_GENERATOR                    => nil,
@@ -113,8 +118,11 @@ class Skynet
   # The following only apply to the Mysql adapter
   #   :QUEUE_DATABASE                    => "skynet_queue",
   #   :MYSQL_TEMPERATURE_CHANGE_SLEEP    => 40,
+  #   :MYSQL_QUEUE_TEMP_POW              => 0.6,
   #   :NEXT_TASK_TIMEOUT                 => 60,
   #   :WORKER_CHECK_DELAY                => 40,  
+  #   :MYSQL_MESSAGE_QUEUE_TAPLE         => "skynet_message_queues",
+  #   :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
 
   class Config     
   end

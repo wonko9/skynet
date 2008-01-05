@@ -47,10 +47,10 @@ class Skynet
         end
         @@db_set = true
       end
-
-      # def initialize
-      #   SkynetMessageQueue.connection.execute("set session TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
-      # end
+      
+      def message_queue_table
+        Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE] || SkynetMessageQueue.table_name
+      end
       
       def self.debug_class_desc
         "MYSQLMQ"
@@ -119,7 +119,7 @@ class Skynet
             next
           end
           ftm = message.fallback_task_message        
-          rows = update("update skynet_message_queues set iteration = #{ftm.iteration }, expire_time = #{ftm.expire_time} where iteration = #{message.iteration} and id = #{message_row.id}")
+          rows = update("update #{message_queue_table} set iteration = #{ftm.iteration }, expire_time = #{ftm.expire_time} where iteration = #{message.iteration} and id = #{message_row.id}")
             
           # message = nil if rows == 0
           return message if message
@@ -142,7 +142,7 @@ class Skynet
         timeout_sql = (timeout ? ", timeout = #{timeout}, expire_time = #{Time.now.to_f + timeout}" : '')
         rows = 0
         rows = update(%{
-          update skynet_message_queues 
+          update #{message_queue_table} 
           set tasktype = "#{message.tasktype}", 
           raw_payload = "#{::Mysql.escape_string(message.raw_payload)}",
           payload_type = "#{message.payload_type}",
@@ -274,7 +274,7 @@ class Skynet
       end
 
       def get_worker_version
-        # ver = SkynetWorkerQueue.connection.select_value("select min(version) from skynet_message_queues where tasktype = 'task'")
+        # ver = SkynetWorkerQueue.connection.select_value("select min(version) from #{message_queue_table} where tasktype = 'task'")
         ver = SkynetWorkerQueue.connection.select_value("select version from skynet_worker_queues where tasktype = 'workerversion'")
         if not ver
           set_worker_version(1)
@@ -289,7 +289,7 @@ class Skynet
       end       
 
       def delete_expired_messages
-        SkynetMessageQueue.connection.delete("delete from skynet_message_queues where expire_time BETWEEN 1 AND '#{Time.now.to_f}'")
+        SkynetMessageQueue.connection.delete("delete from #{message_queue_table} where expire_time BETWEEN 1 AND '#{Time.now.to_f}'")
       end
 
 # select hostname, iteration, count(id) as number_of_workers, count(iteration) as iteration, sum(processed) as processed, max(started_at) as most_recent_task_time from skynet_worker_queues where tasksubtype = 'worker' group by hostname, iteration;      
@@ -321,7 +321,7 @@ class Skynet
 
         stat_rows = SkynetWorkerQueue.connection.select_all(%{
           SELECT tasktype, payload_type, iteration, count(id) as number_of_tasks
-          FROM skynet_message_queues
+          FROM #{message_queue_table}
           GROUP BY tasktype, payload_type, iteration          
          })       
          # pp stat_rows
@@ -457,7 +457,7 @@ class Skynet
             
             sql = <<-SQL 
               SELECT *
-              FROM skynet_message_queues 
+              FROM #{message_queue_table} 
               WHERE #{conditions} #{temperature_sql}
               #{order_by}
               LIMIT 1
@@ -472,7 +472,7 @@ class Skynet
                 update_conditions << 'IS NULL'
               end
               rows = SkynetMessageQueue.connection.update(
-                "UPDATE skynet_message_queues set tran_id = #{transaction_id} WHERE #{update_conditions}"
+                "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE #{update_conditions}"
               )
               if rows < 1
                 old_temp = temperature(payload_type)
@@ -540,6 +540,8 @@ class Skynet
       def temperature(payload_type)
         @@temperature[payload_type.to_sym]
       end
+      
+      Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW] ||= 0.6
                
 ## try SQRT *2
 ## try POW 0.6 or .75
@@ -550,8 +552,8 @@ class Skynet
 # uses the one in the table, and some % it tries a new one and scores it.
         temperature = SkynetWorkerQueue.connection.select_value(%{select (
           CASE WHEN (@t:=FLOOR(
-          POW(@c:=(SELECT count(*) FROM skynet_message_queues WHERE #{conditions}
-        ),0.6))) < 1 THEN 1 ELSE @t END) from skynet_queue_temperature WHERE #{temp_q_conditions} 
+          POW(@c:=(SELECT count(*) FROM #{message_queue_table} WHERE #{conditions}
+        ),#{Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW]}))) < 1 THEN 1 ELSE @t END) from skynet_queue_temperature WHERE #{temp_q_conditions} 
         })
         if temperature
           update("UPDATE skynet_queue_temperature SET temperature = #{temperature} WHERE #{temp_q_conditions}")
@@ -561,8 +563,8 @@ class Skynet
           sleep sleepy          
           @@temperature[payload_type.to_sym] = SkynetWorkerQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
         end
-        # update("UPDATE skynet_queue_temperature SET type = '#{payload_type}', temperature = CASE WHEN @t:=FLOOR(SQRT(select count(*) from skynet_message_queues WHERE #{conditions})) < 1 THEN 1 ELSE @t END")
-        # tasks = SkynetMessageQueue.connection.select_value("select count(*) from skynet_message_queues WHERE #{conditions}").to_i
+        # update("UPDATE skynet_queue_temperature SET type = '#{payload_type}', temperature = CASE WHEN @t:=FLOOR(SQRT(select count(*) from #{message_queue_table} WHERE #{conditions})) < 1 THEN 1 ELSE @t END")
+        # tasks = SkynetMessageQueue.connection.select_value("select count(*) from #{message_queue_table} WHERE #{conditions}").to_i
         # sleep 4 if payload_type == :tasks and tasks < 100
         # @@temperature[payload_type.to_sym] = tasks ** 0.5
         # @@temperature[payload_type.to_sym] *= multiplier
