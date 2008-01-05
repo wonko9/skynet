@@ -61,7 +61,7 @@ class Skynet
     def check_started_workers
       workers = []                              
       begin
-        50.times do |ii|
+        100.times do |ii|
           workers = worker_queue
           warn "Checking started workers, #{workers.size} out of #{@number_of_workers} after the #{(ii+1)}th try..."
           break if workers.size >= @number_of_workers        

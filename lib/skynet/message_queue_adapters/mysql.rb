@@ -28,7 +28,6 @@ class Skynet
       SEARCH_FIELDS = [:tasktype, :task_id, :job_id, :payload_type, :expire_time, :iteration, :version] unless defined?(SEARCH_FIELDS)
       
       Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY] ||= 30
-
       
       @@db_set = false
       
@@ -266,26 +265,29 @@ class Skynet
 
       def set_worker_version(ver=nil)                      
         ver ||= 1
-        # SkynetWorkerQueue.transaction do
-          # SkynetWorkerQueue.connection.execute("delete from skynet_worker_queues where tasktype = 'workerversion'")
-        SkynetWorkerQueue.connection.insert("replace skynet_worker_queues (worker_id, tasktype, version) values (0, 'workerversion',#{ver})")          
-        # end
+        SkynetMessageQueue.connection.insert("replace #{message_queue_table} (tran_id, task_id, tasktype, version) values (0, 0, 'version',#{ver})")
         ver
       end
 
       def get_worker_version
-        # ver = SkynetWorkerQueue.connection.select_value("select min(version) from #{message_queue_table} where tasktype = 'task'")
-        ver = SkynetWorkerQueue.connection.select_value("select version from skynet_worker_queues where tasktype = 'workerversion'")
+        ver = SkynetMessageQueue.connection.select_value("select version from #{message_queue_table} where tran_id = 0 and tasktype = 'version'")
         if not ver
-          set_worker_version(1)
+          begin
+            SkynetMessageQueue.connection.insert("insert into #{message_queue_table} (tran_id, task_id, tasktype, version) values (0, 0, 'version', 1)")
+          rescue ActiveRecord::StatementInvalid => e
+            if e.message =~ /Duplicate/
+              return get_worker_version
+            else
+              raise e
+            end
+          end
           ver = 1
         end
         ver.to_i
       end
       
-
       def clear_outstanding_tasks
-        SkynetMessageQueue.destroy_all
+        SkynetMessageQueue.connection.delete("delete from #{message_queue_table} where tasktype = 'task'")
       end       
 
       def delete_expired_messages
