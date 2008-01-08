@@ -6,7 +6,9 @@ class Skynet
 
     RETRY_TIME = 2
     VERSION_CHECK_DELAY = 5
-    MAX_MEMORY = 500
+
+    Skynet::CONFIG[:WORKER_MAX_MEMORY] ||= 500
+
     MEMORY_CHECK_DELAY = 30
     MANAGER_PING_INTERVAL = 60
 
@@ -169,6 +171,9 @@ class Skynet
       loop do
         message = nil      
         begin               
+          if Skynet::CONFIG[:WORKER_MAX_PROCESSED] and Skynet::CONFIG[:WORKER_MAX_PROCESSED] > 0 and @processed >= Skynet::CONFIG[:WORKER_MAX_PROCESSED]
+            raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{local_mem} MAX: #{Skynet::CONFIG[:WORKER_MAX_MEMORY]}")
+          end
           if @die             
             exit                                  
           elsif @respawn
@@ -176,7 +181,7 @@ class Skynet
           end
 
           if local_mem = max_memory_reached?
-            raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{local_mem} MAX: #{MAX_MEMORY}")
+            raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{local_mem} MAX: #{Skynet::CONFIG[:WORKER_MAX_MEMORY]}")
           end
           
           if conerror > 0
@@ -287,7 +292,7 @@ class Skynet
       elsif Time.now > (@memchecktime + MEMORY_CHECK_DELAY)
         @memchecktime = Time.now
         local_mem = get_memory_size.to_i
-        return local_mem if local_mem > MAX_MEMORY
+        return local_mem if local_mem > Skynet::CONFIG[:WORKER_MAX_MEMORY]
       else
         false
       end

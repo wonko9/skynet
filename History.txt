@@ -23,6 +23,8 @@
 
 - Lots more tests.  Skynet::Job now has test. Skynet::Message has more tests.  Skynet::MessageQueueAdapter::Mysql has tests that run if you have a skynet_test database setup.
 
+- Workers now have a Skynet::CONFIG[:WORKER_MAX_PROCESSED] setting to control when to respawn based on how many that worker has processed.
+
 == 0.0.1 2007-12-16
 
 * 1 major enhancement:
