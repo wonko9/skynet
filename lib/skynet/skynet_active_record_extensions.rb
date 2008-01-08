@@ -15,11 +15,13 @@ class ActiveRecord::Base
       :map_data              => [data],
       :name                  => "send_later #{self.class}##{method}",
       :map_name              => "",
-      :map_timeout           => 1.hour,
-      :reduce_timeout        => 1.hour,
-      :master_timeout        => 8.hours,
+      :map_timeout           => 60,
+      :reduce_timeout        => 60,
+      :master_timeout        => 60,
       :master_result_timeout => 1.minute,
-      :map_reduce_class      =>  Skynet::ActiveRecordAsync
+      :map_reduce_class      =>  Skynet::ActiveRecordAsync,
+      :master_retry          => 0,
+      :map_retry             => 0
     }   
     job = Skynet::AsyncJob.new(jobopts)
     job.run_master
@@ -163,10 +165,12 @@ module ActiveRecord
         :map_data              => batches,
         :name                  => "each #{model_class} MASTER",
         :map_name              => "each #{model_class} MAP",
-        :map_timeout           => 1.hour,
-        :reduce_timeout        => 1.hour,
-        :master_timeout        => 8.hours,
-        :master_result_timeout => 1.minute        
+        :map_timeout           => 120,
+        :reduce_timeout        => 120,
+        :master_timeout        => 12.hours,
+        :master_result_timeout => 60,        
+        :master_retry          => 0,
+        :map_retry             => 0,
       }   
       if block_given?
         job = Skynet::Job.new(jobopts.merge(:map_reduce_class => "#{self.class}"))
