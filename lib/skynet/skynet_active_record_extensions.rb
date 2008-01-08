@@ -170,7 +170,7 @@ module ActiveRecord
         :master_timeout        => 12.hours,
         :master_result_timeout => 60,        
         :master_retry          => 0,
-        :map_retry             => 0,
+        :map_retry             => 0
       }   
       if block_given?
         job = Skynet::Job.new(jobopts.merge(:map_reduce_class => "#{self.class}"))
