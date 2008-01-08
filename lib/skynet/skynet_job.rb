@@ -518,7 +518,7 @@ class Skynet
     # Re-partition returning data for reduction, create reduce tasks
     def run_reduce(post_map_data=nil)    
       return post_map_data unless post_map_data and @reduce and reducers and reducers > 0
-      debug "RUN REDUCE 3.3 CREATED REDUCE TASKS #{display_info}"#, reduce_tasks
+      debug "RUN REDUCE 3.3 CREATED REDUCE TASKS #{display_info}", post_map_data
       results = nil
       
       # Reduce and return results
@@ -617,7 +617,9 @@ class Skynet
         FIELDS.each do |field|
           options[field] = begin
             case field
-            when (:map_name or :reduce_name)
+            when :async
+              false
+            when :map_name, :reduce_name
               self.send(field) || self.send(:name)
             else
               self.send(field) if self.send(field)

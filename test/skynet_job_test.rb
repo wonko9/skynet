@@ -49,8 +49,14 @@ class SkynetJobTest < Test::Unit::TestCase
     assert_equal master_job.reduce, self.class.to_s
     assert_equal master_job.reduce_partitioner, self.class.to_s
     Skynet::Job::FIELDS.each do |field|
-      next if field == :job_id or field == :single
-      assert_equal job.send(field), master_job.send(field), "Testing #{field}, jobfield: #{job.send(field)} mjobfield: #{master_job.send(field)}"
+      case field
+      when :async
+        nil
+      when :job_id, :single
+        next  
+      else
+        assert_equal job.send(field), master_job.send(field), "Testing #{field}, jobfield: #{job.send(field)} mjobfield: #{master_job.send(field)}"
+      end
     end
   end
   
