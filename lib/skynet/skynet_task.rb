@@ -84,8 +84,13 @@ class Skynet
           @data.each {|h|h.delete(:event_object)}                      
         end
         raise TimeoutError.new("TASK TIMED OUT! #{name} IT:[#{iteration}] timeout:#{@result_timeout} #{e.inspect} DATA: #{@data.inspect} #{e.backtrace.join("\n")}")
-      # rescue Exception => e
-      #   error "Error running task #{e.inspect} TASK:", self, e.backtrace.join("\n")
+
+      # ==========
+      # = XXX This rescue block is probably not necessary.  Just for debugging for now. =
+      # ==========
+      rescue Exception => e
+        error "Error running task #{e.inspect} TASK:", self, e.backtrace.join("\n")
+        raise e
       end
     end
     

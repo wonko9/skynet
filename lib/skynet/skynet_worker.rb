@@ -156,8 +156,9 @@ class Skynet
       @curver = nil
       # setup signal handlers for manager
       Signal.trap("HUP")  { @respawn = true }
+
       Signal.trap("TERM") {interrupt}
-      Signal.trap("INT") {interrupt}      
+      Signal.trap("INT")  { @die = true }
       
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
         
