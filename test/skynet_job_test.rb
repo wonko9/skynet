@@ -150,11 +150,78 @@ class SkynetJobTest < Test::Unit::TestCase
     results = job.gather_results(map_tasks,1,"hi")
     assert_equal [["works"]], results    
   end
+  
+  def test_run_local
+    job = Skynet::AsyncJob.new(
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [1], 
+      :mappers          => 1
+    )
+    map_tasks = job.map_tasks
+    results = job.run_local(map_tasks,"hi")
+    assert_equal [[1]], results    
+  end                          
+  
+  def test_run_local_errors
+    job = Skynet::AsyncJob.new(
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [:error], 
+      :mappers          => 1
+    )
+    map_tasks = job.map_tasks
+    errors = nil
+    begin
+      results = job.run_local(map_tasks,"hi")
+    rescue Skynet::Job::WorkerError => e
+      errors = 1
+    end          
+    assert errors
+  end    
+  
+  def test_keep_map_tasks
+    job = Skynet::Job.new(
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [1,2], 
+      :mappers          => 2,
+      :reducers         => 0,
+      :keep_map_tasks   => 3
+    )                
+    map_tasks = job.map_tasks
+    assert_equal 2, map_tasks.size
+    job.expects(:run_local).times(1).returns([])
+    job.run
+  end
 
-  def self.map(datas)
+  def test_keep_reduce_tasks
+    job = Skynet::Job.new(
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [1,2], 
+      :mappers          => 2,
+      :reducers         => 1,
+      :keep_map_tasks   => true,
+      :keep_reduce_tasks => 1
+    )                
+    map_tasks = job.map_tasks
+    assert_equal 2, map_tasks.size
+    job.expects(:run_local).times(2).returns([1,2])
+    job.run
+  end
+
+  def self.map(datas)        
+    if datas.first == :error
+      raise Exception.new("something bad happened")
+    else
+      return datas
+    end
   end                
+
   def self.reduce(datas)
   end
+
   def self.reduce_partitioner(post_map_data,num_reducers)
     Skynet::Partitioner::recombine_and_split.call(post_map_data, num_reducers) 
   end

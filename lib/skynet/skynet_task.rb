@@ -59,17 +59,6 @@ class Skynet
     def run(iteration=nil)
       info "running task #{name} TIMEOUT: #{result_timeout} task_id:#{task_id} MorR:#{map_or_reduce} PROCESS CLASS: #{@process.class}"
       begin
-        # ==========
-        # = XXX NEWSFEED HACK
-        # = SHOULD USE THE @result_timeout that comes with the task.
-        # = I'm not using it here cuz all these old tasks have the wrong timeouts.
-        # ==========
-        if @map_or_reduce == :master
-          @result_timeout = 200
-        elsif @process.class == String
-          @result_timeout = 120
-        end              
-        
         Timeout::timeout(@result_timeout) do
           if @process.class == Proc
             debug " - #{@map_or_reduce} using Proc"
@@ -95,8 +84,8 @@ class Skynet
           @data.each {|h|h.delete(:event_object)}                      
         end
         raise TimeoutError.new("TASK TIMED OUT! #{name} IT:[#{iteration}] timeout:#{@result_timeout} #{e.inspect} DATA: #{@data.inspect} #{e.backtrace.join("\n")}")
-      rescue Exception => e
-        error "Error running task #{e.inspect} TASK:", self, e.backtrace.join("\n")
+      # rescue Exception => e
+      #   error "Error running task #{e.inspect} TASK:", self, e.backtrace.join("\n")
       end
     end
     

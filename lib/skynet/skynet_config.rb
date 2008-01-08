@@ -28,7 +28,9 @@ class Skynet
     :MAX_RETRIES                        => 6,
     :DEFAULT_MASTER_RETRY              => 0,
     :DEFAULT_MAP_RETRY                 => 3,
-    :DEFAULT_REDUCE_RETRY              => 3
+    :DEFAULT_REDUCE_RETRY              => 3,
+    :KEEP_MAP_TASKS                    => false,
+    :KEEP_REDUCE_TASKS                 => false
   } unless defined?(CONFIG)
   
   
