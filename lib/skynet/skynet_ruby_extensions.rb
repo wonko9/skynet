@@ -7,7 +7,7 @@ module Enumerable
       data = self
     end
     jobopts = {
-      :map_tasks              => 20000,
+      :mappers                => 20000,
       :map_data               => data,
       :name                   => "#{klass} Enumerable MASTER",
       :map_name               => "#{klass} Enumerable MAP",

@@ -11,7 +11,7 @@ class ActiveRecord::Base
     
     jobopts = {
       :single                => true,
-      :map_tasks             => 1,
+      :mappers               => 1,
       :map_data              => [data],
       :name                  => "send_later #{self.class}##{method}",
       :map_name              => "",
@@ -159,15 +159,14 @@ module ActiveRecord
       
       job = nil
       jobopts = {
-        :map_tasks => 20000,
-        :map_data => batches,
-        :name => "each #{model_class} MASTER",
-        :map_name => "each #{model_class} MAP",
-        :map_timeout      => 1.hour,
-        :reduce_timeout   => 1.hour,
-        :master_timeout => 8.hours,
-        :master_result_timeout => 1.minute
-        
+        :mappers               => 20000,
+        :map_data              => batches,
+        :name                  => "each #{model_class} MASTER",
+        :map_name              => "each #{model_class} MAP",
+        :map_timeout           => 1.hour,
+        :reduce_timeout        => 1.hour,
+        :master_timeout        => 8.hours,
+        :master_result_timeout => 1.minute        
       }   
       if block_given?
         job = Skynet::Job.new(jobopts.merge(:map_reduce_class => "#{self.class}"))

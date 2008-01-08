@@ -21,7 +21,8 @@ class Skynet
       7  => :expiry,
       8  => :expire_time,
       9  => :iteration,
-      10 => :version
+      10 => :version,
+      11 => :retry
     }
 
     self.fields.values.each do |method| 
@@ -121,6 +122,7 @@ class Skynet
     end
 
     ####### TEMPLATES ############
+    
     def self.next_task_template(version=nil,payload_type=nil)
       fields.keys.sort.collect do |ii|
         field = fields[ii]
@@ -134,7 +136,7 @@ class Skynet
         when :payload_type
           payload_type
         when :iteration
-          (0..6)
+          (0..Skynet::CONFIG[:MAX_RETRIES])
         else
           nil
         end
@@ -233,7 +235,17 @@ class Skynet
        fields.values.each do |field|
          case field
          when :iteration
-           opts[:iteration]   = message.iteration + 1
+           if (message.retry and message.iteration >= message.retry)
+             opts[:iteration] = -1
+
+           # Originally I was gonna do this for map and reduce, but we don't know that here, just whether its a master.
+           elsif message.payload_type.to_sym == :master and Skynet::CONFIG[:DEFAULT_MASTER_RETRY] and message.iteration >= Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
+             opts[:iteration] = -1           
+           elsif Skynet::CONFIG[:MAX_RETRIES] and message.iteration >= Skynet::CONFIG[:MAX_RETRIES]
+             opts[:iteration] = -1           
+           else
+             opts[:iteration] = message.iteration + 1
+           end
          when :expire_time
            opts[:expire_time] = Time.now.to_i + message.expiry
          else
@@ -257,7 +269,7 @@ class Skynet
         when :drburi, :version, :task_id
           message.send(field)
         when :iteration
-          (1..20)
+          (1..Skynet::CONFIG[:MAX_RETRIES])
         else
           nil
         end

@@ -9,8 +9,8 @@ class Skynet
   class Manager
     include SkynetDebugger
 
-    Skynet::CONFIG[:PERCENTAGE_OF_TASK_ONLY_WORKERS]    ||= 0.7
-    Skynet::CONFIG[:PERCENTAGE_OF_MASTER_ONLY_WORKERS]  ||= 0.2
+    Skynet::CONFIG[:PERCENTAGE_OF_TASK_ONLY_WORKERS]    ||= 0.5
+    Skynet::CONFIG[:PERCENTAGE_OF_MASTER_ONLY_WORKERS]  ||= 0.3
                 
     def self.debug_class_desc
       "MANAGER"
@@ -128,10 +128,10 @@ class Skynet
                         
     def worker_shutdown(q_pids)
       if not @masters_dead
-        warn "Shutting down masters.  #{q_pids.size} workers still running." if q_pids.size > 0
         workers_to_kill = worker_queue.select do |w| 
           w.map_or_reduce == "master" and @workers_running.include?(w.process_id)
         end                           
+        warn "Shutting down masters.  #{q_pids.size} workers still running." if q_pids.size > 0
 
         worker_pids_to_kill = workers_to_kill.collect { |w| w.process_id }
         if worker_pids_to_kill and not worker_pids_to_kill.empty?

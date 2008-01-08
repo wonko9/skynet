@@ -2,6 +2,10 @@ ENV["RAILS_ENV"] = "test"
 
 require 'test/unit'
 require 'pp'        
+require '../lib/skynet.rb'
+require 'rubygems'
+
+require 'mocha'
 
 
 # Tests for the partitioners.
@@ -18,14 +22,21 @@ class SkynetManagerTest < Test::Unit::TestCase
       :ENABLE                         => false,
       # :SKYNET_PIDS_FILE               => File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pids"),
       :SKYNET_LOG_FILE                => STDOUT,
-      :SKYNET_LOG_LEVEL               => Logger::INFO,
-      :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
+      :SKYNET_LOG_LEVEL               => Logger::ERROR,
+      :TUPLESPACE_DRBURIS             => ["druby://localhost:47999"],
+      :USE_RINGSERVER                 => false,
+      :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::TupleSpace",
       :NEXT_TASK_TIMEOUT              => 1,
       :WORKER_CHECK_DELAY             => 0.5,
       :WORKER_WARMUP_TIME             => 0.5
-    )      
+    )                                                                        
+    @ts = Rinda::TupleSpace.new
+    @@ts ||= DRb.start_service(Skynet::CONFIG[:TUPLESPACE_DRBURIS].first, @ts)
+    
+    Skynet::MessageQueueAdapter::TupleSpace.stubs(:get_tuple_space).returns(@ts)
+    
     mq.clear_outstanding_tasks
-    mq.clear_worker_status
+    # mq.clear_worker_status
     @pids = []
     @pidfile = []
     
@@ -44,9 +55,9 @@ class SkynetManagerTest < Test::Unit::TestCase
     def @manager.fork
       newpid = SkynetManagerTest::PIDS.size + 1
       SkynetManagerTest::PIDS << newpid
-      worker = Skynet::Worker.new()
+      worker = Skynet::Worker.new(:any,{:process_id => newpid})
       worker.stubs(:process_id).returns(newpid)
-      worker.notify_worker_queue(:started)
+      worker.notify_worker_started
       newpid
     end
   end  
@@ -102,6 +113,6 @@ class SkynetManagerTest < Test::Unit::TestCase
   private
 
   def mq
-		Skynet::MessageQueueAdapter::Mysql.new
+		Skynet::MessageQueueAdapter::TupleSpace.new
   end
 end

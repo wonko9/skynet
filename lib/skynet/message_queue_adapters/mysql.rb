@@ -291,7 +291,7 @@ class Skynet
       end       
 
       def delete_expired_messages
-        SkynetMessageQueue.connection.delete("delete from #{message_queue_table} where expire_time BETWEEN 1 AND '#{Time.now.to_f}'")
+        SkynetMessageQueue.connection.delete("delete from #{message_queue_table} where (expire_time BETWEEN 1 AND '#{Time.now.to_f}') OR iteration = -1")
       end
 
 # select hostname, iteration, count(id) as number_of_workers, count(iteration) as iteration, sum(processed) as processed, max(started_at) as most_recent_task_time from skynet_worker_queues where tasksubtype = 'worker' group by hostname, iteration;      
@@ -303,22 +303,23 @@ class Skynet
 
       def stats
         stats = {
-          :servers            => {}, 
-          :results            => 0, 
-          :taken_tasks        => 0, 
-          :untaken_tasks      => 0,
-          :taken_master_tasks => 0,
-          :taken_task_tasks   => 0, 
+          :servers              => {}, 
+          :results              => 0, 
+          :taken_tasks          => 0, 
+          :untaken_tasks        => 0,
+          :taken_master_tasks   => 0,
+          :taken_task_tasks     => 0, 
           :untaken_master_tasks => 0,
           :untaken_task_tasks   => 0, 
-          :processed          => 0, 
-          :number_of_workers  => 0,
-          :active_workers     => 0,
-          :idle_workers       => 0,
-          :hosts              => 0,
-          :masters            => 0,
-          :taskworkers        => 0,
-          :time               => Time.now.to_f
+          :failed_tasks         => 0,
+          :processed            => 0, 
+          :number_of_workers    => 0,
+          :active_workers       => 0,
+          :idle_workers         => 0,
+          :hosts                => 0,
+          :masters              => 0,
+          :taskworkers          => 0,
+          :time                 => Time.now.to_f
          }
 
         stat_rows = SkynetWorkerQueue.connection.select_all(%{
@@ -340,9 +341,11 @@ class Skynet
              if row["iteration"].to_i > 0
                stats["taken_#{type_of_tasks}".to_sym] += row["number_of_tasks"].to_i 
                stats[:taken_tasks] += row["number_of_tasks"].to_i
-             else
+             elsif row["iteration"].to_i == 0
                stats["untaken_#{type_of_tasks}".to_sym] += row["number_of_tasks"].to_i 
                stats[:untaken_tasks] += row["number_of_tasks"].to_i
+             else
+               stats[:failed_tasks] += row["number_of_tasks"].to_i 
              end
            end
          end
@@ -567,7 +570,7 @@ class Skynet
             @@temperature[payload_type.to_sym] = SkynetWorkerQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
           end
         rescue ActiveRecord::StatementInvalid => e
-          if e.message =~ /gone away/
+          if e.message =~ /away/
             ActiveRecord::Base.connection.reconnect!
             SkynetWorkerQueue.connection.reconnect!
           end

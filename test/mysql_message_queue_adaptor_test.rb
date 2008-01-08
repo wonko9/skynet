@@ -14,22 +14,30 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
       :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
       :NEXT_TASK_TIMEOUT              => 1
     )      
+    ActiveRecord::Base.establish_connection(
+        :adapter  => "mysql",
+        :host     => "localhost",
+        :username => "root",
+        :password => "",
+        :database => "skynet_test"
+      )
+
     mq.clear_outstanding_tasks
     mq.clear_worker_status
     
-    @worker_message = Skynet::Message.new(
-      :tasktype=> :task, 
-      :drburi=> "localhost", 
-      :job_id => 1,
-      :task_id => 2,
-      :payload => "payload",
+    @message_options = {
+      :tasktype     => "task", 
+      :job_id       => 1,
+      :task_id      => 2,
+      :payload      => "payload",
       :payload_type => "task",
-      :expiry => 20, 
-      :expire_time => 1095108406.9251,
-      :iteration => 0,
-      :name => "name",       
-      :version => 1
-    )
+      :expiry       => 20, 
+      :expire_time  => 1095108406.9251,
+      :iteration    => 0,
+      :name         => "name",       
+      :version      => 1
+    }
+    @worker_message = Skynet::Message.new(@message_options)
     
   end
                    
@@ -37,8 +45,12 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
   
   def test_write_message    
     mq.write_message(@worker_message,10)
-    message = SkynetMessageQueue.find(:all).first
-    assert_equal @worker_message.expiry.to_f, 20
+    message = SkynetMessageQueue.find(:first, :conditions => "tasktype = 'task'")
+    assert_equal @worker_message.expiry.to_f, 20          
+    @message_options.each do |key,val|
+      next if key == :payload
+      assert_equal message.send(key), val
+    end    
   end
                                                                  
   def test_template_to_conditions
@@ -59,13 +71,17 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
   end
   
   def test_take_next_task
-    assert mq.write_message(@worker_message,10)                                   
+    assert mq.write_message(@worker_message,10)
+    message = SkynetMessageQueue.find(:first, :conditions => "tasktype = 'task'")
+    assert_equal 0, message.iteration
+
     task = mq.take_next_task(1,1,:task)                       
     assert_equal @worker_message.payload, task.payload
-    
-    message = SkynetMessageQueue.find(:first)
+
+    message = SkynetMessageQueue.find(:first, :conditions => "tasktype = 'task'")
     assert_equal 1, message.iteration
     assert @worker_message.expire_time < message.expire_time            
+    
     excep = nil
     begin 
       mq.take_next_task(1)
@@ -184,7 +200,7 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     assert_equal 10, mq.get_worker_version
     mq.set_worker_version(11)
     mq.set_worker_version(12)
-    assert_equal 1, SkynetWorkerQueue.count(:id, :conditions => "tasktype = 'workerversion'")
+    assert_equal 1, SkynetMessageQueue.count(:id, :conditions => "tasktype = 'version'")
   end
 
   private

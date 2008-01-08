@@ -34,6 +34,7 @@ class <%= migration_name %> < ActiveRecord::Migration
       t.column  :iteration,     :integer
       t.column  :version,       :integer
       t.column  :timeout,       "decimal(16,4)"
+      t.column  :retry          :integer, :default => 0
     end                                   
     create_table :skynet_queue_temperature do |t|
       t.column  :id,            "bigint unsigned primary key"

@@ -29,7 +29,7 @@ class Skynet
       "WORKER-#{$$}"
     end
     
-    def initialize(worker_type=:any)
+    def initialize(worker_type=:any,options={})
       @worker_id    = get_unique_id(1).to_i
       @mq           = Skynet::MessageQueue.new
       @worker_type  = worker_type.to_sym
@@ -42,7 +42,8 @@ class Skynet
         :worker_type  => payload_type, 
         :worker_id    => worker_id,
         :version      => mq.get_worker_version
-      }
+      }                           
+      @worker_info.merge!(options)
     end
 
     def process_id
@@ -138,6 +139,14 @@ class Skynet
       return nil if worker_type == :any
       return worker_type      
     end
+    
+    def interrupt
+      if @die
+        exit
+      else
+        @die = true
+      end        
+    end
           
     def start
       exceptions = 0
@@ -145,15 +154,9 @@ class Skynet
       @curver = nil
       # setup signal handlers for manager
       Signal.trap("HUP")  { @respawn = true }
-      Signal.trap("TERM") do
-        if @die
-          exit
-        else
-          @die = true
-        end        
-      end
-      Signal.trap("INT")  { @die = true }
-    
+      Signal.trap("TERM") {interrupt}
+      Signal.trap("INT") {interrupt}      
+      
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
         
       info "STARTING WORKER @ VER #{@curver} (#{@worker_type})"
@@ -210,16 +213,18 @@ class Skynet
             :name          => message.name, 
             :map_or_reduce => task.map_or_reduce
           })
-          result = task.run
+          result = task.run(message.iteration)
 
           info "STEP 5 GOT RESULT FROM RUN TASK #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
           debug "STEP 5.1 RESULT DATA:", result
 
-          ## XXX need better result timeout
           result_message = mq.write_result(message,result,task.result_timeout)
           info "STEP 6 WROTE RESULT MESSAGE #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
           # debug "STEP 6.1 RESULT_MESSAGE:", result_message
           notify_task_complete          
+        rescue Skynet::Task::TimeoutError => e
+          error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
+          next
         rescue Skynet::Worker::RespawnWorker => e  
           info "Respawning and taking worker status #{e.message}"
           notify_worker_stop

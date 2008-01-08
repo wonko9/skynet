@@ -16,17 +16,31 @@ class Skynet
     @@worker_ver = nil
     @@log = nil
 
-    FIELDS = [:map_tasks, :reduce_tasks, :silent, :name, :map_timeout, :map_data, :job_id,
+    FIELDS = [:mappers, :reducers, :silent, :name, :map_timeout, :map_data, :job_id,
               :reduce_timeout, :master_timeout, :master, :map_name, :reduce_name, :async,
-              :master_result_timeout, :result_timeout, :start_after, :solo, :single,
-              :map, :map_partitioner, :reduce, :reduce_partitioner, :single
+              :master_result_timeout, :result_timeout, :start_after, :solo, :single, :version,
+              :map, :map_partitioner, :reduce, :reduce_partitioner, :map_reduce_class,
+              :master_retry, :map_retry, :reduce_retry
             ]                                                       
 
     FIELDS.each do |method| 
+      next if method == :map_reduce_class or method == :version
       attr_accessor method
     end
-            
+    
+    attr_reader :map_reduce_class
 
+    Skynet::CONFIG[:JOB_DEFAULTS] = {
+      :mappers               => 2,
+      :reducers              => 1,               
+      :map_timeout           => 60,
+      :reduce_timeout        => 60,
+      :master_timeout        => 60,
+      :result_timeout        => 1200,
+      :start_after           => 0,
+      :master_result_timeout => 1200
+    }
+            
     def self.debug_class_desc
       "JOB"
     end
@@ -48,8 +62,8 @@ class Skynet
     #   
     #     def self.run
     #       job = Skynet::Job.new(
-    #         :map_tasks => 2, 
-    #         :reduce_tasks => 1,
+    #         :mappers => 2, 
+    #         :reducers => 1,
     #         :map_reduce_class => self,
     #         :map_data => [OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 3})]
     #       )    
@@ -118,41 +132,35 @@ class Skynet
     # <tt>:start_after</tt> Time
     #   Sometimes you may want to delay a task until after a certain time.
     #
-    #<tt>:solo</tt> BOOL
+    # <tt>:solo</tt> BOOL
     #   One normally turns solo mode in in Skynet::Config using Skynet::CONFIG[:SOLO] = true
     #   In solo mode, Skynet jobs do not add items to a Skynet queue. Instead they do all
     #   work in place.  It's like a Skynet simulation mode.  It will complete all tasks
     #   without Skynet running.  Great for testing.   
     #
-    #<tt>:version</tt> Fixnum
+    # <tt>:version</tt> Fixnum
     #   Skynet workers run at a specific version and only look for jobs with their correct version.
     #   If you do not provide a version the current version will be used.
+    #
+    # <tt>:mappers</tt> Fixnum
+    #   The number of mappers to partition map data for.
+    #
+    # <tt>:reducers</tt> Fixnum
+    #   The number of reducers to partition the returned map_data for.
     def initialize(options = {})                            
-      @map_data              = options[:map_data]
-      @name                  = options[:name]                  
-      @map_name              = options[:map_name]              
-      @reduce_name           = options[:reduce_name]           
-      @silent                = options[:silent]                
-      @master                = options[:master]                
-      @async                 = options[:async]                 
-      @solo                  = options[:solo]                  
-      @single                = options[:single]                
-      @version               = options[:version]               if options[:version]
-      @map_tasks             = options[:map_tasks]             || 2               
-      @reduce_tasks          = options[:reduce_tasks]          || 1               
-      @map_timeout           = options[:map_timeout]           || 60
-      @reduce_timeout        = options[:reduce_timeout]        || 60
-      @master_timeout        = options[:master_timeout]        || 60
-      @result_timeout        = options[:result_timeout]        || 1200
-      @start_after           = options[:start_after]           || 0               
-      @master_result_timeout = options[:master_result_timeout] || 1200
-                  
-      if options[:map_reduce_class]
-        self.map_reduce_class = options[:map_reduce_class]
-      else
-        self.map    = options[:map] if options[:map]
-        self.reduce = options[:reduce] if options[:reduce]
-      end
+
+      FIELDS.each do |field|
+        if options[field]
+          self.send("#{field}=".to_sym,options[field])
+        elsif Skynet::CONFIG[:JOB_DEFAULTS][field]
+          self.send("#{field}=".to_sym,Skynet::CONFIG[:JOB_DEFAULTS][field])
+        end
+        
+        # Backward compatability
+        self.mappers ||= options[:map_tasks]
+        self.reducers ||= options[:reduce_tasks]
+        
+      end                     
 
       @job_id = task_id
     end
@@ -165,7 +173,7 @@ class Skynet
       FIELDS.each do |field|      
         next unless self.send(field)
         hash[field] = self.send(field)
-      end
+      end       
       hash
     end
         
@@ -210,46 +218,69 @@ class Skynet
     def single?
       @single
     end
-				
-    def run_tasks(tasks,timeout = 5,description = "Generic Task")
-      result = Hash.new
-      errors = Hash.new
-      mq     = Skynet::MessageQueue.new unless solo?
+	  
+    def run_tasks(tasks, timeout=5, description="Generic Task")
       t1     = Time.now
       tasks  = [tasks] unless tasks.class == Array
+
       info "RUN TASKS #{description} ver: #{self.version} jobid: #{job_id} @ #{t1}"
 
-      # write tasks to the MessageQueue
-      task_ids = []
-      tasks.each do |task|
-        debug "RUN TASKS SUBMITTING #{description} task #{task.task_id} job_id: #{job_id}"        
-        if solo? or single?
-          result[task.task_id] = task.run
-        else        
-          task_ids << task.task_id      
-          worker_message = Skynet::Message.new(
-            :tasktype     => :task, 
-            :job_id       => job_id,
-            :task_id      => task.task_id,
-            :payload      => task,
-            :payload_type => task.task_or_master,
-            :expiry       => timeout, 
-            :expire_time  => @start_after,
-            :iteration    => 0,
-            :name         => description,       
-            :version      => @version
-          )
+      # Just run the tasks if in sigle mode
+      if solo? or single?
+        result = {}
+        tasks.each do |task|
+          debug "RUN TASKS SUBMITTING #{description} task #{task.task_id} job_id: #{job_id}"        
+          begin
+            result[task.task_id] = task.run
+          rescue Timeout::Error => e
+            error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
+            raise e
+          end
+        end
+        return result.values
+
+      else
+        # write tasks to the MessageQueue
+        mq = Skynet::MessageQueue.new
+        messages_from_tasks(tasks, timeout, description).each do |worker_message|
+          debug "RUN TASKS SUBMITTING #{description} task #{worker_message.payload.task_id} job_id: #{job_id}"        
           debug "RUN TASKS WORKER MESSAGE #{description} job_id: #{job_id}", worker_message.to_a
           mq.write_message(worker_message,timeout * 5)
         end
       end
 
-      return result.values if solo? or single?
+      # retrieve results unless async
       return true if async
     
       debug "GATHER RESULTS for #{description} job_id: #{job_id} - NOT AN ASYNC JOB"
     
-      # retrieve results unless async
+      results = gether_results(tasks, timeout, description)
+      info "RUN TASKS COMPLETE #{description} RESULTS:#{ results ? result.values.size : 0 } jobid:#{job_id} TOOK: #{Time.now - t1}"
+      return results
+    end 
+    
+		def messages_from_tasks(tasks,timeout,description)
+      tasks.collect do |task|
+        worker_message = Skynet::Message.new(
+          :tasktype     => :task, 
+          :job_id       => job_id,
+          :task_id      => task.task_id,
+          :payload      => task,
+          :payload_type => task.task_or_master,
+          :expiry       => timeout, 
+          :expire_time  => @start_after,
+          :iteration    => 0,
+          :name         => description,       
+          :version      => @version,
+          :retry        => task.retry
+        )
+      end
+	  end
+
+    def gather_results(tasks, timeout, description)
+      task_ids = tasks.collect { | task | task.task_id }
+      results = {}
+      errors  = {}
       begin
         loop do
           # debug "LOOKING FOR RESULT MESSAGE TEMPLATE"
@@ -260,12 +291,12 @@ class Skynet
             errors[result_message.task_id] = ret_result
             error "ERROR RESULT TASK #{result_message.task_id} returned #{errors[result_message.task_id].inspect}"
           else
-            result[result_message.task_id] = ret_result
-            debug "RESULT returned TASKID: #{result_message.task_id} #{result[result_message.task_id].inspect}"
+            results[result_message.task_id] = ret_result
+            debug "RESULT returned TASKID: #{result_message.task_id} #{results[result_message.task_id].inspect}"
           end          
-          debug "RESULT collected: #{(result.keys + errors.keys).size}, remaining: #{(task_ids - (result.keys + errors.keys)).size}"
-          break if (task_ids - (result.keys + errors.keys)).empty?
-          if (task_ids - (result.keys & errors.keys)).empty?
+          debug "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(task_ids - (results.keys + errors.keys)).size}"
+          break if (task_ids - (results.keys + errors.keys)).empty?
+          if (task_ids - (results.keys & errors.keys)).empty?
             raise Skynet::Job::Error.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
           end
         end
@@ -273,28 +304,28 @@ class Skynet
         error "A WORKER EXPIRED or ERRORED, #{description}, job_id: #{job_id}"
         if not errors.empty?
           raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
-        else
+        elsif (started_at + master_timeout > Time.now.to_f)
           raise Skynet::RequestExpiredError.new("WORKER ERROR, A WORKER EXPIRED!  Did not get results or even errors back from all workers!")
         end
-      end
-      info "RUN TASKS COMPLETE #{description} jobid: #{job_id} TOOK: #{Time.now - t1}"
-      result.values      
-    end 
+      end     
+      return nil if results.values.compact.empty?            
+      return results.values
+    end
         
     def map_reduce_class=(klass)
       unless klass.class == String or klass.class == Class
-        raise BadMapOrReduceError.new("#{self.class}.map_reduce only accepts a class name") 
+        raise BadMapOrReduceError.new("#{self.class}.map_reduce only accepts a class name: #{klass} #{klass.class}") 
       end
       klass = klass.to_s
       @map = klass
       self.name     ||= "#{klass} MASTER"
       self.map_name ||= "#{klass} MAP"
       if klass.constantize.respond_to?(:reduce)
-        @reduce = klass 
+        @reduce ||= klass 
         self.reduce_name ||= "#{klass} REDUCE"
       end
-      @reduce_partitioner = klass if klass.constantize.respond_to?(:reduce_partitioner)
-      @map_partitioner    = klass if klass.constantize.respond_to?(:map_partitioner)
+      @reduce_partitioner ||= klass if klass.constantize.respond_to?(:reduce_partitioner)
+      @map_partitioner    ||= klass if klass.constantize.respond_to?(:map_partitioner)
     end
 
     def task_id
@@ -307,42 +338,44 @@ class Skynet
     #     result
     #   end
   
-    def master_task
-      @master_task ||= begin    
-        raise Exception.new("No map provided") unless @map
-        set_version
-
-        job = Skynet::Job.new(
-          :map_timeout        => map_timeout,
-          :reduce_timeout     => reduce_timeout,
-          :job_id             => :task_id,
-          :map_data           => @map_data,
-          :map_name           => map_name || name,
-          :reduce_name        => reduce_name || name,
-          :map                => @map,
-          :map_partitioner    => @map_partitioner,
-          :reduce             => @reduce,
-          :reduce_partitioner => @reduce_partitioner,
-          :map_tasks          => @map_tasks,
-          :reduce_tasks       => @reduce_tasks,
-          :name               => @name,
-          :version            => version,
-          :process            => lambda do |data|
-            debug "RUNNING MASTER RUN #{name}, job_id:#{job_id}"
-            job.run
-          end
-        )
-
-        task = Skynet::Task.new(
-          :task_id        => task_id, 
-          :data           => :master, 
-          :process        => process, 
-          :map_or_reduce  => :master,
-          :name           => self.name,
-          :result_timeout => master_result_timeout
-        )
-      end
-    end
+    ## XXX Roll this into the Async master_task
+    # def master_task
+    #   @master_task ||= begin    
+    #     raise Exception.new("No map provided") unless @map
+    #     set_version
+    # 
+    #     job = Skynet::Job.new(
+    #       :map_timeout        => map_timeout,
+    #       :reduce_timeout     => reduce_timeout,
+    #       :job_id             => :task_id,
+    #       :map_data           => @map_data,
+    #       :map_name           => map_name || name,
+    #       :reduce_name        => reduce_name || name,
+    #       :map                => @map,
+    #       :map_partitioner    => @map_partitioner,
+    #       :reduce             => @reduce,
+    #       :reduce_partitioner => @reduce_partitioner,
+    #       :mappers            => @map_tasks,
+    #       :reducers           => @reducers,
+    #       :name               => @name,
+    #       :version            => version,
+    #       :process            => lambda do |data|
+    #         debug "RUNNING MASTER RUN #{name}, job_id:#{job_id}"
+    #         job.run
+    #       end
+    #     )
+    # 
+    #     task = Skynet::Task.new(
+    #       :task_id        => task_id, 
+    #       :data           => :master, 
+    #       :process        => process, 
+    #       :map_or_reduce  => :master,
+    #       :name           => self.name,
+    #       :result_timeout => master_timeout,
+    #       :retry          => master_retry  || Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
+    #     )
+    #   end
+    # end
   
     # Run the job and return result arrays    
     def run
@@ -355,27 +388,34 @@ class Skynet
       # unless (@map && @reduce)
       raise ArgumentError, "map lambdas not assigned" unless (@map)
     
-      # sometimes people want to run a master with just run.  In this case we assume we have to set the data to the map_data
-      # XXX seems like a hack
-
       debug "RUN 2 MAP pre run_map #{name}, job_id:#{job_id}"
 
       post_map_data = run_map
       debug "RUN 3 REDUCE pre run_reduce #{name}, job_id:#{job_id}"
-      return post_map_data unless post_map_data
+      return nil unless post_map_data
       results = run_reduce(post_map_data)
       debug "RUN 4 FINISHED run_job #{name}, job_id:#{job_id}"
       results
     end
   
-    # Partition up starting data, create map tasks
-    def run_map
-      map_tasks = Array.new
+    def map_tasks
+      map_tasks = []
       debug "RUN MAP 2.1 #{display_info} data size before partition: #{@map_data.size}"
       debug "RUN MAP 2.1 #{display_info} data before partition:", @map_data
+
+      task_options = {
+        :task_id        => get_unique_id(1), 
+        :process        => @map,
+        :name           => map_name,
+        :map_or_reduce  => :map,
+        :result_timeout => map_timeout,
+        :retry          => map_retry || Skynet::CONFIG[:DEFAULT_MAP_RETRY]
+      }                               
+      task_options[:retry] = map_retry if map_retry
+      
       if @map_data.class == Array
         debug "RUN MAP 2.2 DATA IS Array #{display_info}"
-        num_mappers = @map_data.length < @map_tasks ? @map_data.length : @map_tasks
+        num_mappers = @map_data.length < @mappers ? @map_data.length : @mappers
         pre_map_data = Array.new
         if @map_partitioner
           pre_map_data = @map_partitioner.call(@map_data,num_mappers)
@@ -384,17 +424,9 @@ class Skynet
         end
         debug "RUN MAP 2.3 #{display_info} data size after partition: #{pre_map_data.size}"
         debug "RUN MAP 2.3 #{display_info} map data after partition:", pre_map_data
-        map_tasks = Array.new
 
-        (0..num_mappers - 1).each do |i|
-          map_tasks << Skynet::Task.new(
-            :task_id        => get_unique_id(1), 
-            :data           => pre_map_data[i], 
-            :process        => @map,
-            :name           => map_name,
-            :map_or_reduce  => :map,
-            :result_timeout => result_timeout
-          )
+        map_tasks = (0..num_mappers - 1).collect do |i|
+          Skynet::Task.new(task_options.merge(:data => pre_map_data[i]))
         end
 
         # Run map tasks
@@ -403,29 +435,16 @@ class Skynet
         debug "RUN MAP 2.2 DATA IS ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
         each_method = @map_data.respond_to?(:next) ? :next : :each
         @map_data.send(each_method) do |pre_map_data|
-          map_tasks << Skynet::Task.new(
-            :task_id        => get_unique_id(1), 
-            :data           => pre_map_data, 
-            :process        => @map,
-            :name           => map_name,
-            :map_or_reduce  => :map,
-            :result_timeout => result_timeout
-          )
+          map_tasks << Skynet::Task.new(task_options.merge(:data => pre_map_data))
         end
       else
         debug "RUN MAP 2.2 DATA IS NOT ARRAY OR ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
-        map_tasks = [ 
-          Skynet::Task.new(
-            :task_id        => get_unique_id(1), 
-            :data           => @map_data, 
-            :process        => @map, 
-            :name           => map_name,
-            :map_or_reduce  => :map, 
-            :result_timeout => result_timeout
-          ) 
-        ]
+        map_tasks = [ Skynet::Task.new(task_options.merge(:data => @map_data)) ]
       end      
-
+    end
+    
+    # Partition up starting data, create map tasks
+    def run_map      
       begin
         post_map_data = run_tasks(map_tasks,map_timeout,map_name)
       rescue WorkerError => e
@@ -434,47 +453,43 @@ class Skynet
       end
     
       debug "RUN MAP 2.5 RESULTS AFTER RUN #{display_info} results:", post_map_data.inspect
-
       return nil unless post_map_data
-
-      post_map_data.compact! if post_map_data.class == Array
-    
+      post_map_data.compact! if post_map_data.class == Array    
       return post_map_data
     end
   
-    # Re-partition returning data for reduction, create reduce tasks
-    def run_reduce(post_map_data=nil)    
-      return post_map_data unless post_map_data and @reduce
-    
-      num_reducers = @reduce_tasks
-
-      debug "RUN REDUCE 3.1 BEFORE PARTITION #{display_info} num_reducers: #{num_reducers}"
-      # debug "RUN REDUCE 3.1 : #{num_reducers} #{name}, job_id:#{job_id}", post_map_data
-  
-      reduce_data = run_reduce_partitioner(post_map_data, num_reducers)
+    def reduce_tasks(post_map_data)
+      debug "RUN REDUCE 3.1 BEFORE PARTITION #{display_info} reducers: #{reducers}"
+      debug "RUN REDUCE 3.1 : #{reducers} #{name}, job_id:#{job_id}", post_map_data  
+      reduce_data = run_reduce_partitioner(post_map_data, reducers)
       reduce_data.compact!
-      debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} num_reducers: #{reduce_data.length}"
+      debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} reducers: #{reduce_data.length}"
       debug "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", reduce_data
-      reduce_tasks = Array.new
 
-      (0..reduce_data.length - 1).each do |i|
-        reduce_tasks << Skynet::Task.new(
+      reduce_tasks = (0..reduce_data.length - 1).collect do |i|
+        Skynet::Task.new(
           :task_id        => get_unique_id(1), 
           :data           => reduce_data[i], 
           :name           => reduce_name,
           :process        => @reduce,
           :map_or_reduce  => :reduce,
-          :result_timeout => result_timeout
+          :result_timeout => reduce_timeout,
+          :retry          => reduce_retry || Skynet::CONFIG[:DEFAULT_REDUCE_RETRY]
         )
       end
       reduce_tasks.compact! if reduce_tasks      
+      reduce_tasks
+    end
     
+    # Re-partition returning data for reduction, create reduce tasks
+    def run_reduce(post_map_data=nil)    
+      return post_map_data unless post_map_data and @reduce
       debug "RUN REDUCE 3.3 CREATED REDUCE TASKS #{display_info}"#, reduce_tasks
-  
+      results = nil
+      
       # Reduce and return results
-      #
       begin
-        results = run_tasks(reduce_tasks, reduce_timeout,reduce_name)
+        results = run_tasks(reduce_tasks(post_map_data), reduce_timeout,reduce_name)
       rescue WorkerError => e
         error "REDUCE FAILED #{display_info} #{e.class} #{e.message.inspect}"
         return nil
@@ -485,6 +500,8 @@ class Skynet
         results.each {|h| hash_results.merge!(h) if h.class == Hash}
         # results.flatten! if results
         results = hash_results
+      else
+        results = []
       end
       debug "RUN REDUCE 3.4 AFTER REDUCE #{display_info} results size: #{results.size}"
       debug "RUN REDUCE 3.4 AFTER REDUCE #{display_info} results:", results
@@ -493,7 +510,16 @@ class Skynet
   
     def run_reduce_partitioner(post_map_data,num_reducers)
       if not @reduce_partitioner
-        Partitioner::recombine_and_split.call(post_map_data, num_reducers) 
+        # =====================
+        # = XXX HACK
+        # = There was a bug in Job where the reduce_partitioner of master jobs wasn't being set!  This is to catch that.
+        # = It handles it by checking if the map class has a reduce partitioner.  Maybe this is a good thing to leave anyway.
+        # =====================
+        if @map.class == String and @map.constantize.respond_to?(:reduce_partitioner)
+          @map.constantize.reduce_partitioner(post_map_data, num_reducers)
+        else
+          Partitioner::recombine_and_split.call(post_map_data, num_reducers) 
+        end
       elsif @reduce_partitioner.class == String
         @reduce_partitioner.constantize.reduce_partitioner(post_map_data, num_reducers)
       else
@@ -545,26 +571,23 @@ class Skynet
       @master_task ||= begin    
         raise Exception.new("No map provided") unless @map
         set_version
-        job = Skynet::Job.new(
-          :map_timeout           => map_timeout,
-          :reduce_timeout        => reduce_timeout,
-          :job_id                => task_id,
-          :map_data              => @map_data,
-          :map_name              => map_name || name,
-          :reduce_name           => reduce_name || name,
-          :map                   => @map,
-          :map_partitioner       => @map_partitioner,
-          :reduce                => @reduce,
-          :reduce_partitioner    => @reduce_partitioner,
-          :map_tasks             => @map_tasks,
-          :reduce_tasks          => @reduce_tasks,
-          :name                  => @name,
-          :version               => version,
-          :result_timeout        => result_timeout,
-          :master_result_timeout => master_result_timeout,
-          :solo                  => solo,
-          :single                => single
-        )
+        options = {}
+        FIELDS.each do |field|
+          options[field] = begin
+            case field
+            when (:map_name or :reduce_name)
+              self.send(field) || self.send(:name)
+            else
+              self.send(field) if self.send(field)
+            end                 
+          end
+        end
+        
+        job = Skynet::Job.new(options)
+
+        # Make sure to set single to false in our own Job object.  
+        # We're just passing along whether they set us to single.
+        # If we were isngle, we'd never send off the master to be run externally.
         @single = false
         
         task = Skynet::Task.new(
@@ -573,7 +596,8 @@ class Skynet
           :process        => job.to_h, 
           :map_or_reduce  => :master,
           :name           => self.name,
-          :result_timeout => master_result_timeout
+          :result_timeout => master_timeout,
+          :retry          => master_retry || Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
         )
       end
     end

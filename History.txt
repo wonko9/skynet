@@ -1,3 +1,14 @@
+== 0.9.2 2008-01-08
+- Skynet now supports setting RETRY times per job by MASTER, MAP and REDUCE. So you can have a MASTER_RETRY=0, but have MAP_RETRY=2 and REDUCE_RETRY=3.  There are now defaults for those as well :DEFAULT_MASTER_RETRY, :DEFAULT_MAP_RETRY, :DEFAULT_REDUCE_RETRY.    If a message passes its RETRY it will be marked with an iteration of -1.   delete_expired_messages removes those messages as well.  These show up in the stats as :failed_tasks.  Skynet::Task and Skynet::Message now have retry fields denoting the maximum number of retries.
+- There is now a :MAX_RETRIES config setting that controls how many iterations Skynet will even look for tasks as well.
+- Skynet::MessageQueueAdaptor::Mysql now tries to reconnect if it gets disconnected.   This was to solve the "Mysql Server has Gone Away" errors.
+- Skynet::Job Changed map_tasks and reduce_tasks to mappers and reducers respectively.  This was to remove the ambiguity between the actual map/reduce tasks and the number of mappers/reducers desired.
+- ENFORCED TIMEOUTS - Even though a master might give up on a worker if it didn't respond in time, there was nothing to step any given worker from running forever.  We now enforce the timeouts (master_timeout, map_timeout, reduce_timeout) given in Skynet::Job using the Timeout module.  This causes a Timeout::Error to be thrown.   If you are using the mysql adapter, this can cause strange results sometimes.   If the Timeout error is thrown during a DB query, ActiveRecord will throw an ActiveRecord::StatementInvalid exception which includes the Timeout::Error exception in it.  Not sure how to prevent that from happening.
+- Skynet::Worker now treats INT signals like TERM
+- Refactored Skynet::Job to be much cleaner and easier to test. 
+- Skynet::Job won't call the reduce_partitioner if there are no valid results from the map_step.
+- Lots more tests.  Skynet::Job now has test. Skynet::Message has more tests.  Skynet::MessageQueueAdapter::Mysql has tests that run if you have a skynet_test database setup.
+
 == 0.0.1 2007-12-16
 
 * 1 major enhancement:

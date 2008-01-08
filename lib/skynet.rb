@@ -8,6 +8,7 @@ require 'drb'
 require 'skynet_guid_generator'
 require 'skynet_logger'
 require 'skynet_config'
+require 'timeout'    
 
 Skynet::CONFIG[:SKYNET_PATH]    ||= File.expand_path(File.dirname(__FILE__) +"/..")
 # Skynet::CONFIG[:LAUNCHER_PATH]  ||= File.expand_path(ENV['_'])

@@ -12,6 +12,7 @@ class Skynet
     :SKYNET_LOCAL_MANAGER_URL          => "druby://localhost:40000",
     :MESSAGE_QUEUE_ADAPTER             => "Skynet::MessageQueueAdapter::TupleSpace",
     # :TUPLESPACE_DRBURIS              => ["druby://localhost:47647"]
+    :SERVER_HOSTS                      => ["localhost:7647"],
     # :MESSAGE_QUEUE_ADAPTER           => "Skynet::MessageQueueAdapter::Mysql",
     # :QUEUE_DATABASE                  => "skynet_queue",
     # :MYSQL_TEMPERATURE_CHANGE_SLEEP  => 40,
@@ -19,12 +20,15 @@ class Skynet
     # :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
     :NEXT_TASK_TIMEOUT                 => 60,
     :USE_RINGSERVER                    => true,
-    :SERVER_HOSTS                      => ["localhost:7647"],
     :NUMBER_OF_WORKERS                 => 4,
     :WORKER_CHECK_DELAY                => 40,
     # :GUID_GENERATOR                  => nil,
     :PERCENTAGE_OF_TASK_ONLY_WORKERS   => 0.7,
-    :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2
+    :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2,
+    :MAX_RETRIES                        => 6,
+    :DEFAULT_MASTER_RETRY              => 0,
+    :DEFAULT_MAP_RETRY                 => 3,
+    :DEFAULT_REDUCE_RETRY              => 3
   } unless defined?(CONFIG)
   
   
@@ -95,7 +99,12 @@ class Skynet
   #   :GUID_GENERATOR                    => nil,
   #   :NUMBER_OF_WORKERS                 => 4,
   #   :PERCENTAGE_OF_TASK_ONLY_WORKERS   => 0.7,
-  #   :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2
+  #   :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2,
+  #   :MAX_RETRY_TIMES                   => 6,
+  #   :DEFAULT_MASTER_RETRY_TIMES        => 0,
+  #   :DEFAULT_MAP_RETRY_TIMES           => 3,
+  #   :DEFAULT_REDUCE_RETRY_TIMES        => 3
+  
   #  )
   #
   # ENABLE turns Skynet on or off.
