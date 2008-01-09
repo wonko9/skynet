@@ -288,6 +288,7 @@ class Skynet
       task_ids = tasks.collect { | task | task.task_id }
       results = {}
       errors  = {}
+      started_at = Time.now.to_i
       begin
         loop do
           # debug "LOOKING FOR RESULT MESSAGE TEMPLATE"
@@ -311,7 +312,7 @@ class Skynet
         error "A WORKER EXPIRED or ERRORED, #{description}, job_id: #{job_id}"
         if not errors.empty?
           raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
-        elsif (started_at + master_timeout > Time.now.to_f)
+        else
           raise Skynet::RequestExpiredError.new("WORKER ERROR, A WORKER EXPIRED!  Did not get results or even errors back from all workers!")
         end
       end     
@@ -354,7 +355,7 @@ class Skynet
     end
 
     def task_id
-      @task_id ||= get_unique_id(1)
+      @task_id ||= get_unique_id(1).to_i
     end
   
     # def run_master
@@ -429,7 +430,6 @@ class Skynet
       debug "RUN MAP 2.1 #{display_info} data before partition:", @map_data
 
       task_options = {
-        :task_id        => get_unique_id(1), 
         :process        => @map,
         :name           => map_name,
         :map_or_reduce  => :map,
@@ -437,7 +437,8 @@ class Skynet
         :retry          => map_retry || Skynet::CONFIG[:DEFAULT_MAP_RETRY]
       }                               
       task_options[:retry] = map_retry if map_retry
-      
+      start_task_id = get_unique_id(1).to_i
+
       if @map_data.class == Array
         debug "RUN MAP 2.2 DATA IS Array #{display_info}"
         num_mappers = @map_data.length < @mappers ? @map_data.length : @mappers
@@ -451,7 +452,7 @@ class Skynet
         debug "RUN MAP 2.3 #{display_info} map data after partition:", pre_map_data
 
         map_tasks = (0..num_mappers - 1).collect do |i|
-          Skynet::Task.new(task_options.merge(:data => pre_map_data[i]))
+          Skynet::Task.new(task_options.merge(:data => pre_map_data[i], :task_id => (start_task_id + i)))
         end
 
         # Run map tasks
@@ -459,12 +460,14 @@ class Skynet
       elsif @map_data.is_a?(Enumerable)
         debug "RUN MAP 2.2 DATA IS ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
         each_method = @map_data.respond_to?(:next) ? :next : :each
+        ii = 0
         @map_data.send(each_method) do |pre_map_data|
-          map_tasks << Skynet::Task.new(task_options.merge(:data => pre_map_data))
+          map_tasks << Skynet::Task.new(task_options.merge(:data => pre_map_data, :task_id => (start_task_id + ii)))
+          ii += 1
         end
       else
         debug "RUN MAP 2.2 DATA IS NOT ARRAY OR ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
-        map_tasks = [ Skynet::Task.new(task_options.merge(:data => @map_data)) ]
+        map_tasks = [ Skynet::Task.new(task_options.merge(:data => @map_data, :task_id => start_task_id)) ]
       end      
     end
     
@@ -500,9 +503,10 @@ class Skynet
       debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} reducers: #{reduce_data.length}"
       debug "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", reduce_data
 
+      start_id = get_unique_id(1).to_i
       reduce_tasks = (0..reduce_data.length - 1).collect do |i|
         Skynet::Task.new(
-          :task_id        => get_unique_id(1), 
+          :task_id        => (start_id + i), 
           :data           => reduce_data[i], 
           :name           => reduce_name,
           :process        => @reduce,

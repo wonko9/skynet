@@ -62,7 +62,7 @@ module ActiveRecord
   
   class Mapreduce
     BATCH_SIZE=1000 unless defined?(BATCH_SIZE)
-    
+    MAX_BATCHES_PER_JOB = 1000 unless defined?(MAX_BATCHES_PER_JOB)
     attr_accessor :find_args, :batch_size
     attr_reader :model_class
     
@@ -87,11 +87,17 @@ module ActiveRecord
       end
       new(:find_args => args, :batch_size => args.delete(:batch_size), :model_class => args.delete(:model_class))
     end
+    
+    def log
+      Skynet::Logger.get
+    end
 
     def each_range(opts={})
       opts = opts.clone
       opts[:id] || opts[:id] = 0
       rows = chunk_query(opts)            
+      # log.error "ROWS, #{rows.pretty_print_inspect}"
+      
       
       ii = 0                        
       if rows.empty?
@@ -135,49 +141,60 @@ module ActiveRecord
         # select (@t2:=(@t2+1) % 2) as evenodd, ((@t3:=@t4)+1) as first, @t4:=id as last from profiles where ((@t1:=(@t1+1) % 1000)=0) order by id LIMIT 100;
 
       mc.connection.execute('select @t1:=0, @t2:=-1, @t3:=0, @t4:=0')
-      mc.connection.select_all("select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=#{table_name}.id as last from #{table_name} #{opts[:joins]} where #{opts[:conditions]} ORDER BY #{table_name}.id #{limit}")
+      sql = "select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=#{table_name}.id as last from #{table_name} #{opts[:joins]} where #{opts[:conditions]} ORDER BY #{table_name}.id #{limit}"
+      # log.error "SQL #{sql}"
+      mc.connection.select_all(sql)
 
       # mc.connection.select_values(mc.send(:construct_finder_sql, :select => "#{mc.table_name}.id", :joins => opts[:joins], :conditions => conditions, :limit => opts[:limit], :order => :id))
     end
     
-    
-    def each(klass_or_method=nil,&block)    
-      klass_or_method ||= model_class
-      batches = []
-      each_range(find_args) do |ids,ii|
-        batch_count = ids["cnt"].to_i
-        batches[batch_count] = [
-                                  ids['first'].to_i, 
-                                  ids['last'].to_i, 
-                                  find_args.clone,
-                                  model_class
-                                ]
-        if block_given?          
-          batches[batch_count][4] = block
-        else
-          batches[batch_count][4] = "#{klass_or_method}" 
-        end
-      end
-      
-      job = nil
+    def run_job_for_batch(batches,&block)
       jobopts = {
         :mappers               => 20000,
         :map_data              => batches,
         :name                  => "each #{model_class} MASTER",
         :map_name              => "each #{model_class} MAP",
-        :map_timeout           => 120,
-        :reduce_timeout        => 120,
+        :map_timeout           => 60,
         :master_timeout        => 12.hours,
         :master_result_timeout => 60,        
         :master_retry          => 0,
         :map_retry             => 0
       }   
+
+      job = nil
       if block_given?
         job = Skynet::Job.new(jobopts.merge(:map_reduce_class => "#{self.class}"))
       else
         job = Skynet::AsyncJob.new(jobopts.merge(:map_reduce_class => "#{self.class}"))
       end         
       job.run
+    end
+    
+    def each(klass_or_method=nil,&block)    
+      klass_or_method ||= model_class
+      log = Skynet::Logger.get
+
+      batches = []                    
+      each_range(find_args) do |ids,ii|
+        batch_item = [
+            ids['first'].to_i, 
+            ids['last'].to_i, 
+            find_args.clone,
+            model_class
+        ]
+        if block_given?          
+          batch_item << block
+        else
+          batch_item << "#{klass_or_method}" 
+        end
+        batches << batch_item
+        if batches.size >= MAX_BATCHES_PER_JOB
+          log.error "MAX BATCH SIZE EXCEEDED RUNNING: #{batches.size}"
+          run_job_for_batch(batches)
+          batches = []    
+        end
+      end
+      run_job_for_batch(batches)      
     end
 
     alias_method :mapreduce, :each
@@ -197,28 +214,40 @@ module ActiveRecord
     end
 
     def self.map(datas)
+      return unless datas and not datas.empty?
       datas.each do |data|    
+        next if (not data.is_a?(Array))
+        next if data.empty?
         model_class = data[3].constantize
         table_name = model_class.table_name
         conditions = "#{table_name}.id >= #{data[0]}"
         conditions += " AND #{table_name}.id <= #{data[1]}" if data[1] > data[0]
         conditions = "(#{conditions})"
         # conditions = "ID BETWEEN #{data[0]} and #{data[1]}"
-        if data[2].empty? or data[2][:conditions].empty?
+        if not data[2]
           data[2] = {:conditions => conditions}
-        else                      
+        elsif data[2].is_a?(Hash) and data[2].empty?
+          data[2] = {:conditions => conditions}
+        elsif data[2].is_a?(Hash) and (not data[2][:conditions] or data[2][:conditions].empty?)
+          data[2][:conditions] = conditions
+        else
           data[2][:conditions] += " AND #{conditions}"
         end                             
         data[2][:select] = "#{table_name}.*"
-        model_class.find(:all, data[2]).each do |ar_object|
+        
+        # log.error "GETTING #{data.pretty_print_inspect}"
+        models = model_class.find(:all, data[2])
+        # log.error "GOT MODELS: #{models.size}"
+        models.each do |ar_object|
           begin
             if data[4].kind_of?(String)
-              begin
-                data[4].constantize.each(ar_object)
-              rescue NameError
-                if ar_object.respond_to?(data[4].to_sym)
-                  ar_object.send(data[4])
-                else
+              if ar_object.respond_to?(data[4].to_sym)
+                # log.error "CALLING #{data[4]} on #{ar_object.class}:#{ar_object.id}"
+                ar_object.send(data[4].to_sym)
+              else
+                begin
+                  data[4].constantize.each(ar_object)
+                rescue NameError
                   raise NameError.new("#{data[4]} is not a class or an instance method in #{model_class}")
                 end
               end

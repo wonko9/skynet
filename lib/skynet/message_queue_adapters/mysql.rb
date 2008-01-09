@@ -36,6 +36,9 @@ class Skynet
       end
 
       def initialize
+        if Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
+          SkynetMessageQueue.table_name = Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
+        end
         if Skynet::CONFIG[:QUEUE_DATABASE] and not @@db_set
           begin
             SkynetMessageQueue.establish_connection Skynet::CONFIG[:QUEUE_DATABASE]
@@ -45,6 +48,7 @@ class Skynet
           end
         end
         @@db_set = true
+        
       end
       
       def message_queue_table
@@ -482,14 +486,14 @@ class Skynet
               if rows < 1
                 old_temp = temperature(payload_type)
                 set_temperature(payload_type,conditions)
-                info "MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+                debug "MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
                 next 
               end
               return message_row
             else
               old_temp = temperature(payload_type)                                                              
               set_temperature(payload_type,conditions)
-              info "MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+              debug "MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
               break if temperature(payload_type) == 1 and old_temp == 1
               next
             end
@@ -497,7 +501,7 @@ class Skynet
             if e.message =~ /Deadlock/                                 
               old_temp = temperature(payload_type)
               set_temperature(payload_type,conditions)
-              info "COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+              debug "COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
               next
             else
               raise e
@@ -548,6 +552,9 @@ class Skynet
       
       Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW] ||= 0.6
                
+# =======================================================================================================================
+# = XXX The queue temperature has to go into the message queue table for the cases when multiple queues are being used. =
+# =======================================================================================================================
 ## try SQRT *2
 ## try POW 0.6 or .75
       def set_temperature(payload_type,conditions)                                            

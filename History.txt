@@ -1,4 +1,6 @@
 == 0.9.2 2008-01-08
+- Active Record distributed_find now handles REALLY large sets by breaking them into seperate jobs. 1MM models per master broken into ranges of 1000.
+
 - Skynet::Job supports keep_map_tasks and keep_reduce_tasks settings.  
   If true, the master will run the tasks locally.
   If a number is provided, the master will run the tasks locally if there are LESS THAN OR EQUAL TO the number provided
@@ -14,8 +16,6 @@
 - Skynet::Job Changed map_tasks and reduce_tasks to mappers and reducers respectively.  This was to remove the ambiguity between the actual map/reduce tasks and the number of mappers/reducers desired.
 
 - ENFORCED TIMEOUTS - Even though a master might give up on a worker if it didn't respond in time, there was nothing to step any given worker from running forever.  We now enforce the timeouts (master_timeout, map_timeout, reduce_timeout) given in Skynet::Job using the Timeout module.  This causes a Timeout::Error to be thrown.   If you are using the mysql adapter, this can cause strange results sometimes.   If the Timeout error is thrown during a DB query, ActiveRecord will throw an ActiveRecord::StatementInvalid exception which includes the Timeout::Error exception in it.  Not sure how to prevent that from happening.
-
-- Skynet::Worker now treats INT signals like TERM
 
 - Refactored Skynet::Job to be much cleaner and easier to test. 
 
