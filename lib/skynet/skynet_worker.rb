@@ -173,7 +173,7 @@ class Skynet
         message = nil      
         begin               
           if Skynet::CONFIG[:WORKER_MAX_PROCESSED] and Skynet::CONFIG[:WORKER_MAX_PROCESSED] > 0 and @processed >= Skynet::CONFIG[:WORKER_MAX_PROCESSED]
-            raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{local_mem} MAX: #{Skynet::CONFIG[:WORKER_MAX_MEMORY]}")
+            raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{get_memory_size.to_i} MAX: #{Skynet::CONFIG[:WORKER_MAX_MEMORY]}")
           end
           if @die             
             exit                                  
