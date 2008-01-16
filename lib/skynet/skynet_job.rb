@@ -220,6 +220,10 @@ class Skynet
       newver
     end    
 
+    def async?
+      @async
+    end
+    
     def solo?
       (@solo or CONFIG[:SOLO])
     end      
@@ -358,50 +362,56 @@ class Skynet
       @task_id ||= get_unique_id(1).to_i
     end
   
-    # def run_master
-    #     result =  run_tasks(master_task,master_timeout,name)
-    #     debug "MASTER RESULT #{self.name} job_id: #{self.job_id}", result
-    #     result
-    #   end
-  
-    ## XXX Roll this into the Async master_task
-    # def master_task
-    #   @master_task ||= begin    
-    #     raise Exception.new("No map provided") unless @map
-    #     set_version
-    # 
-    #     job = Skynet::Job.new(
-    #       :map_timeout        => map_timeout,
-    #       :reduce_timeout     => reduce_timeout,
-    #       :job_id             => :task_id,
-    #       :map_data           => @map_data,
-    #       :map_name           => map_name || name,
-    #       :reduce_name        => reduce_name || name,
-    #       :map                => @map,
-    #       :map_partitioner    => @map_partitioner,
-    #       :reduce             => @reduce,
-    #       :reduce_partitioner => @reduce_partitioner,
-    #       :mappers            => @map_tasks,
-    #       :reducers           => @reducers,
-    #       :name               => @name,
-    #       :version            => version,
-    #       :process            => lambda do |data|
-    #         debug "RUNNING MASTER RUN #{name}, job_id:#{job_id}"
-    #         job.run
-    #       end
-    #     )
-    # 
-    #     task = Skynet::Task.new(
-    #       :task_id        => task_id, 
-    #       :data           => :master, 
-    #       :process        => process, 
-    #       :map_or_reduce  => :master,
-    #       :name           => self.name,
-    #       :result_timeout => master_timeout,
-    #       :retry          => master_retry  || Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
-    #     )
-    #   end
-    # end
+    # Run this skynet job, returning the job_id once the job is queued.
+    def run_master
+      if solo?
+        run_job
+      else
+        results = run_tasks(master_task,master_timeout,name)
+        if async?
+          return self.job_id
+        else
+          return results
+        end          
+      end
+    end
+
+    def master_task
+      @master_task ||= begin    
+        raise Exception.new("No map provided") unless @map
+        set_version
+        options = {}
+        FIELDS.each do |field|
+          options[field] = begin
+            case field
+            when :async
+              false
+            when :map_name, :reduce_name
+              self.send(field) || self.send(:name)
+            else
+              self.send(field) if self.send(field)
+            end                 
+          end
+        end
+        
+        job = Skynet::Job.new(options)
+
+        # Make sure to set single to false in our own Job object.  
+        # We're just passing along whether they set us to single.
+        # If we were isngle, we'd never send off the master to be run externally.
+        @single = false
+        
+        task = Skynet::Task.new(
+          :task_id        => task_id, 
+          :data           => nil, 
+          :process        => job.to_h, 
+          :map_or_reduce  => :master,
+          :name           => self.name,
+          :result_timeout => master_timeout,
+          :retry          => master_retry || Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
+        )
+      end
+    end
   
     # Run the job and return result arrays    
     def run
@@ -602,54 +612,7 @@ class Skynet
       klass = klass.to_s if klass.class == Symbol
       @reduce = klass
     end 
-    
-    # Run this skynet job, returning the job_id once the job is queued.
-    def run_master
-      if solo?
-        run_job
-      else
-        results = run_tasks(master_task,master_timeout,name)
-        self.job_id
-      end
-    end
-
-    def master_task
-      @master_task ||= begin    
-        raise Exception.new("No map provided") unless @map
-        set_version
-        options = {}
-        FIELDS.each do |field|
-          options[field] = begin
-            case field
-            when :async
-              false
-            when :map_name, :reduce_name
-              self.send(field) || self.send(:name)
-            else
-              self.send(field) if self.send(field)
-            end                 
-          end
-        end
         
-        job = Skynet::Job.new(options)
-
-        # Make sure to set single to false in our own Job object.  
-        # We're just passing along whether they set us to single.
-        # If we were isngle, we'd never send off the master to be run externally.
-        @single = false
-        
-        task = Skynet::Task.new(
-          :task_id        => task_id, 
-          :data           => nil, 
-          :process        => job.to_h, 
-          :map_or_reduce  => :master,
-          :name           => self.name,
-          :result_timeout => master_timeout,
-          :retry          => master_retry || Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
-        )
-      end
-    end
-    
     # Synonym for run_master
     def run
       if solo?

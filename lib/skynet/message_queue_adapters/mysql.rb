@@ -122,7 +122,7 @@ class Skynet
             next
           end
           ftm = message.fallback_task_message        
-          rows = update("update #{message_queue_table} set iteration = #{ftm.iteration }, expire_time = #{ftm.expire_time} where iteration = #{message.iteration} and id = #{message_row.id}")
+          rows = update("update #{message_queue_table} set iteration = #{ftm.iteration }, expire_time = #{ftm.expire_time}, updated_on = '#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}' where iteration = #{message.iteration} and id = #{message_row.id}")
             
           # message = nil if rows == 0
           return message if message
@@ -149,6 +149,7 @@ class Skynet
           set tasktype = "#{message.tasktype}", 
           raw_payload = "#{::Mysql.escape_string(message.raw_payload)}",
           payload_type = "#{message.payload_type}",
+          updated_on = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}",
           tran_id = NULL
           #{timeout_sql}
           where task_id = #{message.task_id}
@@ -448,6 +449,7 @@ class Skynet
       @@temperature[:any] ||= 1
       
       def take(template,start=Time.now,timeout=1,sleep_time=nil)      
+        start ||= Time.now
         conditions = template_to_conditions(template)
         sleep_time ||= timeout
         transaction_id = get_unique_id(1)
@@ -509,7 +511,7 @@ class Skynet
           end
         end
 
-        if Time.now.to_f > start.to_f + timeout
+        if start and Time.now.to_f > start.to_f + timeout
           debug "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
           raise Skynet::RequestExpiredError.new
         else    
