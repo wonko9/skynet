@@ -12,7 +12,7 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
       :SKYNET_LOG_FILE                => STDOUT,
       :SKYNET_LOG_LEVEL               => Logger::ERROR,
       :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
-      :NEXT_TASK_TIMEOUT              => 1
+      :MYSQL_NEXT_TASK_TIMEOUT              => 1
     )      
     ActiveRecord::Base.establish_connection(
         :adapter  => "mysql",

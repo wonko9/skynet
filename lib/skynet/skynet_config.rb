@@ -2,37 +2,38 @@ class Skynet
   LOGDIR = "/var/log"
   
   CONFIG = {
-    :ENABLE                            => true,
-    :SOLO                              => false,
-    :SKYNET_LOG_DIR                    => LOGDIR,
-    :SKYNET_PID_DIR                    => "/tmp",
-    :SKYNET_PIDS_FILE                  => "/tmp/skynet.pid",
-    :SKYNET_LOG_FILE                   => STDOUT,
-    :SKYNET_LOG_LEVEL                  => Logger::ERROR,
-    :SKYNET_LOCAL_MANAGER_URL          => "druby://localhost:40000",
-    :MESSAGE_QUEUE_ADAPTER             => "Skynet::MessageQueueAdapter::TupleSpace",
-    # :TUPLESPACE_DRBURIS              => ["druby://localhost:47647"]
-    :SERVER_HOSTS                      => ["localhost:7647"],
-    # :MESSAGE_QUEUE_ADAPTER           => "Skynet::MessageQueueAdapter::Mysql",
-    # :QUEUE_DATABASE                  => "skynet_queue",
-    # :MYSQL_TEMPERATURE_CHANGE_SLEEP  => 40,
-    # :MYSQL_MESSAGE_QUEUE_TAPLE       => "skynet_message_queues",
+    :ENABLE                                 => true,
+    :SOLO                                   => false,
+    :SKYNET_LOG_DIR                         => LOGDIR,
+    :SKYNET_PID_DIR                         => "/tmp",
+    :SKYNET_PIDS_FILE                       => "/tmp/skynet.pid",
+    :SKYNET_LOG_FILE                        => STDOUT,
+    :SKYNET_LOG_LEVEL                       => Logger::ERROR,
+    :SKYNET_LOCAL_MANAGER_URL               => "druby://localhost:40000",
+    :MESSAGE_QUEUE_ADAPTER                  => "Skynet::MessageQueueAdapter::TupleSpace",
+    :TS_USE_RINGSERVER                      => true,
+    # :TS_DRBURIS                           => ["druby://localhost:47647"]   # If you do not use RINGSERVER, you must specifiy the DRBURI
+    :TS_SERVER_HOSTS                        => ["localhost:7647"],
+    :TS_SERVER_START_DELAY                  => 10,
+    # :MESSAGE_QUEUE_ADAPTER                => "Skynet::MessageQueueAdapter::Mysql",
+    # :MYSQL_QUEUE_DATABASE                 => "skynet_queue",
+    # :MYSQL_TEMPERATURE_CHANGE_SLEEP       => 40,
+    # :MYSQL_MESSAGE_QUEUE_TAPLE            => "skynet_message_queues",
     # :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
-    :NEXT_TASK_TIMEOUT                 => 60,
-    :USE_RINGSERVER                    => true,
-    :NUMBER_OF_WORKERS                 => 4,
-    :WORKER_CHECK_DELAY                => 40,
-    :WORKER_MAX_MEMORY                 => 500,
-    :WORKER_MAX_PROCESSED              => 1000,
-    # :GUID_GENERATOR                  => nil,
-    :PERCENTAGE_OF_TASK_ONLY_WORKERS   => 0.7,
-    :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2,
-    :MAX_RETRIES                        => 6,
-    :DEFAULT_MASTER_RETRY              => 0,
-    :DEFAULT_MAP_RETRY                 => 3,
-    :DEFAULT_REDUCE_RETRY              => 3,
-    :KEEP_MAP_TASKS                    => false,
-    :KEEP_REDUCE_TASKS                 => false
+    # :MYSQL_NEXT_TASK_TIMEOUT              => 60,
+    :NUMBER_OF_WORKERS                      => 4,
+    :WORKER_CHECK_DELAY                     => 40,
+    :WORKER_MAX_MEMORY                      => 500,
+    :WORKER_MAX_PROCESSED                   => 1000,
+    # :GUID_GENERATOR                       => nil,
+    :PERCENTAGE_OF_TASK_ONLY_WORKERS        => 0.7,
+    :PERCENTAGE_OF_MASTER_ONLY_WORKERS      => 0.2,
+    :MAX_RETRIES                            => 6,
+    :DEFAULT_MASTER_RETRY                   => 0,
+    :DEFAULT_MAP_RETRY                      => 3,
+    :DEFAULT_REDUCE_RETRY                   => 3,
+    :KEEP_MAP_TASKS                         => false,
+    :KEEP_REDUCE_TASKS                      => false
   } unless defined?(CONFIG)
   
   
@@ -81,34 +82,36 @@ class Skynet
   #
   # Config Options and current defaults:
   #  Skynet.configure(
-  #   :ENABLE                            => true,
-  #   :SOLO                              => false,
-  #   :SKYNET_LOG_DIR                    => LOGDIR,
-  #   :SKYNET_PID_DIR                    => "/tmp",
-  #   :SKYNET_PIDS_FILE                  => "/tmp/skynet.pid",
-  #   :SKYNET_LOG_FILE                   => STDOUT,
-  #   :SKYNET_LOG_LEVEL                  => Logger::ERROR,
-  #   :SKYNET_LOCAL_MANAGER_URL          => "druby://localhost:40000",
-  #   :TUPLESPACE_DRBURIS                => ["druby://localhost:47647"]
-  #   :USE_RINGSERVER                    => true,
-  #   :SERVER_HOSTS                      => ["localhost:7647"],
-  #   :MESSAGE_QUEUE_ADAPTER             => "Skynet::MessageQueueAdapter::TupleSpace",
-  #   :QUEUE_DATABASE                    => "skynet_queue",
-  #   :MYSQL_TEMPERATURE_CHANGE_SLEEP    => 40,
-  #   :MYSQL_QUEUE_TEMP_POW              => 0.6,
-  #   :MYSQL_MESSAGE_QUEUE_TAPLE         => "skynet_message_queues",
+  #   :ENABLE                               => true,
+  #   :SOLO                                 => false,
+  #   :SKYNET_LOG_DIR                       => LOGDIR,
+  #   :SKYNET_PID_DIR                       => "/tmp",
+  #   :SKYNET_PIDS_FILE                     => "/tmp/skynet.pid",
+  #   :SKYNET_LOG_FILE                      => STDOUT,
+  #   :SKYNET_LOG_LEVEL                     => Logger::ERROR,
+  #   :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
+  #   :MESSAGE_QUEUE_ADAPTER                => "Skynet::MessageQueueAdapter::TupleSpace",
+  #   :TS_DRBURIS                           => ["druby://localhost:47647"]
+  #   :TS_USE_RINGSERVER                    => true,
+  #   :TS_SERVER_HOSTS                      => ["localhost:7647"],
+  #   :TS_SERVER_START_DELAY                => 10,
+  #   :MYSQL_QUEUE_DATABASE                 => "skynet_queue",
+  #   :MYSQL_TEMPERATURE_CHANGE_SLEEP       => 40,
+  #   :MYSQL_QUEUE_TEMP_POW                 => 0.6,
+  #   :MYSQL_MESSAGE_QUEUE_TAPLE            => "skynet_message_queues",
   #   :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
-  #   :NEXT_TASK_TIMEOUT                 => 60,
-  #   :WORKER_CHECK_DELAY                => 40,
-  #   :GUID_GENERATOR                    => nil,
-  #   :NUMBER_OF_WORKERS                 => 4,
-  #   :PERCENTAGE_OF_TASK_ONLY_WORKERS   => 0.7,
-  #   :PERCENTAGE_OF_MASTER_ONLY_WORKERS => 0.2,
-  #   :MAX_RETRY_TIMES                   => 6,
-  #   :DEFAULT_MASTER_RETRY_TIMES        => 0,
-  #   :DEFAULT_MAP_RETRY_TIMES           => 3,
-  #   :DEFAULT_REDUCE_RETRY_TIMES        => 3
-  
+  #   :MYSQL_NEXT_TASK_TIMEOUT              => 60,
+  #   :WORKER_CHECK_DELAY                   => 40,
+  #   :GUID_GENERATOR                       => nil,
+  #   :NUMBER_OF_WORKERS                    => 4,
+  #   :PERCENTAGE_OF_TASK_ONLY_WORKERS      => 0.7,
+  #   :PERCENTAGE_OF_MASTER_ONLY_WORKERS    => 0.2,
+  #   :MAX_RETRIES                          => 6,
+  #   :DEFAULT_MASTER_RETRY                 => 0,
+  #   :DEFAULT_MAP_RETRY                    => 3,
+  #   :DEFAULT_REDUCE_RETRY                 => 3
+  #   :KEEP_MAP_TASKS                       => false,
+  #   :KEEP_REDUCE_TASKS                    => false
   #  )
   #
   # ENABLE turns Skynet on or off.
@@ -124,18 +127,17 @@ class Skynet
   # The mysql MQ takes running a migration that comes with skynet_install
   #
   # The following only apply to the TupleSpace adapter
-  #   :TUPLESPACE_DRBURIS                => ["druby://localhost:47647"]
-  #   :USE_RINGSERVER                    => true,
-  #   :SERVER_HOSTS                      => ["localhost:7647"],
+  #   :TS_DRBURIS                           => ["druby://localhost:47647"]
+  #   :TS_USE_RINGSERVER                    => true,
+  #   :TS_SERVER_HOSTS                      => ["localhost:7647"],
   #
   # The following only apply to the Mysql adapter
-  #   :QUEUE_DATABASE                    => "skynet_queue",
-  #   :MYSQL_TEMPERATURE_CHANGE_SLEEP    => 40,
-  #   :MYSQL_QUEUE_TEMP_POW              => 0.6,
-  #   :NEXT_TASK_TIMEOUT                 => 60,
-  #   :WORKER_CHECK_DELAY                => 40,  
-  #   :MYSQL_MESSAGE_QUEUE_TAPLE         => "skynet_message_queues",
+  #   :MYSQL_QUEUE_DATABASE                 => "skynet_queue",
+  #   :MYSQL_TEMPERATURE_CHANGE_SLEEP       => 40,
+  #   :MYSQL_QUEUE_TEMP_POW                 => 0.6,
+  #   :MYSQL_MESSAGE_QUEUE_TAPLE            => "skynet_message_queues",
   #   :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
+  #   :MYSQL_NEXT_TASK_TIMEOUT              => 60,
 
   class Config     
   end

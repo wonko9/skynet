@@ -267,28 +267,28 @@ class Skynet
         loop do
           begin
             DRb.start_service
-            if Skynet::CONFIG[:USE_RINGSERVER]
-              Skynet::CONFIG[:SERVER_HOSTS][@@curhostidx] =~ /(.+):(\d+)/
+            if Skynet::CONFIG[:TS_USE_RINGSERVER]
+              Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx] =~ /(.+):(\d+)/
               host = $1
               port = $2.to_i
               @@ts = connect_to_tuple_space(host,port)
             else
-              drburi = Skynet::CONFIG[:TUPLESPACE_DRBURIS].first
+              drburi = Skynet::CONFIG[:TS_DRBURIS].first
               drburi = "druby://#{drburi}" unless drburi =~ %r{druby://}              
               @@ts = get_tuple_space_from_drburi(drburi)
               log.info "#{self} CONNECTED TO #{drburi}"
             end
             return @@ts
           rescue RuntimeError => e
-            if Skynet::CONFIG[:SERVER_HOSTS][@@curhostidx + 1]
-              log.error "#{self} Couldn't connect to #{Skynet::CONFIG[:SERVER_HOSTS][@@curhostidx]} trying #{Skynet::CONFIG[:SERVER_HOSTS][@@curhostidx+1]}"
+            if Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx + 1]
+              log.error "#{self} Couldn't connect to #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx]} trying #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx+1]}"
               @@curhostidx += 1
               next
             else
-              raise Skynet::ConnectionError.new("Can't find ring finger @ #{Skynet::CONFIG[:SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")
+              raise Skynet::ConnectionError.new("Can't find ring finger @ #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")
             end
           rescue Exception => e
-            raise Skynet::ConnectionError.new("Error getting tuplespace @ #{Skynet::CONFIG[:SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")          
+            raise Skynet::ConnectionError.new("Error getting tuplespace @ #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")          
           end
         end
         return @@ts
@@ -296,7 +296,7 @@ class Skynet
     
       def self.connect_to_tuple_space(host,port)
         log.info "#{self} trying to connect to #{host}:#{port}"
-        if Skynet::CONFIG[:USE_RINGSERVER]
+        if Skynet::CONFIG[:TS_USE_RINGSERVER]
           ring_finger = Rinda::RingFinger.new(host,port)
           ring_server = ring_finger.lookup_ring_any(0.5)
 

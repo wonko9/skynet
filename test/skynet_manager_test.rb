@@ -23,20 +23,20 @@ class SkynetManagerTest < Test::Unit::TestCase
       # :SKYNET_PIDS_FILE               => File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pids"),
       :SKYNET_LOG_FILE                => STDOUT,
       :SKYNET_LOG_LEVEL               => Logger::ERROR,
-      :TUPLESPACE_DRBURIS             => ["druby://localhost:47999"],
-      :USE_RINGSERVER                 => false,
-      :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::TupleSpace",
-      :NEXT_TASK_TIMEOUT              => 1,
-      :WORKER_CHECK_DELAY             => 0.5,
-      :WORKER_WARMUP_TIME             => 0.5
-    )                                                                        
-    @ts = Rinda::TupleSpace.new
-    @@ts ||= DRb.start_service(Skynet::CONFIG[:TUPLESPACE_DRBURIS].first, @ts)
-    
-    Skynet::MessageQueueAdapter::TupleSpace.stubs(:get_tuple_space).returns(@ts)
-    
+      :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
+      :MYSQL_NEXT_TASK_TIMEOUT              => 1
+    )      
+    ActiveRecord::Base.establish_connection(
+        :adapter  => "mysql",
+        :host     => "localhost",
+        :username => "root",
+        :password => "",
+        :database => "skynet_test"
+      )
+
     mq.clear_outstanding_tasks
-    # mq.clear_worker_status
+    mq.clear_worker_status
+
     @pids = []
     @pidfile = []
     
@@ -62,6 +62,17 @@ class SkynetManagerTest < Test::Unit::TestCase
     end
   end  
   
+  def test_clear_worker_status  
+    @manager.start_workers
+    assert_equal 2, @manager.worker_pids.size
+    assert_equal PIDS.sort, @manager.worker_pids.sort
+    assert_equal PIDS.sort, @manager.worker_queue.collect {|q|q.process_id}.sort
+    assert_equal 2, SkynetWorkerQueue.count(:id, :conditions => "id is not null")
+    mq.clear_worker_status
+    assert_equal 0, SkynetWorkerQueue.count(:id, :conditions => "id is not null")
+    
+  end
+
   def test_manager_start  
     @manager.start_workers
     assert_equal 2, @manager.worker_pids.size
@@ -102,7 +113,7 @@ class SkynetManagerTest < Test::Unit::TestCase
 
   def test_dead_workers
     Skynet::Manager.any_instance.expects(:worker_alive?).times(1).with(1).returns(false)
-    Skynet::Manager.any_instance.expects(:worker_alive?).with(2).returns(true)
+    # Skynet::Manager.any_instance.expects(:worker_alive?).with(2).returns(true)
     @manager.start_workers     
     @manager.check_workers
     assert_equal [2], @manager.worker_pids.sort
@@ -113,6 +124,6 @@ class SkynetManagerTest < Test::Unit::TestCase
   private
 
   def mq
-		Skynet::MessageQueueAdapter::TupleSpace.new
+		Skynet::MessageQueueAdapter::Mysql.new
   end
 end

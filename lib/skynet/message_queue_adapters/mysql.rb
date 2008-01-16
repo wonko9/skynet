@@ -39,12 +39,12 @@ class Skynet
         if Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
           SkynetMessageQueue.table_name = Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
         end
-        if Skynet::CONFIG[:QUEUE_DATABASE] and not @@db_set
+        if Skynet::CONFIG[:MYSQL_QUEUE_DATABASE] and not @@db_set
           begin
-            SkynetMessageQueue.establish_connection Skynet::CONFIG[:QUEUE_DATABASE]
-            SkynetWorkerQueue.establish_connection Skynet::CONFIG[:QUEUE_DATABASE]
+            SkynetMessageQueue.establish_connection Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]
+            SkynetWorkerQueue.establish_connection Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]
           rescue ActiveRecord::AdapterNotSpecified => e
-            warn "#{Skynet::CONFIG[:QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
+            warn "#{Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
           end
         end
         @@db_set = true
@@ -104,7 +104,7 @@ class Skynet
       end
 
       def take_next_task(curver,timeout=0,payload_type=nil)
-        timeout = Skynet::CONFIG[:NEXT_TASK_TIMEOUT] if timeout < 1
+        timeout = Skynet::CONFIG[:MYSQL_NEXT_TASK_TIMEOUT] if timeout < 1
         debug "TASK NEXT TASK!!!!!!! timeout: #{timeout}"     
         message = nil
         start = Time.now    
@@ -259,12 +259,12 @@ class Skynet
       end
 
 
-      def clear_worker_status(hostname=nil)
-        if hostname
-          SkynetWorkerQueue.connection.execute("delete from skynet_worker_queues where hostname = '#{hostname}'")
-        else
-          SkynetWorkerQueue.destroy_all
+      def clear_worker_status(hostname=nil)    
+        sql = "delete from skynet_worker_queues "
+        if hostname                             
+          sql << "where hostname = '#{hostname}'"
         end
+        SkynetWorkerQueue.connection.execute(sql)        
       end
 
       def set_worker_version(ver=nil)                      
@@ -291,11 +291,11 @@ class Skynet
       end
       
       def clear_outstanding_tasks
-        SkynetMessageQueue.connection.delete("delete from #{message_queue_table} where tasktype = 'task'")
+        SkynetMessageQueue.connection.execute("delete from #{message_queue_table} where tasktype = 'task'")
       end       
 
       def delete_expired_messages
-        SkynetMessageQueue.connection.delete("delete from #{message_queue_table} where (expire_time BETWEEN 1 AND '#{Time.now.to_f}') OR iteration = -1")
+        SkynetMessageQueue.connection.execute("delete from #{message_queue_table} where (expire_time BETWEEN 1 AND '#{Time.now.to_f}') OR iteration = -1")
       end
 
 # select hostname, iteration, count(id) as number_of_workers, count(iteration) as iteration, sum(processed) as processed, max(started_at) as most_recent_task_time from skynet_worker_queues where tasksubtype = 'worker' group by hostname, iteration;      

@@ -5,17 +5,18 @@ require File.dirname(__FILE__) + '/../config/boot'
 require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
 <% end %>
 
+require 'rubygems'
 require 'skynet'         
 
 Skynet::CONFIG[:LAUNCHER_PATH]      = File.expand_path(__FILE__)
 Skynet::CONFIG[:SKYNET_LOG_FILE]    ||= STDERR
 Skynet::CONFIG[:SKYNET_LOG_LEVEL]   ||= Logger::ERROR
 <% if in_rails %>
-Skynet::CONFIG[:SKYNET_PIDS_FILE]   ||= File.expand_path("../log/skynet.pid"),
-Skynet::CONFIG[:SKYNET_LOG_FILE]    ||= File.expand_path("../log/skynet.log"),
-<% else %>
 Skynet::CONFIG[:SKYNET_PIDS_FILE]   ||= File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pid"),
 Skynet::CONFIG[:SKYNET_LOG_FILE]    ||= File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.log"),
+<% else %>
+Skynet::CONFIG[:SKYNET_PIDS_FILE]   ||= File.expand_path("../log/skynet.pid"),
+Skynet::CONFIG[:SKYNET_LOG_FILE]    ||= File.expand_path("../log/skynet.log"),
 <% end %>
 
 begin
@@ -25,7 +26,7 @@ rescue Skynet::ConnectionError
     pid = fork do
       exec("skynet_tuplespace_server start")
     end
-    sleep 3
+    sleep Skynet::CONFIG[:TS_SERVER_START_DELAY]
   end
 end
 

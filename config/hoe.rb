@@ -61,6 +61,7 @@ hoe = Hoe.new(GEM_NAME, VERS) do |p|
   p.changes = p.paragraphs_of("History.txt", 0..1).join("\n\n")
   p.extra_deps = [
     ['daemons',">= 1"],
+    ['rubigen', ">=1.1.1"]
     ]
     # An array of rubygem dependencies [name, version], e.g. [ ['active_support', '>= 1.3.1'] ]
   

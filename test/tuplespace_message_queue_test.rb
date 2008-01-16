@@ -11,31 +11,31 @@ class TuplespaceMessageQueueTest < Test::Unit::TestCase
   
   def setup
     Skynet.configure(
-      :ENABLE                         => false,
-      # :SKYNET_PIDS_FILE               => File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pids"),
-      :SKYNET_LOG_FILE                => STDOUT,
-      :SKYNET_LOG_LEVEL               => Logger::ERROR,
-      :SKYNET_LOCAL_MANAGER_URL       => "druby://localhost:40000",
-      :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::TupleSpace",
-      :TUPLESPACE_DRBURIS              => ["druby://localhost:77647"],
-      :USE_RINGSERVER                 => false
+      :ENABLE                   => false,
+      # :SKYNET_PIDS_FILE       => File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pids"),
+      :SKYNET_LOG_FILE          => STDOUT,
+      :SKYNET_LOG_LEVEL         => Logger::ERROR,
+      :SKYNET_LOCAL_MANAGER_URL => "druby://localhost:40000",
+      :MESSAGE_QUEUE_ADAPTER    => "Skynet::MessageQueueAdapter::TupleSpace",
+      :TS_DRBURIS               => ["druby://localhost:77647"],
+      :TS_USE_RINGSERVER        => false
     )      
     @ts ||= Rinda::TupleSpace.new
     @@tss ||= DRb.start_service(Skynet::CONFIG[:TUPLESPACE_DRBURIS].first, @ts)
     mq.clear_outstanding_tasks
     
     @worker_message = Skynet::Message.new(
-      :tasktype=> :task, 
-      :drburi=> "localhost", 
-      :job_id => 1,
-      :task_id => 2,
-      :payload => "task",
+      :tasktype     => :task, 
+      :drburi       => "localhost", 
+      :job_id       => 1,
+      :task_id      => 2,
+      :payload      => "task",
       :payload_type => "master",
-      :expiry => 20, 
-      :expire_time => 0,
-      :iteration => 0,
-      :name => "test",       
-      :version => 1
+      :expiry       => 20, 
+      :expire_time  => 0,
+      :iteration    => 0,
+      :name         => "test",       
+      :version      => 1
     )
     
   end

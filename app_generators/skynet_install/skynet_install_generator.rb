@@ -3,8 +3,7 @@ class SkynetInstallGenerator < RubiGen::Base
   DEFAULT_SHEBANG = File.join(Config::CONFIG['bindir'],
                               Config::CONFIG['ruby_install_name'])
   
-  default_options :author             => nil
-  default_options :in_rails           => nil
+  default_options :in_rails           => false
   default_options :include_migration  => false
   
   attr_reader :name
@@ -27,16 +26,17 @@ class SkynetInstallGenerator < RubiGen::Base
       
       # Create stubs
       # m.template "template.rb",  "some_file_after_erb.rb"
-      m.template     "skynet",         "script/skynet", :assigns => {:rails => @rails}, :collision => :ask, :chmod => 0755, :shebang => options[:shebang]
-      m.template     "skynet_console", "script/skynet_console", :assigns => {:rails => @rails}, :collision => :ask, :chmod => 0755, :shebang => options[:shebang]
-      if include_migration
+      m.template     "skynet",         "script/skynet", :collision => :ask, :chmod => 0755, :shebang => options[:shebang]
+      m.template     "skynet_console", "script/skynet_console", :collision => :ask, :chmod => 0755, :shebang => options[:shebang]
+      if @include_migration
+        puts "INCLUDE MIGRATION"
         m.directory 'db/migrate'
-        m.migration_template "migration.rb", "db/migrate", :collision => :skip, :assigns => {
+        m.migration_template "migration.rb", "db/migrate", 
+          :collision => :skip, 
+          :assigns => {
               :migration_name => "CreateSkynetTables"
           },  :migration_file_name => "create_skynet_tables"
       end
-      # m.dependency "install_rubigen_scripts", [destination_root, 'skynet_install'], 
-      #   :shebang => options[:shebang], :collision => :force
     end
   end
 
@@ -54,23 +54,23 @@ EOS
       opts.separator 'Options:'
       # For each option below, place the default
       # at the top of the file next to "default_options"
-      # opts.on("-a", "--author=\"Your Name\"", String,
-      #         "Some comment about this option",
-      #         "Default: none") { |options[:author]| }
       opts.on("-v", "--version", "Show the #{File.basename($0)} version number and quit.")
       opts.on("--include-migration", 
-             "Include mysql migration if you want to use mysql as your message queue") { |options[:include_migration]| }
+             "Include mysql migration if you want to use mysql as your message queue") do |include_migration|
+               options[:include_migration] = true if include_migration
+             end
       opts.on("-r", "--rails",
               "Install into rails app",
-              "Default: false") { |options[:rails]| }
+              "Default: false") do |rails| 
+                options[:rails] = true if rails
+              end
     end
     
     def extract_options
       # for each option, extract it into a local variable (and create an "attr_reader :author" at the top)
       # Templates can access these value via the attr_reader-generated methods, but not the
       # raw instance variable value.
-      # @author = options[:author]
-      @in_rails       = options[:rails]
+      @in_rails          = options[:rails]
       @include_migration = options[:include_migration]
     end
 
@@ -79,6 +79,5 @@ EOS
     BASEDIRS = %w(
       log
       script
-      db/migrate
     )
 end

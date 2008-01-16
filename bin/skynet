@@ -24,6 +24,7 @@
 # You should set all of your Skynet::CONFIG (or Skynet.configure()) options here (or in one of your environment files.)
 # See Skynet::Config for more information on configuration options.
 
+require 'rubygems'
 require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
 Skynet::CONFIG[:WORKER_CHECK_DELAY]     ||= 4

@@ -8,19 +8,18 @@ class SkynetJobTest < Test::Unit::TestCase
 
   def setup
     Skynet.configure(
-      :ENABLE                         => false,
-      :SKYNET_LOG_FILE                => STDOUT,
-      :SKYNET_LOG_LEVEL               => Logger::ERROR,
-      :TUPLESPACE_DRBURIS             => ["druby://localhost:47999"],
-      :USE_RINGSERVER                 => false,
-      :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::TupleSpace"
+      :ENABLE                => false,
+      :SKYNET_LOG_FILE       => STDOUT,
+      :MESSAGE_QUEUE_ADAPTER => "Skynet::MessageQueueAdapter::TupleSpace",
+      :SKYNET_LOG_LEVEL      => Logger::ERROR,
+      :TS_DRBURIS            => ["druby://localhost:47999"],
+      :TS_USE_RINGSERVER     => false
     )      
 
     Skynet::MessageQueue.any_instance.stubs(:get_worker_version).returns(1)
     Skynet::MessageQueue.any_instance.stubs(:set_worker_version).returns(1)
 
     @ts = Rinda::TupleSpace.new
-    # @ts.extend(Functor)
     Skynet::MessageQueueAdapter::TupleSpace.stubs(:get_tuple_space).returns(@ts)
     
     @messages = []

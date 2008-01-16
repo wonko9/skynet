@@ -421,7 +421,7 @@ class Skynet
       end
       
       options[:workers]   ||=  Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4
-      options[:pid_file]  ||=  File.dirname(Skynet::CONFIG[:SKYNET_PIDS_FILE]) + "/skynet_worker.pid"
+      options[:pid_file]  ||=  File.dirname(Skynet::CONFIG[:SKYNET_PIDS_FILE])
 
       options[:required_libs].each do |adlib|
         begin
