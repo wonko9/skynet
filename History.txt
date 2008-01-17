@@ -1,6 +1,12 @@
 == 0.9.2 2008-01-08
 - Active Record distributed_find now handles REALLY large sets by breaking them into seperate jobs. 1MM models per master broken into ranges of 1000.
 
+- Skynet::Job has better support for running tasks locally.  A job may run tasks in its own process if
+  you are running in solo mode, you've made a "single" job, or you set the keep_map_tasks or keep_reduce_tasks below.
+  When a job runs tasks locally it now honors the retry settings and timeouts.
+  
+- Skynet::Job and Skynet::AsyncJob are now almost identical.  In fact you can just use Skynet::Job and tell it to run async.
+  
 - Skynet::Job supports keep_map_tasks and keep_reduce_tasks settings.  
   If true, the master will run the tasks locally.
   If a number is provided, the master will run the tasks locally if there are LESS THAN OR EQUAL TO the number provided
@@ -24,6 +30,19 @@
 - Lots more tests.  Skynet::Job now has test. Skynet::Message has more tests.  Skynet::MessageQueueAdapter::Mysql has tests that run if you have a skynet_test database setup.
 
 - Workers now have a Skynet::CONFIG[:WORKER_MAX_PROCESSED] setting to control when to respawn based on how many that worker has processed.
+
+- Made sure all config options for TupleSpace? adapter begin with TS and all Mysql adapter CONFIG settings start with MYSQL.        
+
+- Mysql adapter now updates the updated_on time of rows in skynet_message_queues
+
+BUGFIXES
+Thanks to Jason Rimmer for finding these bugs.
+- The skynet gem appears to be missing the Rubigen dependency
+- Running skynet_install even without the rails arg still generates code with rails dependencies and tailings: RAILS_ROOT, RAILS_ENV, and the various directory tailings such as 'db/migrate', etc.
+- Generated skynet script is missing "require 'rubygems'"
+- Specification of pid directory and file is incorrect as 'skynet_manager.rb' wants only a directory with it specifying the file
+- The sleep while waiting to start the queue server isn't long enough. There is now a CONFIG setting TS_SERVER_START_DELAY.
+
 
 == 0.0.1 2007-12-16
 

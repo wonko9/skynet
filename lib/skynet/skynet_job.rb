@@ -25,11 +25,12 @@ class Skynet
             ]                                                       
 
     FIELDS.each do |method| 
-      next if method == :map_reduce_class or method == :version
-      attr_accessor method
-    end
-    
-    attr_reader :map_reduce_class
+      if method == :map_reduce_class or method == :version or method == :map or method == :reduce
+        attr_reader method
+      else
+        attr_accessor method
+      end
+    end        
 
     Skynet::CONFIG[:JOB_DEFAULTS] = {
       :mappers               => 2,
@@ -232,28 +233,25 @@ class Skynet
       @single
     end
     	  
-    def run_tasks(tasks, timeout=5, description="Generic Task", single=false)
+    def run_tasks(tasks, timeout=5, description="Generic Task", run_local=false)
       t1     = Time.now
       tasks  = [tasks] unless tasks.class == Array
       results = nil
 
-      info "RUN TASKS #{description} ver: #{self.version} jobid: #{job_id} @ #{t1}: single: #{single}"
+      info "RUN TASKS #{description} ver: #{self.version} jobid: #{job_id} @ #{t1}: run_local: #{run_local}"
 
       # Just run the tasks if in sigle mode
       # Maybe run_map and run_reduce should just call run_local INSTEAD of run_tasks
-      if solo? or single? or single
-        results = run_local(tasks,description)      
+      messages = messages_from_tasks(tasks, timeout, description)
+      
+      if solo? or single? or run_local
+        results = run_messages_locally(messages)      
       else
         # write tasks to the MessageQueue
-        mq = Skynet::MessageQueue.new
-        messages_from_tasks(tasks, timeout, description).each do |worker_message|
-          debug "RUN TASKS SUBMITTING #{description} task #{worker_message.payload.task_id} job_id: #{job_id}"        
-          debug "RUN TASKS WORKER MESSAGE #{description} job_id: #{job_id}", worker_message.to_a
-          mq.write_message(worker_message,timeout * 5)
-        end
+        enqueue_messages(messages,timeout)
 
         # retrieve results unless async
-        return true if async
+        return true if async?
     
         debug "GATHER RESULTS for #{description} job_id: #{job_id} - NOT AN ASYNC JOB"
     
@@ -262,33 +260,46 @@ class Skynet
       info "RUN TASKS COMPLETE #{description} RESULTS:#{ results ? results.size : 0 } jobid:#{job_id} TOOK: #{Time.now - t1}"
       return results
     end 
+    
+    def enqueue_messages(messages,timeout)
+      mq = Skynet::MessageQueue.new
+      messages.each do |message|
+        debug "RUN TASKS SUBMITTING #{message.name} task #{message.payload.task_id} job_id: #{job_id}"        
+        debug "RUN TASKS WORKER MESSAGE #{message.name} job_id: #{job_id}", message.to_a
+        mq.write_message(message,timeout * 5)
+      end
+    end
 
     # XXX The problem with run_local is that it doesn't honor the master timeout, nor does it honor the retries.
     # It tries each task once and fails for that task if that task fails.  If the master would get retried
     # it would be fine, but you may have said that tasks get retried, but not masters.
-    def run_local(tasks, description)
-      task_ids = tasks.collect { | task | task.task_id }
+    def run_messages_locally(messages)
+      task_ids = messages.collect { | message | message.payload.task_id }
       results = {}
       errors  = {}
-      tasks.each do |task|
-        debug "RUN TASKS SUBMITTING #{description} task #{task.task_id} job_id: #{job_id}"        
-        begin
-          results[task.task_id] = task.run
-        rescue Timeout::Error => e
-          errors[task.task_id] = e
-          # error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
-        rescue Exception => e
-          errors[task.task_id] = e
+      messages.each do |message| 
+        times_to_try = message.retry + 1
+        times_to_try.times do
+          task = message.payload
+          debug "RUN TASKS SUBMITTING #{message.name} task #{task.task_id} job_id: #{job_id}"        
+          begin
+            results[task.task_id] = task.run
+            break
+          rescue Timeout::Error => e
+            errors[task.task_id] = e
+          rescue Exception => e
+            errors[task.task_id] = e
+          end
         end
-      end
-      if not errors.empty?
-        raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
+      end                                                
+      if not (task_ids - (results.keys + errors.keys)).empty?
+        raise Skynet::Job::Error.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
       end
       return nil if results.values.compact.empty?            
       return results.values
     end
     
-    def gather_results(tasks, timeout, description)
+    def gather_results(tasks, timeout, description=self.name)
       task_ids = tasks.collect { | task | task.task_id }
       results = {}
       errors  = {}
@@ -308,9 +319,6 @@ class Skynet
           end          
           debug "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(task_ids - (results.keys + errors.keys)).size}"
           break if (task_ids - (results.keys + errors.keys)).empty?
-          if (task_ids - (results.keys & errors.keys)).empty?
-            raise Skynet::Job::Error.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
-          end
         end
       rescue Skynet::RequestExpiredError => e 
         error "A WORKER EXPIRED or ERRORED, #{description}, job_id: #{job_id}"
@@ -342,6 +350,28 @@ class Skynet
       end
 	  end
         
+    def map=(map)
+      return unless map
+      if map.class == String or map.class == Class
+        @map = map.to_s
+      elsif map.is_a?(Proc)
+        @map = map        
+      else
+        raise BadMapOrReduceError.new("#{self.class}.map accepts a class name or a proc. Got #{map}") 
+      end      
+    end
+
+    def reduce=(reduce)
+      return unless reduce
+      if reduce.class == String or reduce.class == Class
+        @reduce = reduce.to_s
+      elsif reduce.is_a?(Proc)
+        @reduce = reduce        
+      else
+        raise BadMapOrReduceError.new("#{self.class}.reduce accepts a class name or a proc. Got #{reduce}") 
+      end      
+    end 
+
     def map_reduce_class=(klass)
       unless klass.class == String or klass.class == Class
         raise BadMapOrReduceError.new("#{self.class}.map_reduce only accepts a class name: #{klass} #{klass.class}") 
@@ -415,7 +445,11 @@ class Skynet
   
     # Run the job and return result arrays    
     def run
-      run_job
+      if async?
+        run_master
+      else
+        run_job
+      end
     end
 
     def run_job
@@ -485,15 +519,10 @@ class Skynet
     def run_map      
       begin                       
         map_tasks = self.map_tasks
-        single = false
-        # ==========================
-        # = XXX HACK TURN BACK ON AFTER WE FIX run_local to redo tasks =
-        # = Maybe run_map and run_reduce should just call run_local INSTEAD of run_tasks
-        # ==========================
-        # if keep_map_tasks or (keep_map_tasks.is_a?(Fixnum) and map_tasks.size <= keep_map_tasks)
-        #   single = true
-        # end          
-        post_map_data = run_tasks(map_tasks,map_timeout,map_name,single)
+        if keep_map_tasks.is_a?(TrueClass) or (keep_map_tasks.is_a?(Fixnum) and map_tasks.size <= keep_map_tasks)
+          run_local = true
+        end          
+        post_map_data = run_tasks(map_tasks,map_timeout,map_name,run_local)
       rescue WorkerError => e
         error "MAP FAILED #{display_info} #{e.class} #{e.message.inspect}"
         return nil
@@ -538,14 +567,10 @@ class Skynet
       # Reduce and return results
       begin
         reduce_tasks = self.reduce_tasks(post_map_data)
-        single = false
-        # ==========================
-        # = XXX HACK TURN BACK ON AFTER WE FIX run_local to redo tasks =
-        # ==========================
-        # if keep_reduce_tasks or (keep_reduce_tasks.is_a?(Fixnum) and reduce_tasks.size <= keep_reduce_tasks)
-        #   single = true
-        # end
-        results = run_tasks(reduce_tasks, reduce_timeout, reduce_name, single)
+        if keep_reduce_tasks.is_a?(TrueClass) or (keep_reduce_tasks.is_a?(Fixnum) and reduce_tasks.size <= keep_reduce_tasks)
+          run_local = true
+        end
+        results = run_tasks(reduce_tasks, reduce_timeout, reduce_name, run_local)
       rescue WorkerError => e
         error "REDUCE FAILED #{display_info} #{e.class} #{e.message.inspect}"
         return nil
@@ -601,16 +626,14 @@ class Skynet
       unless klass.class == String or klass.class == Class
         raise BadMapOrReduceError.new("#{self.class}.map only accepts a class name") 
       end
-      klass = klass.to_s if klass.class == Symbol
-      @map = klass
+      @map = klass.to_s
     end
 
     def reduce=(klass)
       unless klass.class == String or klass.class == Class
         raise BadMapOrReduceError.new("#{self.class}.reduce only accepts a class name") 
       end
-      klass = klass.to_s if klass.class == Symbol
-      @reduce = klass
+      @reduce = klass.to_s
     end 
         
     # Synonym for run_master

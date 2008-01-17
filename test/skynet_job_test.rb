@@ -3,6 +3,7 @@ require 'pp'
 require '../lib/skynet.rb'
 require 'rubygems'
 require 'mocha'
+require 'functor'
 
 class SkynetJobTest < Test::Unit::TestCase
 
@@ -156,33 +157,44 @@ class SkynetJobTest < Test::Unit::TestCase
     assert_equal [["works"]], results    
   end
   
-  def test_run_local
+  def test_run_messages_locally
     job = Skynet::AsyncJob.new(
       :map_reduce_class => self.class,    
       :version          => 1, 
-      :map_data         => [1], 
+      :map_data         => [[1]], 
       :mappers          => 1
     )
-    map_tasks = job.map_tasks
-    results = job.run_local(map_tasks,"hi")
-    assert_equal [[1]], results    
+    messages = job.messages_from_tasks(job.map_tasks, 1, "hi")
+    results = job.run_messages_locally(messages)
+    assert_equal [[[1]]], results    
   end                          
   
-  def test_run_local_errors
+  def test_run_messages_locally_errors
     job = Skynet::AsyncJob.new(
-      :map_reduce_class => self.class,    
+      :map_reduce_class => self.class,
       :version          => 1, 
-      :map_data         => [:error], 
+      :map_data         => [[9]], 
+      :map_retry        => 1,
       :mappers          => 1
-    )
-    map_tasks = job.map_tasks
+    )                                       
+    tasks = job.map_tasks  
+
+    messages = job.messages_from_tasks(tasks, 1, "hi")
+    tries = 0
+    task = messages.first.payload
+    task.extend(Functor)
+    task.define_method(:run) do
+      tries += 1
+      if tries == 1
+        raise Exception
+      else
+        return [1]
+      end      
+    end  
     errors = nil
-    begin
-      results = job.run_local(map_tasks,"hi")
-    rescue Skynet::Job::WorkerError => e
-      errors = 1
-    end          
-    assert errors
+    results = job.run_messages_locally(messages)
+    assert_equal 2, tries
+    assert_equal [[1]], results
   end    
   
   def test_keep_map_tasks
@@ -196,7 +208,7 @@ class SkynetJobTest < Test::Unit::TestCase
     )                
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
-    job.expects(:run_local).times(1).returns([])
+    job.expects(:run_messages_locally).times(1).returns([])
     job.run
   end
 
@@ -208,19 +220,23 @@ class SkynetJobTest < Test::Unit::TestCase
       :mappers          => 2,
       :reducers         => 1,
       :keep_map_tasks   => true,
-      :keep_reduce_tasks => 1
+      :keep_reduce_tasks => 3
     )                
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
-    job.expects(:run_local).times(2).returns([1,2])
+    job.expects(:run_messages_locally).times(2).returns([1,2])
     job.run
   end
 
   def self.map(datas)        
-    if datas.first == :error
-      raise Exception.new("something bad happened")
-    else
-      return datas
+    ret = []
+    datas.each do |data|
+      if data.first == :error
+        raise Exception.new("something bad happened")
+      else 
+        ret << data
+      end
+      return ret
     end
   end                
 
@@ -236,7 +252,7 @@ class SkynetJobTest < Test::Unit::TestCase
   def mq
 		Skynet::MessageQueueAdapter::TupleSpace.new
   end
-
+  
 end
 
   

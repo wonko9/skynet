@@ -449,7 +449,6 @@ class Skynet
       @@temperature[:any] ||= 1
       
       def take(template,start=Time.now,timeout=1,sleep_time=nil)      
-        start ||= Time.now
         conditions = template_to_conditions(template)
         sleep_time ||= timeout
         transaction_id = get_unique_id(1)
@@ -511,7 +510,7 @@ class Skynet
           end
         end
 
-        if start and Time.now.to_f > start.to_f + timeout
+        if Time.now.to_f > start.to_f + timeout
           debug "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
           raise Skynet::RequestExpiredError.new
         else    
