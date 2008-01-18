@@ -476,15 +476,12 @@ class Skynet
             
             message_row = SkynetMessageQueue.find_by_sql(sql).first
             if message_row
-              update_conditions = "ID = #{message_row.id} and tran_id "
-              if message_row.tran_id
-                update_conditions << "= #{message_row.tran_id}"
-              else
-                update_conditions << 'IS NULL'
+              update_sql = "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE id = #{message_row.id} and tran_id is null"
+              
+              rows = 0
+              SkynetMessageQueue.transaction do
+                rows = SkynetMessageQueue.connection.update(update_sql)
               end
-              rows = SkynetMessageQueue.connection.update(
-                "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE #{update_conditions}"
-              )
               if rows < 1
                 old_temp = temperature(payload_type)
                 set_temperature(payload_type,conditions)

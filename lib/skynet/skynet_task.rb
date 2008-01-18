@@ -87,8 +87,11 @@ class Skynet
 
       # ==========
       # = XXX This rescue block is probably not necessary.  Just for debugging for now. =
-      # ==========
+      # ==========         
       rescue Exception => e
+        if @data.is_a?(Array) and @data.first.is_a?(Hash)          
+          @data.each {|h|h.delete(:event_object)}                      
+        end
         error "Error running task #{e.inspect} TASK:", self, e.backtrace.join("\n")
         raise e
       end
