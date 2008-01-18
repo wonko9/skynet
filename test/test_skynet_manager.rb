@@ -4,13 +4,7 @@ require 'test/unit'
 require 'pp'        
 require '../lib/skynet.rb'
 require 'rubygems'
-
 require 'mocha'
-
-
-# Tests for the partitioners.
-#
-
 
 class SkynetManagerTest < Test::Unit::TestCase
 

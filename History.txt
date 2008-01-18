@@ -35,7 +35,10 @@
 
 - Mysql adapter now updates the updated_on time of rows in skynet_message_queues
 
+- Created a Skynet::Partitioners class where various partitioners can be found.  To specify one of them merely provide that specific Skynet::Partitioners subclass as your reduce_partitioner in your Skynet::Job
+
 BUGFIXES
+- Fixed a bug where Skynet::MessageQueueAdapter::Mysql would sometimes pick up tasks another worker had already picked up.
 Thanks to Jason Rimmer for finding these bugs.
 - The skynet gem appears to be missing the Rubigen dependency
 - Running skynet_install even without the rails arg still generates code with rails dependencies and tailings: RAILS_ROOT, RAILS_ENV, and the various directory tailings such as 'db/migrate', etc.

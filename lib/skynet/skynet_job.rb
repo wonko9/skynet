@@ -268,9 +268,8 @@ class Skynet
     end 
     
     def enqueue_messages(messages,timeout)
-      mq = Skynet::MessageQueue.new
       messages.each do |message|
-        debug "RUN TASKS SUBMITTING #{message.name} task #{message.payload.task_id} job_id: #{job_id}"        
+        debug "RUN TASKS SUBMITTING #{message.name} job_id: #{job_id} #{message.payload.is_a?(Skynet::Task) ? 'task' + message.payload.task_id.to_s : ''}"        
         debug "RUN TASKS WORKER MESSAGE #{message.name} job_id: #{job_id}", message.to_a
         mq.write_message(message,timeout * 5)
       end
@@ -497,7 +496,7 @@ class Skynet
         if @map_partitioner
           pre_map_data = @map_partitioner.call(@map_data,num_mappers)
         else
-          pre_map_data = Partitioner::simple_partition_data(@map_data, num_mappers)
+          pre_map_data = Skynet::Partitioners::SimplePartitionData.reduce_partitioner(@map_data, num_mappers)
         end
         debug "RUN MAP 2.3 #{display_info} data size after partition: #{pre_map_data.size}"
         debug "RUN MAP 2.3 #{display_info} map data after partition:", pre_map_data
@@ -606,7 +605,7 @@ class Skynet
         if @map.class == String and @map.constantize.respond_to?(:reduce_partitioner)
           @map.constantize.reduce_partitioner(post_map_data, num_reducers)
         else
-          Partitioner::recombine_and_split.call(post_map_data, num_reducers) 
+          Skynet::Partitioners::RecombineAndSplit.reduce_partitioner(post_map_data, num_reducers)
         end
       elsif @reduce_partitioner.class == String
         @reduce_partitioner.constantize.reduce_partitioner(post_map_data, num_reducers)
@@ -652,105 +651,7 @@ class Skynet
       end
     end
         
-  end ### END class Skynet::AsyncJob 
-
-  # Collection of partitioning utilities
-  module Partitioner
-  
-    # Split one block of data into partitions
-    #
-    def self.args_pp(*args)
-      "#{args.length > 0 ? args.pretty_print_inspect : ''}"
-    end
-
-    def self.debug(msg,*args)
-      log = Skynet::Logger.get
-      log.debug "#{self.class} PARTITION: #{msg} #{args_pp(*args)}"
-    end
-
-    def self.simple_partition_data(data, partitions)    
-      partitioned_data = Array.new
-
-      # If data size is significantly greater than the number of desired
-      # partitions, we can divide the data roughly but the last partition
-      # may be smaller than the others.
-      #      
-      return data if (not data) or data.empty?
-      
-      if partitions >= data.length
-        data.each do |datum|
-         partitioned_data << [datum]
-        end
-      elsif (data.length >= partitions * 2)
-        # Use quicker but less "fair" method
-        size = data.length / partitions
-
-        if (data.length % partitions != 0)
-          size += 1 # Last slice of leftovers
-        end
-
-        (0..partitions - 1).each do |i|
-          partitioned_data[i] = data[i * size, size]
-        end
-      else
-        # Slower method, but partitions evenly
-        partitions = (data.size < partitions ? data.size : partitions)
-        (0..partitions - 1).each { |i| partitioned_data[i] = Array.new }
-    
-        data.each_with_index do |datum, i|
-          partitioned_data[i % partitions] << datum
-        end
-      end
-    
-      partitioned_data
-    end
-  
-    # Tries to be smart about what kind of data its getting, whether array of arrays or array of arrays of arrays.
-    #
-    def self.recombine_and_split
-      lambda do |post_map_data, new_partitions|
-
-        return post_map_data unless post_map_data.is_a?(Array) and (not post_map_data.empty?) and post_map_data.first.is_a?(Array) and (not post_map_data.first.empty?)
-        if not post_map_data.first.first.is_a?(Array)
-          partitioned_data = post_map_data.flatten
-        else
-          partitioned_data = post_map_data.inject(Array.new) do |data,part| 
-            data += part
-          end    
-        end    
-        partitioned_data = Partitioner::simple_partition_data(partitioned_data, new_partitions)
-        debug "POST PARTITIONED DATA", partitioned_data
-        partitioned_data
-      end
-    end
-    
-    # Smarter partitioner for array data, generates simple sum of array[0]
-    # and ensures that all arrays sharing that key go into the same partition.
-    #
-    def self.array_data_split_by_first_entry
-      lambda do |partitioned_data, new_partitions|
-        partitions = Array.new
-        (0..new_partitions - 1).each { |i| partitions[i] = Array.new }
-
-        partitioned_data.each do |partition|
-          partition.each do |array|
-            next unless array.class == Array and array.size == 2
-            if array[0].kind_of?(Fixnum)
-              key = array[0]
-            else
-              key = 0
-              array[0].each_byte { |c| key += c }
-            end
-            partitions[key % new_partitions] << array
-          end
-        end
-
-        partitions
-      end
-    end
-  
-  end
-  
+  end ### END class Skynet::AsyncJob   
 end
 
 # require 'ruby2ruby'   # XXX this will break unless people have the fix to Ruby2Ruby

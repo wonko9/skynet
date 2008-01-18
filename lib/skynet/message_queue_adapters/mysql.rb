@@ -128,8 +128,6 @@ class Skynet
           return message if message
         end
       end
-
-      
       
       def write_message(message,timeout=nil)
         SkynetMessageQueue.create(message_to_hash(message, timeout))

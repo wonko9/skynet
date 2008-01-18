@@ -9,12 +9,12 @@ class SkynetJobTest < Test::Unit::TestCase
 
   def setup
     Skynet.configure(
-      :ENABLE                => false,
-      :SKYNET_LOG_FILE       => STDOUT,
-      :MESSAGE_QUEUE_ADAPTER => "Skynet::MessageQueueAdapter::TupleSpace",
-      :SKYNET_LOG_LEVEL      => Logger::ERROR,
-      :TS_DRBURIS            => ["druby://localhost:47999"],
-      :TS_USE_RINGSERVER     => false
+    :ENABLE                => false,
+    :SKYNET_LOG_FILE       => STDOUT,
+    :MESSAGE_QUEUE_ADAPTER => "Skynet::MessageQueueAdapter::TupleSpace",
+    :SKYNET_LOG_LEVEL      => Logger::ERROR,
+    :TS_DRBURIS            => ["druby://localhost:47999"],
+    :TS_USE_RINGSERVER     => false
     )      
 
     Skynet::MessageQueue.any_instance.stubs(:get_worker_version).returns(1)
@@ -22,53 +22,57 @@ class SkynetJobTest < Test::Unit::TestCase
 
     @ts = Rinda::TupleSpace.new
     Skynet::MessageQueueAdapter::TupleSpace.stubs(:get_tuple_space).returns(@ts)
-    
+
     @messages = []
   end
-  
+
   def test_new_job
-    job = Skynet::Job.new(:map_reduce_class => self.class)
-    {:map_name=>"SkynetJobTest MAP",
-     :map_timeout=>60,
-     :mappers=>2,
-     :name=>"SkynetJobTest MASTER",
-     :reducers=>1,
-     :reduce_partitioner=>"SkynetJobTest",
-     :reduce=>"SkynetJobTest",
-     :queue_id=>0,
-     :start_after=>0,
-     :reduce_timeout=>60,
-     :reduce_name=>"SkynetJobTest REDUCE",
-     :master_timeout=>60,
-     :map=>"SkynetJobTest",
-     :version=>1,
-     :result_timeout=>1200,
-     :master_result_timeout=>1200}.each do |key, val|    
-        assert_equal val, job.send(key), key
-      end
-   end
-  
+    job                      = Skynet::Job.new(:map_reduce_class => self.class)
+    { 
+      :map_name              =>"SkynetJobTest MAP",
+      :map_timeout           =>60,
+      :mappers               =>2,
+      :name                  =>"SkynetJobTest MASTER",
+      :reducers              =>1,
+      :reduce_partitioner    =>"SkynetJobTest",
+      :reduce                =>"SkynetJobTest",
+      :queue_id              =>0,
+      :start_after           =>0,
+      :reduce_timeout        =>60,
+      :reduce_name           =>"SkynetJobTest REDUCE",
+      :master_timeout        =>60,
+      :map                   =>"SkynetJobTest",
+      :version               =>1,
+      :result_timeout        =>1200,
+      :master_result_timeout =>1200
+    }.each do |key, val|    
+      assert_equal val, job.send(key), key
+    end
+  end
+
   def test_new_async_job
     job = Skynet::AsyncJob.new(:map_reduce_class => self.class)
-    {:map_timeout=>60,
-     :reduce_partitioner=>"SkynetJobTest",
-     :master_timeout=>60,
-     :reduce_timeout=>60,
-     :name=>"SkynetJobTest MASTER",
-     :version=>1,
-     :result_timeout=>1200,
-     :map_name=>"SkynetJobTest MAP",
-     :reducers=>1,
-     :queue_id=>0,
-     :reduce_name=>"SkynetJobTest REDUCE",
-     :map=>"SkynetJobTest",
-     :async=>true,
-     :master_result_timeout=>1200,
-     :mappers=>2,
-     :reduce=>"SkynetJobTest",
-     :start_after=>0}.each do |key, val|    
-       assert_equal val, job.send(key), key
-     end
+    {
+      :map_timeout=>60,
+      :reduce_partitioner=>"SkynetJobTest",
+      :master_timeout=>60,
+      :reduce_timeout=>60,
+      :name=>"SkynetJobTest MASTER",
+      :version=>1,
+      :result_timeout=>1200,
+      :map_name=>"SkynetJobTest MAP",
+      :reducers=>1,
+      :queue_id=>0,
+      :reduce_name=>"SkynetJobTest REDUCE",
+      :map=>"SkynetJobTest",
+      :async=>true,
+      :master_result_timeout=>1200,
+      :mappers=>2,
+      :reduce=>"SkynetJobTest",
+      :start_after=>0
+    }.each do |key, val|    
+      assert_equal val, job.send(key), key
+    end
   end
 
   def test_master_task
@@ -95,15 +99,15 @@ class SkynetJobTest < Test::Unit::TestCase
       end
     end
   end
-  
+
   def test_run
     job = Skynet::AsyncJob.new(
-    :map_reduce_class => self.class,
-    :queue_id         => 6,
-    :version          => 1, 
-    :map_data         => [1], 
-    :master_retry     => 17,
-    :master_result_timeout      => 1
+    :map_reduce_class      => self.class,
+    :queue_id              => 6,
+    :version               => 1, 
+    :map_data              => [1], 
+    :master_retry          => 17,
+    :master_result_timeout => 1
     )
     job_id = nil
     Skynet.configure(:SKYNET_LOG_LEVEL => Logger::ERROR, :SOLO => false) do
@@ -111,16 +115,16 @@ class SkynetJobTest < Test::Unit::TestCase
     end        
     assert job_id.is_a?(Bignum)
     test_message = {
-      :version=>1,
-      :queue_id=>6,
-      :expire_time=>0,
-      :payload_type=>:master,
-      :name=>"SkynetJobTest MASTER",
-      :retry=>17,
-      :iteration=>0,
-      :tasktype=>:task,
-      :drburi=>nil,
-      :expiry=>60
+      :version      =>1,
+      :queue_id     =>6,
+      :expire_time  =>0,
+      :payload_type =>:master,
+      :name         =>"SkynetJobTest MASTER",
+      :retry        =>17,
+      :iteration    =>0,
+      :tasktype     =>:task,
+      :drburi       =>nil,
+      :expiry       =>60
     }     
     message = mq.take_next_task(1,nil,nil,6)
     assert message.task_id.is_a?(Bignum)
@@ -130,47 +134,47 @@ class SkynetJobTest < Test::Unit::TestCase
       assert_equal v, message.send(k)
     end
   end
-  
+
   def test_run_map
     job = Skynet::AsyncJob.new(
-      :map_reduce_class => self.class,
-      :version          => 1, 
-      :map_data         => [1], 
-      :map_retry        => 2,
-      :queue_id         => 7
+    :map_reduce_class => self.class,
+    :version          => 1, 
+    :map_data         => [1], 
+    :map_retry        => 2,
+    :queue_id         => 7
     )
-    
+
     Skynet.configure(:SKYNET_LOG_LEVEL => Logger::ERROR) do
       job.run_map
     end
     message = mq.take_next_task(1,nil,nil,7)
     test_message = {
-      :version=>1,
-      :queue_id=>7,
-      :iteration=>0,
-      :name=>"SkynetJobTest MAP",
-      :tasktype=>:task,
-      :expire_time=>0,
-      :payload_type=>:task,
-      :drburi=>nil,
-      :expiry=>60,
-      :retry=>2
-     }
-     assert message.task_id.is_a?(Bignum)
-     assert message.job_id.is_a?(Bignum)
-     assert message.payload.is_a?(Skynet::Task)
-     test_message.each do |k,v|
-       assert_equal v, message.send(k)
-     end
+      :version      =>1,
+      :queue_id     =>7,
+      :iteration    =>0,
+      :name         =>"SkynetJobTest MAP",
+      :tasktype     =>:task,
+      :expire_time  =>0,
+      :payload_type =>:task,
+      :drburi       =>nil,
+      :expiry       =>60,
+      :retry        =>2
+    }
+    assert message.task_id.is_a?(Bignum)
+    assert message.job_id.is_a?(Bignum)
+    assert message.payload.is_a?(Skynet::Task)
+    test_message.each do |k,v|
+      assert_equal v, message.send(k)
+    end
   end                            
-  
+
   def test_map_tasks
     job = Skynet::AsyncJob.new(
-      :map_reduce_class => self.class,    
-      :version          => 1, 
-      :map_data         => [1,2,3], 
-      :map_retry        => 7,
-      :mappers          => 2
+    :map_reduce_class => self.class,    
+    :version          => 1, 
+    :map_data         => [1,2,3], 
+    :map_retry        => 7,
+    :mappers          => 2
     )
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
@@ -180,11 +184,11 @@ class SkynetJobTest < Test::Unit::TestCase
 
   def test_reduce_tasks
     job = Skynet::AsyncJob.new(
-      :map_reduce_class => self.class,    
-      :version          => 1, 
-      :map_data         => [1,2,3], 
-      :reduce_retry     => 9,
-      :reducers         => 2
+    :map_reduce_class => self.class,    
+    :version          => 1, 
+    :map_data         => [1,2,3], 
+    :reduce_retry     => 9,
+    :reducers         => 2
     )                                        
     reduce_tasks = job.reduce_tasks([[1,2,3]])
     assert_equal 2, reduce_tasks.size
@@ -205,16 +209,16 @@ class SkynetJobTest < Test::Unit::TestCase
     end
 
     test_message = {
-      :version=>1,
-       :queue_id=>0,
-       :iteration=>0,
-       :name=>"SkynetJobTest REDUCE",
-       :tasktype=>:task,
-       :expire_time=>0,
-       :payload_type=>:task,
-       :drburi=>nil,
-       :expiry=>60,
-       :retry=>11      
+      :version      =>1,
+      :queue_id     =>0,
+      :iteration    =>0,
+      :name         =>"SkynetJobTest REDUCE",
+      :tasktype     =>:task,
+      :expire_time  =>0,
+      :payload_type =>:task,
+      :drburi       =>nil,
+      :expiry       =>60,
+      :retry        =>11      
     }
 
     message = mq.take_next_task(1)
@@ -239,7 +243,7 @@ class SkynetJobTest < Test::Unit::TestCase
     end
     assert task.task_id.is_a?(Bignum)
   end                          
-  
+
   def test_gather_results
     job = Skynet::AsyncJob.new(
       :map_reduce_class => self.class,    
@@ -272,31 +276,30 @@ class SkynetJobTest < Test::Unit::TestCase
       assert_equal v, message.send(k), k
     end
 
-    
     mq.expects(:take_result).with(job.job_id, 2).returns(message)
     results = job.gather_results(map_tasks,1,"hi")
     assert_equal [["works"]], results    
   end
-  
+
   def test_run_messages_locally
     job = Skynet::AsyncJob.new(
-      :map_reduce_class => self.class,    
-      :version          => 1, 
-      :map_data         => [[1]], 
-      :mappers          => 1
+    :map_reduce_class => self.class,    
+    :version          => 1, 
+    :map_data         => [[1]], 
+    :mappers          => 1
     )
     messages = job.messages_from_tasks(job.map_tasks, 1, "hi")
     results = job.run_messages_locally(messages)
     assert_equal [[[1]]], results    
   end                          
-  
+
   def test_run_messages_locally_errors
     job = Skynet::AsyncJob.new(
-      :map_reduce_class => self.class,
-      :version          => 1, 
-      :map_data         => [[9]], 
-      :map_retry        => 1,
-      :mappers          => 1
+    :map_reduce_class => self.class,
+    :version          => 1, 
+    :map_data         => [[9]], 
+    :map_retry        => 1,
+    :mappers          => 1
     )                                       
     tasks = job.map_tasks  
 
@@ -317,22 +320,40 @@ class SkynetJobTest < Test::Unit::TestCase
     assert_equal 2, tries
     assert_equal [[1]], results
   end                       
-  
+
   def test_enqueue_messages   
-    job = Skynet::Job.new(:map_data => [1,2,3], :map_reduce_class => self)
-    mq = functor
-    job.expects
-    message = Skynet::Message.
+    passed_messages = []
+    mq = functor                
+    mq.write_message = lambda do |m,timeout|
+      passed_messages << m      
+    end
+    job = Skynet::Job.new(:map_data => [1,2,3], :map_reduce_class => self.class)
+    job.stubs(:mq).returns(mq)
+    message1 = Skynet::Message.new(
+      :tasktype     => :task, 
+      :task_id      => 9, 
+      :job_id       => 8, 
+      :payload_type => :task, 
+      :payload      => "blah",
+      :retry        => 3,
+      :iteration    => 0,      
+      :version      => 1,
+      :queue_id     => 4,
+      :name         => "test" 
+    )
+    message2 = Skynet::Message.new(message1.to_h.merge(:name => "test2", :payload => "test2"))
+    job.enqueue_messages([message1,message2], 0)
+    assert_equal [message1, message2], passed_messages
   end
-  
+
   def test_keep_map_tasks
     job = Skynet::Job.new(
-      :map_reduce_class => self.class,    
-      :version          => 1, 
-      :map_data         => [1,2], 
-      :mappers          => 2,
-      :reducers         => 0,
-      :keep_map_tasks   => 3
+    :map_reduce_class => self.class,    
+    :version          => 1, 
+    :map_data         => [1,2], 
+    :mappers          => 2,
+    :reducers         => 0,
+    :keep_map_tasks   => 3
     )                
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
@@ -342,13 +363,13 @@ class SkynetJobTest < Test::Unit::TestCase
 
   def test_keep_reduce_tasks
     job = Skynet::Job.new(
-      :map_reduce_class => self.class,    
-      :version          => 1, 
-      :map_data         => [1,2], 
-      :mappers          => 2,
-      :reducers         => 1,
-      :keep_map_tasks   => true,
-      :keep_reduce_tasks => 3
+    :map_reduce_class => self.class,    
+    :version          => 1, 
+    :map_data         => [1,2], 
+    :mappers          => 2,
+    :reducers         => 1,
+    :keep_map_tasks   => true,
+    :keep_reduce_tasks => 3
     )                
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
@@ -372,15 +393,15 @@ class SkynetJobTest < Test::Unit::TestCase
   end
 
   def self.reduce_partitioner(post_map_data,num_reducers)
-    Skynet::Partitioner::recombine_and_split.call(post_map_data, num_reducers) 
+    Skynet::Partitioners::RecombineAndSplit.reduce_partitioner(post_map_data, num_reducers) 
   end
 
   private
 
   def mq
-		Skynet::MessageQueueAdapter::TupleSpace.new
+    Skynet::MessageQueueAdapter::TupleSpace.new
   end
-  
+
 end
 
-  
+
