@@ -84,6 +84,7 @@ class Skynet
       end
             
       def message_to_hash(message,timeout=nil,fields=Skynet::Message.fields)
+        timeout ||= message.expiry        
         hash = {}
         fields.values.each do |field|
           next if field == :drburi
@@ -130,16 +131,19 @@ class Skynet
       end
       
       def write_message(message,timeout=nil)
+        timeout ||= message.expiry
         SkynetMessageQueue.create(message_to_hash(message, timeout))
       end
       
       def write_result(message,result=[],timeout=nil)
+        timeout ||= message.expiry
         result_message = message.result_message(result)
         result_message.expire_time = nil
         update_message(result_message,timeout)
       end
       
       def update_message(message,timeout=nil)
+        timeout ||= message.expiry
         timeout_sql = (timeout ? ", timeout = #{timeout}, expire_time = #{Time.now.to_f + timeout}" : '')
         rows = 0
         rows = update(%{
@@ -473,6 +477,9 @@ class Skynet
             
             message_row = SkynetMessageQueue.find_by_sql(sql).first
             if message_row
+      # ================================================================================
+      # = XXX This will not work with retries since the tran_id will not be null!!!!!! =
+      # ================================================================================
               update_sql = "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE id = #{message_row.id} and tran_id is null"
               
               rows = 0

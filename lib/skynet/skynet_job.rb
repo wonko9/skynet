@@ -239,36 +239,44 @@ class Skynet
       @single
     end
     	  
-    def run_tasks(tasks, timeout=5, description="Generic Task", run_local=false)
+    def run_tasks_and_gather_results(tasks, run_local=false)
+      pp tasks
       t1     = Time.now
-      tasks  = [tasks] unless tasks.class == Array
+      timeout = tasks.first.result_timeout || 5
+      description = tasks.first.name || "Generic Task"
       results = nil
 
-      info "RUN TASKS #{description} ver: #{self.version} jobid: #{job_id} @ #{t1}: Q:#{queue_id} run_local: #{run_local}"
+      run_tasks(tasks, run_local)
 
-      # Just run the tasks if in sigle mode
-      # Maybe run_map and run_reduce should just call run_local INSTEAD of run_tasks
-      messages = messages_from_tasks(tasks, timeout, description)
-      
-      if solo? or single? or run_local
-        results = run_messages_locally(messages)      
-      else
-        # write tasks to the MessageQueue
-        enqueue_messages(messages,timeout)
+      # retrieve results unless async
+      return true if async? or solo? or single? or run_local
 
-        # retrieve results unless async
-        return true if async?
-    
-        debug "GATHER RESULTS for #{description} job_id: #{job_id} - NOT AN ASYNC JOB"
-    
-        results = gather_results(tasks, timeout, description)
-      end
-      info "RUN TASKS COMPLETE #{description} RESULTS:#{ results ? results.size : 0 } jobid:#{job_id} TOOK: #{Time.now - t1}"
+      results = gather_results(job_id, tasks.size, timeout, description)
+      info "RUN TASKS AND GATHER RESULTS COMPLETE #{description} RESULTS:#{ results ? results.size : 0 } jobid:#{job_id} TOOK: #{Time.now - t1}"
       return results
-    end 
+    end
     
-    def enqueue_messages(messages,timeout)
+    def run_tasks(tasks, run_local=false)
+      t1     = Time.now
+      if tasks.is_a?(Skynet::TaskIterator)
+        tasks = tasks.to_a
+      elsif not tasks.is_a?(Array)
+        tasks  = [tasks]
+      end
+      timeout = tasks.first.result_timeout || 5
+      description = tasks.first.name || "Generic Task"
+      info "RUN TASKS #{description} LOCAL: #{run_local} ver: #{self.version} jobid: #{job_id} @ #{t1}: Q:#{queue_id}"
+      if solo? or single? or run_local                   
+        results = run_tasks_locally(tasks)      
+      else
+        enqueue_messages(messages_from_tasks(tasks))
+      end
+      return true
+    end
+    
+    def enqueue_messages(messages)
       messages.each do |message|
+        timeout = message.expiry || 5
         debug "RUN TASKS SUBMITTING #{message.name} job_id: #{job_id} #{message.payload.is_a?(Skynet::Task) ? 'task' + message.payload.task_id.to_s : ''}"        
         debug "RUN TASKS WORKER MESSAGE #{message.name} job_id: #{job_id}", message.to_a
         mq.write_message(message,timeout * 5)
@@ -278,8 +286,11 @@ class Skynet
     # XXX The problem with run_local is that it doesn't honor the master timeout, nor does it honor the retries.
     # It tries each task once and fails for that task if that task fails.  If the master would get retried
     # it would be fine, but you may have said that tasks get retried, but not masters.
-    def run_messages_locally(messages)
-      task_ids = messages.collect { | message | message.payload.task_id }
+    def run_tasks_locally(tasks)
+      tasks = tasks.to_a if tasks.is_a?(Skynet::TaskIterator)
+      task_ids = tasks.collect { | task | task.task_id }
+      messages = messages_from_tasks(tasks)
+      description = tasks.first.name
       results = {}
       errors  = {}
       messages.each do |message| 
@@ -304,8 +315,8 @@ class Skynet
       return results.values
     end
     
-    def gather_results(tasks, timeout, description=self.name)
-      task_ids = tasks.collect { | task | task.task_id }
+    def gather_results(job_id, number_of_tasks, timeout=nil, description=nil)
+      debug "GATHER RESULTS job_id: #{job_id} - NOT AN ASYNC JOB"
       results = {}
       errors  = {}
       started_at = Time.now.to_i
@@ -315,6 +326,7 @@ class Skynet
           result_message = mq.take_result(job_id,timeout * 2)
 
           ret_result = result_message.payload
+          pp "GOT RESULT"
           if result_message.payload_type == :error
             errors[result_message.task_id] = ret_result
             error "ERROR RESULT TASK #{result_message.task_id} returned #{errors[result_message.task_id].inspect}"
@@ -322,13 +334,13 @@ class Skynet
             results[result_message.task_id] = ret_result
             debug "RESULT returned TASKID: #{result_message.task_id} #{results[result_message.task_id].inspect}"
           end          
-          debug "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(task_ids - (results.keys + errors.keys)).size}"
-          break if (task_ids - (results.keys + errors.keys)).empty?
+          debug "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(number_of_tasks - (results.keys + errors.keys).uniq.size)}"
+          break if (number_of_tasks - (results.keys + errors.keys).uniq.size) <= 0
         end
       rescue Skynet::RequestExpiredError => e 
         error "A WORKER EXPIRED or ERRORED, #{description}, job_id: #{job_id}"
         if not errors.empty?
-          raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{task_ids.size} workers. #{errors.pretty_print_inspect}")
+          raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{number_of_tasks} workers. #{errors.pretty_print_inspect}")
         else
           raise Skynet::RequestExpiredError.new("WORKER ERROR, A WORKER EXPIRED!  Did not get results or even errors back from all workers!")
         end
@@ -337,7 +349,9 @@ class Skynet
       return results.values
     end
 
-		def messages_from_tasks(tasks,timeout,description)
+		def messages_from_tasks(tasks)
+      tasks = tasks.to_a if tasks.is_a?(Skynet::TaskIterator)
+
       tasks.collect do |task|
         worker_message = Skynet::Message.new(
           :tasktype     => :task, 
@@ -345,10 +359,10 @@ class Skynet
           :task_id      => task.task_id,
           :payload      => task,
           :payload_type => task.task_or_master,
-          :expiry       => timeout, 
+          :expiry       => task.result_timeout, 
           :expire_time  => @start_after,
           :iteration    => 0,
-          :name         => description,       
+          :name         => task.name,       
           :version      => @version,
           :retry        => task.retry,
           :queue_id     => queue_id
@@ -403,7 +417,7 @@ class Skynet
       if solo?
         run_job
       else
-        results = run_tasks(master_task,master_timeout,name)
+        results = run_tasks_and_gather_results(master_task)
         if async?
           return self.job_id
         else
@@ -489,6 +503,8 @@ class Skynet
       task_options[:retry] = map_retry if map_retry
       start_task_id = get_unique_id(1).to_i
 
+      task_iterator = nil
+      
       if @map_data.class == Array
         debug "RUN MAP 2.2 DATA IS Array #{display_info}"
         num_mappers = @map_data.length < @mappers ? @map_data.length : @mappers
@@ -501,34 +517,36 @@ class Skynet
         debug "RUN MAP 2.3 #{display_info} data size after partition: #{pre_map_data.size}"
         debug "RUN MAP 2.3 #{display_info} map data after partition:", pre_map_data
 
-        map_tasks = (0..num_mappers - 1).collect do |i|
-          Skynet::Task.new(task_options.merge(:data => pre_map_data[i], :task_id => (start_task_id + i)))
-        end
-
-        # Run map tasks
-        #
+        task_iterator = Skynet::TaskIterator.new(task_options, pre_map_data)
       elsif @map_data.is_a?(Enumerable)
         debug "RUN MAP 2.2 DATA IS ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
-        each_method = @map_data.respond_to?(:next) ? :next : :each
         ii = 0
-        @map_data.send(each_method) do |pre_map_data|
-          map_tasks << Skynet::Task.new(task_options.merge(:data => pre_map_data, :task_id => (start_task_id + ii)))
-          ii += 1
-        end
+        task_iterator = Skynet::TaskIterator.new(task_options, @map_data)
       else
         debug "RUN MAP 2.2 DATA IS NOT ARRAY OR ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
-        map_tasks = [ Skynet::Task.new(task_options.merge(:data => @map_data, :task_id => start_task_id)) ]
-      end      
+        task_iterator = Skynet::TaskIterator.new(task_options, [ @map_data ])
+      end            
+      return task_iterator
     end
     
     # Partition up starting data, create map tasks
     def run_map      
+      post_map_data = nil
       begin                       
         map_tasks = self.map_tasks
-        if keep_map_tasks.is_a?(TrueClass) or (keep_map_tasks.is_a?(Fixnum) and map_tasks.size <= keep_map_tasks)
-          run_local = true
-        end          
-        post_map_data = run_tasks(map_tasks,map_timeout,map_name,run_local)
+        run_local = false
+        if map_tasks
+          if keep_map_tasks.is_a?(TrueClass) or (keep_map_tasks.is_a?(Fixnum) and map_tasks.data.is_a?(Array) and map_tasks.size <= keep_map_tasks)
+            post_map_data = run_tasks_locally(map_tasks)
+          else
+            number_of_tasks = 0
+            map_tasks.each_with_index do |task, ii|
+              number_of_tasks = ii
+              run_tasks(task)
+            end            
+            post_map_data = gather_results(job_id, number_of_tasks, map_timeout, map_name)            
+          end           
+        end
       rescue WorkerError => e
         error "MAP FAILED #{display_info} #{e.class} #{e.message.inspect}"
         return nil
@@ -575,8 +593,8 @@ class Skynet
         reduce_tasks = self.reduce_tasks(post_map_data)
         if keep_reduce_tasks.is_a?(TrueClass) or (keep_reduce_tasks.is_a?(Fixnum) and reduce_tasks.size <= keep_reduce_tasks)
           run_local = true
-        end
-        results = run_tasks(reduce_tasks, reduce_timeout, reduce_name, run_local)
+        end       
+        results = run_tasks_and_gather_results(reduce_tasks, run_local)
       rescue WorkerError => e
         error "REDUCE FAILED #{display_info} #{e.class} #{e.message.inspect}"
         return nil
@@ -652,6 +670,73 @@ class Skynet
     end
         
   end ### END class Skynet::AsyncJob   
+
+  class TaskIterator
+    include SkynetDebugger
+    include Skynet::GuidGenerator		
+    
+    class Error < StandardError
+    end
+    
+    include Enumerable
+
+    attr_accessor :task_options, :data
+
+    def initialize(task_options, data)            
+      @task_options = task_options
+      @data         = data
+    end
+
+
+    def first         
+      if data.respond_to?(:first)
+        @first ||= Skynet::Task.new(task_options.merge(:data => data.first, :task_id => get_unique_id(1).to_i))        
+      else
+        raise Error.new("#{data.class} does not implement 'first'")
+      end
+    end
+
+    def size         
+      if data.respond_to?(:size)
+        data.size
+      else
+        raise Error.new("#{data.class} does not implement 'size'")
+      end
+    end
+    
+    def [](index)
+      if data.respond_to?(:[])
+        Skynet::Task.new(task_options.merge(:data => data[index], :task_id => get_unique_id(1).to_i))
+      else
+        raise Error.new("#{data.class} does not implement '[]'")
+      end
+    end
+
+    def each_method
+      each_method = data.respond_to?(:next) ? :next : :each        
+    end
+    
+    def to_a
+      self.collect { |task| task }
+    end
+    
+    def each     
+      iteration = 0        
+      start_task_id = get_unique_id(1).to_i
+      data.send(each_method) do |task_data|
+        task = nil
+        if @first and iteration == 0
+          task = @first
+        else
+          task = Skynet::Task.new(task_options.merge(:data => task_data, :task_id => (start_task_id + iteration)))
+          @first = task if iteration == 0
+        end
+        iteration += 1
+        yield task
+      end
+    end
+  end
+
 end
 
 # require 'ruby2ruby'   # XXX this will break unless people have the fix to Ruby2Ruby

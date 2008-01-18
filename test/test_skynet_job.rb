@@ -137,16 +137,14 @@ class SkynetJobTest < Test::Unit::TestCase
 
   def test_run_map
     job = Skynet::AsyncJob.new(
-    :map_reduce_class => self.class,
-    :version          => 1, 
-    :map_data         => [1], 
-    :map_retry        => 2,
-    :queue_id         => 7
+      :map_reduce_class => self.class,
+      :version          => 1, 
+      :map_data         => [1], 
+      :map_retry        => 2,
+      :queue_id         => 7
     )
 
-    Skynet.configure(:SKYNET_LOG_LEVEL => Logger::ERROR) do
-      job.run_map
-    end
+    job.run_map
     message = mq.take_next_task(1,nil,nil,7)
     test_message = {
       :version      =>1,
@@ -254,20 +252,20 @@ class SkynetJobTest < Test::Unit::TestCase
     map_tasks = job.map_tasks
     mq = mq
     job.stubs(:mq).returns(mq)                 
-    messages = job.messages_from_tasks(map_tasks, 2, "hi")
+    messages = job.messages_from_tasks(map_tasks)
     message = messages.first.result_message(["works"])
 
     test_message = {
       :version      =>1,
       :queue_id     =>0,
       :iteration    =>0,
-      :name         =>"hi",
+      :name         =>"SkynetJobTest MAP",
       :tasktype     =>:result,
       :expire_time  =>0,
       :payload_type =>:result,
       :payload      =>["works"],
       :drburi       =>nil,
-      :expiry       =>2,
+      :expiry       =>60,
       :retry        =>3
     }
     assert message.task_id.is_a?(Bignum)
@@ -276,37 +274,57 @@ class SkynetJobTest < Test::Unit::TestCase
       assert_equal v, message.send(k), k
     end
 
-    mq.expects(:take_result).with(job.job_id, 2).returns(message)
-    results = job.gather_results(map_tasks,1,"hi")
+    mq.expects(:take_result).with(job.job_id, 120).returns(message)
+    results = job.gather_results(job.job_id, map_tasks.size, map_tasks.first.result_timeout, map_tasks.first.name)
     assert_equal [["works"]], results    
+  end      
+  
+  def test_run_tasks
+    job = Skynet::AsyncJob.new(
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [[1]], 
+      :mappers          => 1
+    )
+    messages = job.messages_from_tasks(job.map_tasks)
+    mq = functor
+    received_messages = []
+    mq.write_message = lambda do |message,timeout|
+      received_messages << message
+    end
+    mq.get_worker_version = 1
+    job.stubs(:mq).returns(mq)
+
+    job.run_tasks(job.map_tasks.to_a)
+    assert_equal messages.first.payload_type, received_messages.first.payload_type
+    assert_equal messages.first.payload.map_or_reduce, received_messages.first.payload.map_or_reduce
+    assert_equal messages.first.payload.process, received_messages.first.payload.process
   end
 
-  def test_run_messages_locally
+  def test_run_tasks_locally
     job = Skynet::AsyncJob.new(
-    :map_reduce_class => self.class,    
-    :version          => 1, 
-    :map_data         => [[1]], 
-    :mappers          => 1
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [[1]], 
+      :mappers          => 1
     )
-    messages = job.messages_from_tasks(job.map_tasks, 1, "hi")
-    results = job.run_messages_locally(messages)
+    results = job.run_tasks_locally(job.map_tasks)
     assert_equal [[[1]]], results    
   end                          
 
-  def test_run_messages_locally_errors
-    job = Skynet::AsyncJob.new(
-    :map_reduce_class => self.class,
-    :version          => 1, 
-    :map_data         => [[9]], 
-    :map_retry        => 1,
-    :mappers          => 1
-    )                                       
-    tasks = job.map_tasks  
-
-    messages = job.messages_from_tasks(tasks, 1, "hi")
-    tries = 0
-    task = messages.first.payload
+  def test_run_tasks_locally_errors    
+    task = Skynet::Task.new(
+      :retry          => 1, 
+      :result_timeout => 60, 
+      :data           => [[9]], 
+      :task_id        => 12,
+      :process        => self.class.to_s,
+      :map_or_reduce  => :map,
+      :task_or_master => :task,
+      :name           => "hi"
+    )                      
     task.extend(Functor)
+    tries = 0
     task.define_method(:run) do
       tries += 1
       if tries == 1
@@ -315,8 +333,18 @@ class SkynetJobTest < Test::Unit::TestCase
         return [1]
       end      
     end  
-    errors = nil
-    results = job.run_messages_locally(messages)
+
+    Skynet::Message.any_instance.expects(:payload).returns(task).times(4)
+
+    job = Skynet::AsyncJob.new(
+      :map_reduce_class => self.class,
+      :version          => 1, 
+      :map_data         => [[9]], 
+      :map_retry        => 1,
+      :mappers          => 1
+    )
+        
+    results = job.run_tasks_locally([task])
     assert_equal 2, tries
     assert_equal [[1]], results
   end                       
@@ -342,22 +370,22 @@ class SkynetJobTest < Test::Unit::TestCase
       :name         => "test" 
     )
     message2 = Skynet::Message.new(message1.to_h.merge(:name => "test2", :payload => "test2"))
-    job.enqueue_messages([message1,message2], 0)
+    job.enqueue_messages([message1,message2])
     assert_equal [message1, message2], passed_messages
   end
 
   def test_keep_map_tasks
     job = Skynet::Job.new(
-    :map_reduce_class => self.class,    
-    :version          => 1, 
-    :map_data         => [1,2], 
-    :mappers          => 2,
-    :reducers         => 0,
-    :keep_map_tasks   => 3
+      :map_reduce_class => self.class,    
+      :version          => 1, 
+      :map_data         => [1,2], 
+      :mappers          => 2,
+      :reducers         => 0,
+      :keep_map_tasks   => 3
     )                
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
-    job.expects(:run_messages_locally).times(1).returns([])
+    job.expects(:run_tasks_locally).times(1).returns([])
     job.run
   end
 
@@ -373,7 +401,7 @@ class SkynetJobTest < Test::Unit::TestCase
     )                
     map_tasks = job.map_tasks
     assert_equal 2, map_tasks.size
-    job.expects(:run_messages_locally).times(2).returns([1,2])
+    job.expects(:run_tasks_locally).times(2).returns([1,2])
     job.run
   end
 

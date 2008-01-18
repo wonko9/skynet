@@ -50,11 +50,13 @@ class Skynet
       end
 
       def write_message(message,timeout=nil)
+        timeout ||= message.expiry
         write(message,timeout)
       end
 
       def write_result(message,result=[],timeout=nil)
         result_message = message.result_message(result).to_a
+        timeout ||= result_message.expiry
         write(result_message,timeout)
         take_fallback_message(message)
         result_message
@@ -65,6 +67,7 @@ class Skynet
       end
 
       def write_error(message,error='',timeout=nil)
+        timeout ||= message.expiry
         write(message.error_message(error),timeout)
         take_fallback_message(message)
       end
