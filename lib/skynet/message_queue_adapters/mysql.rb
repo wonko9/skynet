@@ -111,7 +111,7 @@ class Skynet
         rows = nil
         loop do
           # debug "start #{Time.now} timeout #{start + timeout}"
-          message_row = take(Skynet::Message.next_task_template(curver, payload_type, queue_id), start, timeout)
+          message_row = take(Skynet::Message.next_task_template(curver, payload_type, queue_id), start, timeout, queue_id)
           next unless message_row
 
           begin
@@ -448,7 +448,7 @@ class Skynet
       @@temperature[:master] ||= 1
       @@temperature[:any] ||= 1
       
-      def take(template,start=Time.now,timeout=1,sleep_time=nil)      
+      def take(template,start=Time.now, timeout=1, sleep_time=nil, queue_id=0)      
         conditions = template_to_conditions(template)
         sleep_time ||= timeout
         transaction_id = get_unique_id(1)
@@ -483,14 +483,14 @@ class Skynet
               end
               if rows < 1
                 old_temp = temperature(payload_type)
-                set_temperature(payload_type,conditions)
+                set_temperature(payload_type, conditions, queue_id)
                 debug "MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
                 next 
               end
               return message_row
             else
               old_temp = temperature(payload_type)                                                              
-              set_temperature(payload_type,conditions)
+              set_temperature(payload_type, conditions, queue_id)
               debug "MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
               break if temperature(payload_type) == 1 and old_temp == 1
               next
@@ -498,7 +498,7 @@ class Skynet
           rescue ActiveRecord::StatementInvalid => e
             if e.message =~ /Deadlock/                                 
               old_temp = temperature(payload_type)
-              set_temperature(payload_type,conditions)
+              set_temperature(payload_type, conditions, queue_id)
               debug "COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
               next
             else
@@ -550,34 +550,29 @@ class Skynet
       
       Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW] ||= 0.6
                
-# =======================================================================================================================
-# = XXX The queue temperature has to go into the message queue table for the cases when multiple queues are being used. =
-# =======================================================================================================================
-## try SQRT *2
-## try POW 0.6 or .75
-      def set_temperature(payload_type,conditions)                                            
-        temp_q_conditions = "type = '#{payload_type}' AND updated_on < '#{(Time.now - 5).strftime('%Y-%m-%d %H:%M:%S')}'"
+      def set_temperature(payload_type, conditions, queue_id=0)                                            
+        temp_q_conditions = "queue_id = #{queue_id} AND type = '#{payload_type}' AND updated_on < '#{(Time.now - 5).strftime('%Y-%m-%d %H:%M:%S')}'"
 #        "POW(#{(rand(40) + 40) * 0.01})"
 # its almost like the temperature table needs to store the POW and adjust that to be adaptive.  Like some % of the time it
 # uses the one in the table, and some % it tries a new one and scores it.
         begin
-          temperature = SkynetWorkerQueue.connection.select_value(%{select (
+          temperature = SkynetMessageQueue.connection.select_value(%{select (
             CASE WHEN (@t:=FLOOR(
             POW(@c:=(SELECT count(*) FROM #{message_queue_table} WHERE #{conditions}
           ),#{Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW]}))) < 1 THEN 1 ELSE @t END) from skynet_queue_temperature WHERE #{temp_q_conditions} 
           })
           if temperature
-            update("UPDATE skynet_queue_temperature SET temperature = #{temperature} WHERE #{temp_q_conditions}")
+            rows = update("UPDATE skynet_queue_temperature SET temperature = #{temperature} WHERE #{temp_q_conditions}")
             @@temperature[payload_type.to_sym] = temperature.to_f
           else
             sleepy = rand Skynet::CONFIG[:MYSQL_TEMPERATURE_CHANGE_SLEEP]
             sleep sleepy          
-            @@temperature[payload_type.to_sym] = SkynetWorkerQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
+            @@temperature[payload_type.to_sym] = get_temperature(payload_type, queue_id)
           end
         rescue ActiveRecord::StatementInvalid => e
           if e.message =~ /away/
             ActiveRecord::Base.connection.reconnect!
-            SkynetWorkerQueue.connection.reconnect!
+            SkynetMessageQueue.connection.reconnect!
           end
         end
         # update("UPDATE skynet_queue_temperature SET type = '#{payload_type}', temperature = CASE WHEN @t:=FLOOR(SQRT(select count(*) from #{message_queue_table} WHERE #{conditions})) < 1 THEN 1 ELSE @t END")
@@ -586,6 +581,14 @@ class Skynet
         # @@temperature[payload_type.to_sym] = tasks ** 0.5
         # @@temperature[payload_type.to_sym] *= multiplier
         @@temperature[payload_type.to_sym] = 1 if @@temperature[payload_type.to_sym] < 1
+      end
+      
+      def get_temperature(payload_type, queue_id=0)
+        value = SkynetMessageQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
+        if not value
+          SkynetMessageQueue.connection.execute("insert into skynet_queue_temperature (queue_id,type,temperature) values (#{queue_id},'#{payload_type}',#{@@temperature[payload_type.to_sym]})")
+        end
+        value
       end
     end
   end
