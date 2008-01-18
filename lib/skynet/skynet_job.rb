@@ -16,12 +16,12 @@ class Skynet
     @@worker_ver = nil
     @@log = nil
 
-    FIELDS = [:mappers, :reducers, :silent, :name, :map_timeout, :map_data, :job_id,
+    FIELDS = [:queue_id, :mappers, :reducers, :silent, :name, :map_timeout, :map_data, :job_id,
               :reduce_timeout, :master_timeout, :master, :map_name, :reduce_name, :async,
               :master_result_timeout, :result_timeout, :start_after, :solo, :single, :version,
               :map, :map_partitioner, :reduce, :reduce_partitioner, :map_reduce_class,
               :master_retry, :map_retry, :reduce_retry,
-              :keep_map_tasks, :keep_reduce_tasks
+              :keep_map_tasks, :keep_reduce_tasks              
             ]                                                       
 
     FIELDS.each do |method| 
@@ -33,6 +33,7 @@ class Skynet
     end        
 
     Skynet::CONFIG[:JOB_DEFAULTS] = {
+      :queue_id              => 0,
       :mappers               => 2,
       :reducers              => 1,               
       :map_timeout           => 60,
@@ -165,7 +166,12 @@ class Skynet
           self.send("#{field}=".to_sym,options[field])
         elsif Skynet::CONFIG[:JOB_DEFAULTS][field]
           self.send("#{field}=".to_sym,Skynet::CONFIG[:JOB_DEFAULTS][field])
+        end              
+        if options[:queue]
+          raise Error.new("The provided queue (#{options[:queue]}) does not exist in Skynet::CONFIG[:MESSAGE_QUEUES]") unless Skynet::CONFIG[:MESSAGE_QUEUES].index(options[:queue])
+          self.queue_id = Skynet::CONFIG[:MESSAGE_QUEUES].index(options[:queue])
         end
+          
         
         # Backward compatability
         self.mappers ||= options[:map_tasks]
@@ -238,7 +244,7 @@ class Skynet
       tasks  = [tasks] unless tasks.class == Array
       results = nil
 
-      info "RUN TASKS #{description} ver: #{self.version} jobid: #{job_id} @ #{t1}: run_local: #{run_local}"
+      info "RUN TASKS #{description} ver: #{self.version} jobid: #{job_id} @ #{t1}: Q:#{queue_id} run_local: #{run_local}"
 
       # Just run the tasks if in sigle mode
       # Maybe run_map and run_reduce should just call run_local INSTEAD of run_tasks
@@ -345,7 +351,8 @@ class Skynet
           :iteration    => 0,
           :name         => description,       
           :version      => @version,
-          :retry        => task.retry
+          :retry        => task.retry,
+          :queue_id     => queue_id
         )
       end
 	  end

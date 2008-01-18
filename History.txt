@@ -1,4 +1,4 @@
-== 0.9.2 2008-01-08
+== 0.9.2 2008-01-22
 - Active Record distributed_find now handles REALLY large sets by breaking them into seperate jobs. 1MM models per master broken into ranges of 1000.
 
 - Skynet::Job has better support for running tasks locally.  A job may run tasks in its own process if

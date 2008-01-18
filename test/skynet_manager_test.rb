@@ -50,7 +50,7 @@ class SkynetManagerTest < Test::Unit::TestCase
    
     Skynet::Worker.any_instance.stubs(:max_memory_reached?).returns(false)
 
-    @manager = Skynet::Manager.new("path",2)
+    @manager = Skynet::Manager.new(:script_path => "path", :workers => 2)
     
     def @manager.fork
       newpid = SkynetManagerTest::PIDS.size + 1

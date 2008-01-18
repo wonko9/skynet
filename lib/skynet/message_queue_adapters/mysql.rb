@@ -103,15 +103,15 @@ class Skynet
         hash
       end
 
-      def take_next_task(curver,timeout=0,payload_type=nil)
+      def take_next_task(curver,timeout=0,payload_type=nil,queue_id=0)
         timeout = Skynet::CONFIG[:MYSQL_NEXT_TASK_TIMEOUT] if timeout < 1
-        debug "TASK NEXT TASK!!!!!!! timeout: #{timeout}"     
+        debug "TASK NEXT TASK!!!!!!! timeout: #{timeout} queue_id:#{queue_id}"     
         message = nil
         start = Time.now    
         rows = nil
         loop do
           # debug "start #{Time.now} timeout #{start + timeout}"
-          message_row = take(Skynet::Message.next_task_template(curver,payload_type),start,timeout)
+          message_row = take(Skynet::Message.next_task_template(curver, payload_type, queue_id), start, timeout)
           next unless message_row
 
           begin
@@ -210,7 +210,7 @@ class Skynet
         update_message(message.error_message(error),timeout)
       end
 
-      def write_worker_status(task, timeout=nil) 
+      def write_worker_status(task, timeout=nil)
         message = Skynet::WorkerStatusMessage.new(task)
         worker_fields = Skynet::WorkerStatusMessage.fields.reject {|k,f| f == :process_id or f == :hostname or f == :tasksubtype or f == :tasktype}
         update_hash = message_to_hash(message, timeout, Skynet::WorkerStatusMessage.fields)
@@ -475,15 +475,12 @@ class Skynet
             
             message_row = SkynetMessageQueue.find_by_sql(sql).first
             if message_row
-              update_conditions = "ID = #{message_row.id} and tran_id "
-              if message_row.tran_id
-                update_conditions << "= #{message_row.tran_id}"
-              else
-                update_conditions << 'IS NULL'
+              update_sql = "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE id = #{message_row.id} and tran_id is null"
+              
+              rows = 0
+              SkynetMessageQueue.transaction do
+                rows = SkynetMessageQueue.connection.update(update_sql)
               end
-              rows = SkynetMessageQueue.connection.update(
-                "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE #{update_conditions}"
-              )
               if rows < 1
                 old_temp = temperature(payload_type)
                 set_temperature(payload_type,conditions)

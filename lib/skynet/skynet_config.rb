@@ -33,7 +33,8 @@ class Skynet
     :DEFAULT_MAP_RETRY                      => 3,
     :DEFAULT_REDUCE_RETRY                   => 3,
     :KEEP_MAP_TASKS                         => false,
-    :KEEP_REDUCE_TASKS                      => false
+    :KEEP_REDUCE_TASKS                      => false,
+    :MESSAGE_QUEUES                         => ['default', 'second']
   } unless defined?(CONFIG)
   
   
@@ -140,5 +141,43 @@ class Skynet
   #   :MYSQL_NEXT_TASK_TIMEOUT              => 60,
 
   class Config     
+    include Enumerable
+
+    def each
+      Skynet::CONFIG.each {|k,v| yield k,v}
+    end
+
+    def add_message_queue(queue_name)
+      self.message_queues << queue_name
+    end
+    
+    def queue_id_by_name(queue_name)
+      if Skynet::CONFIG[:MESSAGE_QUEUES].index(queue_name)
+        return Skynet::CONFIG[:MESSAGE_QUEUES].index(queue_name)
+      else     
+        raise Skynet::Error("#{queue_name} is not a valid queue")
+      end
+    end       
+    
+    def queue_name_by_id(queue_id)               
+      queue_id = queue_id.to_i
+      if Skynet::CONFIG[:MESSAGE_QUEUES][queue_id]
+        return Skynet::CONFIG[:MESSAGE_QUEUES][queue_id]
+      else     
+        raise Skynet::Error("#{queue_id} is not a valid queue_id")
+      end
+    end
+    
+    
+    
+    def method_missing(name, *args)
+      name = name.to_s.upcase.to_sym
+      if name.to_s =~ /^(.*)=$/
+        name = $1.to_sym
+        Skynet::CONFIG[name] = args.first
+      else
+        Skynet::CONFIG[name]
+      end
+    end
   end
 end

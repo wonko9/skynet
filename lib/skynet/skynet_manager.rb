@@ -7,6 +7,10 @@ class Skynet
   end
 
   class Manager
+    
+    class Error < StandardError
+    end
+    
     include SkynetDebugger
 
     Skynet::CONFIG[:PERCENTAGE_OF_TASK_ONLY_WORKERS]    ||= 0.7
@@ -16,27 +20,30 @@ class Skynet
       "MANAGER"
     end                  
         
-
-    attr_accessor :required_libs
+    attr_accessor :required_libs, :queue_id
+    attr_reader   :config
     
-    def initialize(script_path,workers_requested,adlibs=[])
-      info "Skynet Launcher Path: [#{@script_path}]"
-      @script_path          = script_path
-      @mutex                = Mutex.new
-      @workers_requested    = workers_requested
-      @required_libs        = adlibs
+    def initialize(options)      
+      raise Error.new("You must provide a script path to Skynet::Manager.new.") unless options[:script_path]
+      @script_path          = options[:script_path]
+      # info "Skynet Launcher Path: [#{@script_path}]"
+      @workers_requested    = options[:workers]  || 4
+      @required_libs        = options[:adlibs]   || []
+      @queue_id             = options[:queue_id] || 0
       @number_of_workers    = 0
       @workers_by_type      = {:master => [], :task => [], :any => []}
       @signaled_workers     = []
       @workers_running      = {}
       @all_workers_started  = false                      
+      @config               = Skynet::Config.new      
+      @mutex                = Mutex.new
     end   
     
     def start_workers
       setup_signals
       
       starting = workers_to_start(@workers_requested)
-      warn "Starting #{starting} workers.  #{@workers_requested - starting} already running."
+      warn "Starting #{starting} workers.  QUEUE: #{config.queue_name_by_id(queue_id)} #{@workers_requested - starting} already running."
       add_worker(starting)
     end
     
@@ -222,11 +229,12 @@ class Skynet
           worker_types[:any] += 1
         end                          
         cmd = "#{@script_path} --worker_type=#{worker_type}"
+        cmd << " --queue_id=#{queue_id}"
         cmd << " -r #{required_libs.join(' -r ')}" if required_libs and not required_libs.empty?
         wpid = self.fork_and_exec(cmd)
         @workers_by_type[worker_type] ||= []
         @workers_by_type[worker_type] << wpid
-        warn "Adding Worker ##{ii} PID: #{wpid} WORKER_TYPE?:#{worker_type}"
+        warn "Adding Worker ##{ii} PID: #{wpid} QUEUE: #{queue_id}, WORKER_TYPE?:#{worker_type}"
         @mutex.synchronize do
           @number_of_workers += 1
         end
@@ -375,6 +383,12 @@ class Skynet
       options[:remove_workers] ||= nil
       options[:use_rails]      ||= false
       options[:required_libs]  ||= []
+      options[:workers]        ||= Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4
+      options[:pid_file]       ||= Skynet::CONFIG[:SKYNET_PIDS_FILE]
+      options[:script_path]    ||= Skynet::CONFIG[:LAUNCHER_PATH]
+
+      config = Skynet::Config.new
+
       OptionParser.new do |opt|
         opt.banner = "Usage: skynet [options]"
         opt.on('', '--restart-all-workers', 'Restart All Workers') do |v| 
@@ -416,13 +430,23 @@ class Skynet
         opt.on('-r', '--required LIBRARY', 'Require the specified libraries') do |v|
           options[:required_libs] << File.expand_path(v)
         end
-
+        opt.on('-q', '--queue QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v| 
+          options[:queue] = v
+        end               
+        opt.on('-i', '--queue_id queue_id', 'Which queue should these workers use (default 0).') do |v| 
+          options[:queue_id] = v.to_i
+        end               
         opt.parse!(ARGV)
       end
+      if options[:queue]
+        if options[:queue_id]
+          raise Skynet::Error.new("You may either provide a queue_id or a queue, but not both.")
+        end
+        options[:queue_id] = config.queue_id_by_name(options[:queue])
+      else
+        options[:queue_id] ||= 0        
+      end
       
-      options[:workers]   ||=  Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4
-      options[:pid_file]  ||=  Skynet::CONFIG[:SKYNET_PIDS_FILE]
-
       options[:required_libs].each do |adlib|
         begin
           require adlib
@@ -469,7 +493,7 @@ class Skynet
 
         begin                                                                                                                   
           info "STARTING THE MANAGER!!!!!!!!!!!"
-          @manager = Skynet::Manager.new(Skynet::CONFIG[:LAUNCHER_PATH],options[:workers],options[:required_libs])
+          @manager = Skynet::Manager.new(options)
           DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
           info "WORKER MANAGER URI: #{DRb.uri}"
           @manager.start_workers

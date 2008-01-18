@@ -21,7 +21,7 @@ class TuplespaceMessageQueueTest < Test::Unit::TestCase
       :TS_USE_RINGSERVER        => false
     )      
     @ts ||= Rinda::TupleSpace.new
-    @@tss ||= DRb.start_service(Skynet::CONFIG[:TUPLESPACE_DRBURIS].first, @ts)
+    @@tss ||= DRb.start_service(Skynet::CONFIG[:TS_DRBURIS].first, @ts)
     mq.clear_outstanding_tasks
     
     @worker_message = Skynet::Message.new(
@@ -35,7 +35,9 @@ class TuplespaceMessageQueueTest < Test::Unit::TestCase
       :expire_time  => 0,
       :iteration    => 0,
       :name         => "test",       
-      :version      => 1
+      :version      => 1,
+      :retry        => 3,
+      :queue_id     => 0
     )
     
   end
@@ -44,7 +46,7 @@ class TuplespaceMessageQueueTest < Test::Unit::TestCase
     @ts.write([:test])
     assert_equal [:test], @ts.take([:test])
     
-    rts = DRbObject.new(nil, Skynet::CONFIG[:TUPLESPACE_DRBURIS].first)
+    rts = DRbObject.new(nil, Skynet::CONFIG[:TS_DRBURIS].first)
     rts.write([:test])
     assert_equal [:test], rts.take([:test])
   end
@@ -84,8 +86,8 @@ class TuplespaceMessageQueueTest < Test::Unit::TestCase
     message.expiry=0.4
     assert mq.write_message(message)
     assert_equal message.to_a, mq.take_next_task(1).to_a
-    sleep 0.6
-    ntt = Skynet::Message.next_task_template(1)
+    sleep 1
+    ntt = Skynet::Message.next_task_template(1,nil,0)
     assert_equal 2, mq.take_next_task(1,0.00001).task_id
   end
 

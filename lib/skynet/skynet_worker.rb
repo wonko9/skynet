@@ -13,7 +13,7 @@ class Skynet
     MANAGER_PING_INTERVAL = 60
 
     attr_accessor :message,:task, :mq, :processed
-    attr_reader :worker_id, :worker_info, :worker_type
+    attr_reader :worker_id, :worker_info, :worker_type, :queue_id
     
     class Error < StandardError
     end
@@ -31,11 +31,13 @@ class Skynet
       "WORKER-#{$$}"
     end
     
-    def initialize(worker_type=:any,options={})
+    def initialize(worker_type, options = {})                
       @worker_id    = get_unique_id(1).to_i
-      @mq           = Skynet::MessageQueue.new
       @worker_type  = worker_type.to_sym
+      @queue_id     = options[:queue_id] || 0
       @processed    = 0
+      @mq           = Skynet::MessageQueue.new
+
       debug "THIS WORKER TAKES #{worker_type}"
 
       @worker_info = { 
@@ -43,7 +45,7 @@ class Skynet
         :process_id   => process_id,
         :worker_type  => payload_type, 
         :worker_id    => worker_id,
-        :version      => mq.get_worker_version
+        :version      => mq.get_worker_version,
       }                           
       @worker_info.merge!(options)
     end
@@ -162,7 +164,7 @@ class Skynet
       
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
         
-      info "STARTING WORKER @ VER #{@curver} (#{@worker_type})"
+      info "STARTING WORKER @ VER #{@curver} (#{@worker_type}) QUEUE_ID: #{queue_id}"
 
       notify_worker_started
 
@@ -195,7 +197,7 @@ class Skynet
           # 
           # debug "LOOK FOR WORK USING TEMPLATE", Skynet::Message.task_template(@curver)
           # message = Skynet::Message.new(mq.take(Skynet::Message.task_template(@curver),0.00001))
-          message = mq.take_next_task(@curver,0.00001,payload_type)
+          message = mq.take_next_task(@curver, 0.00001, payload_type, queue_id)
 
           next unless message.respond_to?(:payload)
 
@@ -360,7 +362,20 @@ class Skynet
             raise Skynet::Error.new("#{v} is not a valid worker_type")
           end
         end
+        opt.on('-q', '--queue QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v| 
+          options[:queue] = v
+        end               
+        opt.on('-i', '--queue_id queue_id', 'Which queue should these workers use (default 0).') do |v| 
+          options[:queue_id] = v.to_i
+        end               
         opt.parse!(ARGV)
+      end
+
+      if options[:queue]
+        if options[:queue_id]
+          raise Skynet::Error.new("You may either provide a queue_id or a queue, but not both.")
+        end
+        options[:queue_id] = config.queue_id_by_name(options[:queue])
       end
 
       options[:required_libs].each do |adlib|
@@ -372,12 +387,10 @@ class Skynet
         end
       end        
 
-      # worker_script_path = (Skynet::CONFIG[:WORKER_SCRIPT_PATH] || File.dirname(__FILE__)) << "/skynet_worker"
-
-      debug "WORKER STARTING WORKER_TYPE?:#{options[:worker_type]}"
+      debug "WORKER STARTING WORKER_TYPE?:#{options[:worker_type]}. QUEUE: #{Skynet::Config.new.queue_name_by_id(options[:queue_id])}"
 
       begin                               
-        worker = Skynet::Worker.new(options[:worker_type])
+        worker = Skynet::Worker.new(options[:worker_type], options)
         worker.start
       rescue Skynet::Worker::NoManagerError => e
         fatal e.message

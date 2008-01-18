@@ -10,7 +10,7 @@ class Skynet
     class TimeoutError < StandardError
     end
     
-    attr_reader :data, :process, :result, :map_or_reduce
+    attr_reader :data, :process, :result, :map_or_reduce, :marshalable
     attr_accessor :name, :tuple, :result_timeout, :retry
     
     @@log = nil

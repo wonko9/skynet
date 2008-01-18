@@ -22,7 +22,8 @@ class Skynet
       8  => :expire_time,
       9  => :iteration,
       10 => :version,
-      11 => :retry
+      11 => :retry,
+      12 => :queue_id
     }
 
     self.fields.values.each do |method| 
@@ -48,6 +49,7 @@ class Skynet
         if opts_raw_payload
           self.raw_payload = opts_raw_payload
         end
+        self.retry ||= 0
       end
       self.payload      
     end
@@ -123,7 +125,7 @@ class Skynet
 
     ####### TEMPLATES ############
     
-    def self.next_task_template(version=nil,payload_type=nil)
+    def self.next_task_template(version=nil, payload_type=nil, queue_id=0)
       fields.keys.sort.collect do |ii|
         field = fields[ii]
         case field
@@ -131,6 +133,8 @@ class Skynet
           (0 .. Time.now.to_i)
         when :tasktype
           :task
+        when :queue_id
+          queue_id
         when :version
           version
         when :payload_type
@@ -178,12 +182,14 @@ class Skynet
       self.class.result_message(self,result,tasktype,resulttype)
     end
   
-    def self.outstanding_tasks_template(iteration=nil)
+    def self.outstanding_tasks_template(iteration=nil,queue_id=0)
       fields.keys.sort.collect do |ii|
         field = fields[ii]
         case field
         when :tasktype
           :task
+        when :queue_id
+          queue_id
         when :iteration
           iteration
         else
@@ -192,12 +198,14 @@ class Skynet
       end
     end  
 
-    def self.outstanding_results_template
+    def self.outstanding_results_template(queue_id=0)
       fields.keys.sort.collect do |ii|
         field = fields[ii]
         case field
         when :tasktype
           :result
+        when :queue_id
+          queue_id
         else
           nil
         end
@@ -218,7 +226,7 @@ class Skynet
         case field
         when :tasktype
           message.tasktype
-        when :drburi, :version, :task_id
+        when :drburi, :version, :task_id, :queue_id
           message.send(fields[ii])
         else
           nil
@@ -235,9 +243,12 @@ class Skynet
        fields.values.each do |field|
          case field
          when :iteration
-           if (message.retry and message.iteration >= message.retry)
-             opts[:iteration] = -1
-
+           if message.retry
+             if (message.retry and message.iteration >= message.retry)
+               opts[:iteration] = -1
+             else
+               opts[:iteration] = message.iteration + 1
+             end
            # Originally I was gonna do this for map and reduce, but we don't know that here, just whether its a master.
            elsif message.payload_type.to_sym == :master and Skynet::CONFIG[:DEFAULT_MASTER_RETRY] and message.iteration >= Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
              opts[:iteration] = -1           
@@ -266,7 +277,7 @@ class Skynet
         case field
         when :tasktype
           message.tasktype
-        when :drburi, :version, :task_id
+        when :drburi, :version, :task_id, :queue_id
           message.send(field)
         when :iteration
           (1..Skynet::CONFIG[:MAX_RETRIES])
@@ -337,7 +348,8 @@ class Skynet
       9  => :map_or_reduce,
       10 => :started_at,
       11 => :version,
-      12 => :processed
+      12 => :processed,
+      13 => :queue_id
     }
     self.fields.values.each { |method| attr_accessor method }
 

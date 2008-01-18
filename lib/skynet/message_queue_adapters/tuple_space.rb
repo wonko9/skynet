@@ -43,8 +43,8 @@ class Skynet
         @ts = ts
       end
 
-      def take_next_task(curver,timeout=nil,payload_type=nil)
-        message = Skynet::Message.new(take(Skynet::Message.next_task_template(curver,payload_type),timeout))
+      def take_next_task(curver,timeout=nil,payload_type=nil,queue_id=0)
+        message = Skynet::Message.new(take(Skynet::Message.next_task_template(curver,payload_type, queue_id),timeout))
         write_fallback_task(message)
         message
       end
@@ -99,8 +99,8 @@ class Skynet
         cnt
       end
 
-      def list_tasks(iteration=nil)
-        read_all(Skynet::Message.outstanding_tasks_template(iteration))
+      def list_tasks(iteration=nil,queue_id=0)
+        read_all(Skynet::Message.outstanding_tasks_template(iteration,queue_id))
       end
 
       def list_results
@@ -198,22 +198,23 @@ class Skynet
       ###### FALLBACK METHODS
       def write_fallback_task(message)
         return unless USE_FALLBACK_TASKS
-        debug "4 WRITING BACKUP TASK #{message.task_id}", @fallback_worker_message
+        debug "4 WRITING BACKUP TASK #{message.task_id}", message.to_h
         ftm = message.fallback_task_message
-        debug "WRITE FALLBACK TASK", ftm.to_a
+        debug "WRITE FALLBACK TASK", ftm.to_h
         timeout = message.expiry * 8
-        write(ftm,timeout)
+        write(ftm,timeout) unless ftm.iteration == -1
         ftm
       end
 
       def take_fallback_message(message,timeout=0.01)
         return unless USE_FALLBACK_TASKS
+        return if message.retry <= message.iteration
         begin
           # debug "LOOKING FOR FALLBACK TEMPLATE", message.fallback_template
           fb_message = Skynet::Message.new(take(message.fallback_template,timeout))
           # debug "TOOK FALLBACK MESSAGE for TASKID: #{fb_message.task_id}"
         rescue Skynet::RequestExpiredError => e
-          error "Couldn't find expected FALLBACK MESSAGE"
+          error "Couldn't find expected FALLBACK MESSAGE", Skynet::Message.new(message.fallback_template).to_h
         end
       end
       ## END FALLBACK METHODS
