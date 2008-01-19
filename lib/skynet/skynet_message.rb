@@ -3,13 +3,13 @@ class Skynet
 
     include SkynetDebugger
     
-    class BadMessage < Skynet::Error
-    end
+    class BadMessage < Skynet::Error; end
     
     class << self
       attr_accessor :fields
     end
 
+    # FIXME: make an array
     self.fields = {
       0  => :tasktype,
       1  => :drburi,
@@ -27,9 +27,7 @@ class Skynet
     }
 
     self.fields.values.each do |method| 
-      next if method == :payload
-      next if method == :tasktype
-      next if method == :payload_type
+      next if [:payload, :tasktype, :payload_type].include?(method)
       attr_accessor method
     end
     
@@ -126,24 +124,18 @@ class Skynet
     ####### TEMPLATES ############
     
     def self.next_task_template(version=nil, payload_type=nil, queue_id=0)
+      # FIXME NOTE: do this other places
+      template = {
+        :expire_time  => (0 .. Time.now.to_i),
+        :tasktype     => :task,
+        :queue_id     => queue_id,
+        :version      => version,
+        :payload_type => payload_type,
+        :iteration    => (0..Skynet::CONFIG[:MAX_RETRIES]),
+      }
+
       fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :expire_time
-          (0 .. Time.now.to_i)
-        when :tasktype
-          :task
-        when :queue_id
-          queue_id
-        when :version
-          version
-        when :payload_type
-          payload_type
-        when :iteration
-          (0..Skynet::CONFIG[:MAX_RETRIES])
-        else
-          nil
-        end
+        template[fields[ii]]
       end
     end
   

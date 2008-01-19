@@ -15,17 +15,10 @@ class Skynet
     attr_accessor :message,:task, :mq, :processed
     attr_reader :worker_id, :worker_info, :worker_type, :queue_id
     
-    class Error < StandardError
-    end
-
-    class RespawnWorker < Skynet::Error
-    end
-
-    class ConnectionFailure < Skynet::Error
-    end
-    
-    class NoManagerError < Skynet::Error
-    end
+    class Error             < StandardError; end
+    class RespawnWorker     < Skynet::Error; end
+    class ConnectionFailure < Skynet::Error; end
+    class NoManagerError    < Skynet::Error; end
 
     def self.debug_class_desc
       "WORKER-#{$$}"
@@ -154,13 +147,13 @@ class Skynet
           
     def start
       exceptions = 0
-      conerror = 0
-      @curver = nil
+      conerror   = 0
+      @curver    = nil
+      
       # setup signal handlers for manager
       Signal.trap("HUP")  { @respawn = true }
-
-      Signal.trap("TERM") {interrupt}
-      Signal.trap("INT")  { @die = true }
+      Signal.trap("TERM") { interrupt       }
+      Signal.trap("INT")  { @die = true     }
       
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
         
@@ -169,7 +162,7 @@ class Skynet
       notify_worker_started
 
       message = nil
-      task = nil
+      task    = nil
 
       loop do
         message = nil      

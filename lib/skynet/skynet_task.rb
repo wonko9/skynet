@@ -1,17 +1,12 @@
 class Skynet
   class Task
     include SkynetDebugger
-        
-    # require 'ostruct'
 
-    class ConstructorError < StandardError
-    end
-    
-    class TimeoutError < StandardError
-    end
+    class ConstructorError < StandardError; end
+    class TimeoutError     < StandardError; end
     
     attr_reader :data, :process, :result, :map_or_reduce, :marshalable
-    attr_accessor :name, :tuple, :result_timeout, :retry
+    attr_accessor :name, :result_timeout, :retry
     
     @@log = nil
     

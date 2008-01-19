@@ -52,7 +52,7 @@ class Skynet
   end
 
   def self.solo(config = {}) 
-    raise Skynet::Error.new("You provide a code block to Skynet.solo") unless block_given?
+    raise Skynet::Error.new("You must provide a code block to Skynet.solo") unless block_given?
     result = nil
     Skynet::Logger.log = nil
     begin

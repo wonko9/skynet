@@ -25,6 +25,7 @@ class Skynet
             ]                                                       
 
     FIELDS.each do |method| 
+      # FIXME: use include?
       if method == :map_reduce_class or method == :version or method == :map or method == :reduce
         attr_reader method
       else
@@ -171,7 +172,6 @@ class Skynet
           raise Error.new("The provided queue (#{options[:queue]}) does not exist in Skynet::CONFIG[:MESSAGE_QUEUES]") unless Skynet::CONFIG[:MESSAGE_QUEUES].index(options[:queue])
           self.queue_id = Skynet::CONFIG[:MESSAGE_QUEUES].index(options[:queue])
         end
-          
         
         # Backward compatability
         self.mappers ||= options[:map_tasks]
@@ -240,12 +240,12 @@ class Skynet
     end
     	  
     def run_tasks_and_gather_results(tasks, run_local=false)
-      pp tasks
-      t1     = Time.now
-      timeout = tasks.first.result_timeout || 5
+      t1          = Time.now
+      timeout     = tasks.first.result_timeout || 5
       description = tasks.first.name || "Generic Task"
-      results = nil
+      results     = nil
 
+      # FIXME: solo mode
       run_tasks(tasks, run_local)
 
       # retrieve results unless async
@@ -257,14 +257,15 @@ class Skynet
     end
     
     def run_tasks(tasks, run_local=false)
-      t1     = Time.now
-      if tasks.is_a?(Skynet::TaskIterator)
-        tasks = tasks.to_a
+      tasks = if tasks.is_a?(Skynet::TaskIterator)
+        tasks.to_a
       elsif not tasks.is_a?(Array)
-        tasks  = [tasks]
+        [tasks]
       end
-      timeout = tasks.first.result_timeout || 5
+      t1          = Time.now
+      timeout     = tasks.first.result_timeout || 5
       description = tasks.first.name || "Generic Task"
+    
       info "RUN TASKS #{description} LOCAL: #{run_local} ver: #{self.version} jobid: #{job_id} @ #{t1}: Q:#{queue_id}"
       if solo? or single? or run_local                   
         results = run_tasks_locally(tasks)      
@@ -287,12 +288,12 @@ class Skynet
     # It tries each task once and fails for that task if that task fails.  If the master would get retried
     # it would be fine, but you may have said that tasks get retried, but not masters.
     def run_tasks_locally(tasks)
-      tasks = tasks.to_a if tasks.is_a?(Skynet::TaskIterator)
-      task_ids = tasks.collect { | task | task.task_id }
-      messages = messages_from_tasks(tasks)
+      tasks       = tasks.to_a if tasks.is_a?(Skynet::TaskIterator)
+      task_ids    = tasks.collect { | task | task.task_id }
+      messages    = messages_from_tasks(tasks)
       description = tasks.first.name
-      results = {}
-      errors  = {}
+      results     = {}
+      errors      = {}
       messages.each do |message| 
         times_to_try = message.retry + 1
         times_to_try.times do
@@ -324,9 +325,8 @@ class Skynet
         loop do
           # debug "LOOKING FOR RESULT MESSAGE TEMPLATE"
           result_message = mq.take_result(job_id,timeout * 2)
+          ret_result     = result_message.payload
 
-          ret_result = result_message.payload
-          pp "GOT RESULT"
           if result_message.payload_type == :error
             errors[result_message.task_id] = ret_result
             error "ERROR RESULT TASK #{result_message.task_id} returned #{errors[result_message.task_id].inspect}"
@@ -337,7 +337,7 @@ class Skynet
           debug "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(number_of_tasks - (results.keys + errors.keys).uniq.size)}"
           break if (number_of_tasks - (results.keys + errors.keys).uniq.size) <= 0
         end
-      rescue Skynet::RequestExpiredError => e 
+      rescue Skynet::RequestExpiredError => e
         error "A WORKER EXPIRED or ERRORED, #{description}, job_id: #{job_id}"
         if not errors.empty?
           raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{number_of_tasks} workers. #{errors.pretty_print_inspect}")
@@ -353,6 +353,7 @@ class Skynet
       tasks = tasks.to_a if tasks.is_a?(Skynet::TaskIterator)
 
       tasks.collect do |task|
+        # FIXME: Add a named constuctor in message for making a message from a task.
         worker_message = Skynet::Message.new(
           :tasktype     => :task, 
           :job_id       => job_id,
@@ -439,8 +440,8 @@ class Skynet
             when :map_name, :reduce_name
               self.send(field) || self.send(:name)
             else
-              self.send(field) if self.send(field)
-            end                 
+              self.send(field)
+            end  
           end
         end
         
@@ -448,9 +449,10 @@ class Skynet
 
         # Make sure to set single to false in our own Job object.  
         # We're just passing along whether they set us to single.
-        # If we were isngle, we'd never send off the master to be run externally.
+        # If we were single, we'd never send off the master to be run externally.
         @single = false
         
+        # FIXME: Possibly add a named constructor in task for this? 
         task = Skynet::Task.new(
           :task_id        => task_id, 
           :data           => nil, 
@@ -499,34 +501,28 @@ class Skynet
         :map_or_reduce  => :map,
         :result_timeout => map_timeout,
         :retry          => map_retry || Skynet::CONFIG[:DEFAULT_MAP_RETRY]
-      }                               
-      task_options[:retry] = map_retry if map_retry
-      start_task_id = get_unique_id(1).to_i
+      }
 
-      task_iterator = nil
-      
-      if @map_data.class == Array
+      if @map_data.is_a?(Array)
         debug "RUN MAP 2.2 DATA IS Array #{display_info}"
         num_mappers = @map_data.length < @mappers ? @map_data.length : @mappers
-        pre_map_data = Array.new
-        if @map_partitioner
-          pre_map_data = @map_partitioner.call(@map_data,num_mappers)
-        else
-          pre_map_data = Skynet::Partitioners::SimplePartitionData.reduce_partitioner(@map_data, num_mappers)
-        end
-        debug "RUN MAP 2.3 #{display_info} data size after partition: #{pre_map_data.size}"
-        debug "RUN MAP 2.3 #{display_info} map data after partition:", pre_map_data
 
-        task_iterator = Skynet::TaskIterator.new(task_options, pre_map_data)
+        map_data = if @map_partitioner
+          @map_partitioner.call(@map_data,num_mappers)
+        else
+          Skynet::Partitioners::SimplePartitionData.reduce_partitioner(@map_data, num_mappers)
+        end
+
+        debug "RUN MAP 2.3 #{display_info} data size after partition: #{map_data.size}"
+        debug "RUN MAP 2.3 #{display_info} map data after partition:", map_data
       elsif @map_data.is_a?(Enumerable)
         debug "RUN MAP 2.2 DATA IS ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
-        ii = 0
-        task_iterator = Skynet::TaskIterator.new(task_options, @map_data)
+        map_data = @map_data
       else
         debug "RUN MAP 2.2 DATA IS NOT ARRAY OR ENUMERABLE #{display_info} map_data_class: #{@map_data.class}"
-        task_iterator = Skynet::TaskIterator.new(task_options, [ @map_data ])
-      end            
-      return task_iterator
+        map_data = [ @map_data ]
+      end
+      Skynet::TaskIterator.new(task_options, map_data)
     end
     
     # Partition up starting data, create map tasks
@@ -534,14 +530,13 @@ class Skynet
       post_map_data = nil
       begin                       
         map_tasks = self.map_tasks
-        run_local = false
         if map_tasks
-          if keep_map_tasks.is_a?(TrueClass) or (keep_map_tasks.is_a?(Fixnum) and map_tasks.data.is_a?(Array) and map_tasks.size <= keep_map_tasks)
+          if keep_map_tasks == true or (map_tasks.data.is_a?(Array) and map_tasks.size <= keep_map_tasks)
             post_map_data = run_tasks_locally(map_tasks)
           else
             number_of_tasks = 0
-            map_tasks.each_with_index do |task, ii|
-              number_of_tasks = ii
+            map_tasks.each do |task|
+              number_of_tasks += 1
               run_tasks(task)
             end            
             post_map_data = gather_results(job_id, number_of_tasks, map_timeout, map_name)            
@@ -566,10 +561,9 @@ class Skynet
       debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} reducers: #{reduce_data.length}"
       debug "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", reduce_data
 
-      start_id = get_unique_id(1).to_i
       reduce_tasks = (0..reduce_data.length - 1).collect do |i|
         Skynet::Task.new(
-          :task_id        => (start_id + i), 
+          :task_id        => get_unique_id(:no_disk).to_i,
           :data           => reduce_data[i], 
           :name           => reduce_name,
           :process        => @reduce,
@@ -591,7 +585,7 @@ class Skynet
       # Reduce and return results
       begin
         reduce_tasks = self.reduce_tasks(post_map_data)
-        if keep_reduce_tasks.is_a?(TrueClass) or (keep_reduce_tasks.is_a?(Fixnum) and reduce_tasks.size <= keep_reduce_tasks)
+        if keep_reduce_tasks == true or (reduce_tasks.size <= keep_reduce_tasks)
           run_local = true
         end       
         results = run_tasks_and_gather_results(reduce_tasks, run_local)
@@ -620,12 +614,12 @@ class Skynet
         # = There was a bug in Job where the reduce_partitioner of master jobs wasn't being set!  This is to catch that.
         # = It handles it by checking if the map class has a reduce partitioner.  Maybe this is a good thing to leave anyway.
         # =====================
-        if @map.class == String and @map.constantize.respond_to?(:reduce_partitioner)
+        if @map.is_a?(String) and @map.constantize.respond_to?(:reduce_partitioner)
           @map.constantize.reduce_partitioner(post_map_data, num_reducers)
         else
           Skynet::Partitioners::RecombineAndSplit.reduce_partitioner(post_map_data, num_reducers)
         end
-      elsif @reduce_partitioner.class == String
+      elsif @reduce_partitioner.is_a?(String)
         @reduce_partitioner.constantize.reduce_partitioner(post_map_data, num_reducers)
       else
         @reduce_partitioner.call(post_map_data, num_reducers)

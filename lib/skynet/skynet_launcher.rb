@@ -1,3 +1,4 @@
+# FIXME: should be a module
 class Skynet
   include SkynetDebugger
   def self.new(options={})            
