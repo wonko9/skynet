@@ -34,13 +34,23 @@ class Skynet
     :DEFAULT_REDUCE_RETRY                   => 3,
     :KEEP_MAP_TASKS                         => false,
     :KEEP_REDUCE_TASKS                      => false,
-    :MESSAGE_QUEUES                         => ['default', 'second']
+    :MESSAGE_QUEUES                         => ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'nineth']
   } unless defined?(CONFIG)
-  
+                           
+  def self.silent
+    if block_given?
+      Skynet.configure(:SKYNET_LOG_LEVEL => 10) do
+        yield
+      end
+    else
+      raise Error.new("Please provide a block to Skynet.silent")
+    end
+  end
   
   def self.configure(config={})
     old_config = CONFIG.dup
     config.each {|k,v| CONFIG[k] = v}
+    Skynet::Logger.log = nil
     if block_given?
       ret = yield
       CONFIG.keys.each do |key|
@@ -52,7 +62,7 @@ class Skynet
   end
 
   def self.solo(config = {}) 
-    raise Skynet::Error.new("You must provide a code block to Skynet.solo") unless block_given?
+    raise Skynet::Error.new("You provide a code block to Skynet.solo") unless block_given?
     result = nil
     Skynet::Logger.log = nil
     begin

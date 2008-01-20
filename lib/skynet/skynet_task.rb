@@ -14,6 +14,31 @@ class Skynet
       "TASK"
     end
     
+    def self.master_task(job)
+      options = {
+        :async        => false,
+        :local_master => true,
+        :map_name     => job.map_name || job.name,
+        :reduce_name  => job.reduce_name || job.name,          
+      }
+      Skynet::Job::FIELDS.each do |field|
+        next if options.has_key?(field)
+        options[field] = job.send(field) if job.send(field)
+      end
+      
+      master_job = Skynet::Job.new(options)
+      
+      self.new(
+        :task_id        => master_job.task_id, 
+        :data           => nil, 
+        :process        => master_job.to_h, 
+        :map_or_reduce  => :master,
+        :name           => master_job.name,
+        :result_timeout => master_job.master_timeout,
+        :retry          => master_job.master_retry || Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
+      )
+    end
+    
     def initialize(opts = {})
       unless opts[:task_id] and opts[:process] and opts[:map_or_reduce]
         raise ConstructorError.new("Must provide task_id, process and map_or_reduce")      

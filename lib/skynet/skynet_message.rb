@@ -10,36 +10,53 @@ class Skynet
     end
 
     # FIXME: make an array
-    self.fields = {
-      0  => :tasktype,
-      1  => :drburi,
-      2  => :task_id,
-      3  => :job_id,
-      4  => :payload,
-      5  => :payload_type,
-      6  => :name,
-      7  => :expiry,
-      8  => :expire_time,
-      9  => :iteration,
-      10 => :version,
-      11 => :retry,
-      12 => :queue_id
-    }
+    self.fields = [
+     :tasktype,
+     :drburi,
+     :task_id,
+     :job_id,
+     :payload,
+     :payload_type,
+     :name,
+     :expiry,
+     :expire_time,
+     :iteration,
+     :version,
+     :retry,
+     :queue_id
+    ]
 
-    self.fields.values.each do |method| 
+    self.fields.each do |method| 
       next if [:payload, :tasktype, :payload_type].include?(method)
       attr_accessor method
     end
     
     attr_reader :payload_type, :tasktype
+    
+    def self.new_task_message(task,job)
+      self.new(
+        :job_id       => job.job_id,
+        :expire_time  => job.start_after,
+        :version      => job.version,
+        :queue_id     => job.queue_id,
+        :iteration    => 0,
+        :tasktype     => :task, 
+        :task_id      => task.task_id,
+        :payload      => task,
+        :payload_type => task.task_or_master,
+        :expiry       => task.result_timeout, 
+        :name         => task.name,       
+        :retry        => task.retry
+      )
+    end
   
     def initialize(opts)
       if opts.is_a?(Array)
-        self.class.fields.each do |ii, field|
+        self.class.fields.each_with_index do |field, ii|
           self.send("#{field}=",opts[ii] || nil)
         end
       elsif opts
-        self.class.fields.values.each do |field|
+        self.class.fields.each do |field|
           value = opts[field] || opts[field.to_s] || nil
           self.send("#{field}=",value) if value
         end
@@ -96,15 +113,15 @@ class Skynet
     end
     
     def to_a
-      self.class.fields.keys.sort.collect do |ii|
-        self.send(self.class.fields[ii])
+      self.class.fields.collect do |field|
+        self.send(field)
       end
     end
     
     def to_hash
       hash = {}
-      self.class.fields.keys.sort.collect do |ii|
-        hash[self.class.fields[ii]] = self.send(self.class.fields[ii])
+      self.class.fields.each do |field|
+        hash[field] = self.send(field)
       end                                          
       hash
     end   
@@ -134,40 +151,32 @@ class Skynet
         :iteration    => (0..Skynet::CONFIG[:MAX_RETRIES]),
       }
 
-      fields.keys.sort.collect do |ii|
-        template[fields[ii]]
+      fields.collect do |field|
+        template[field]
       end
     end
   
     def self.result_template(job_id,tasktype=:result)
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          tasktype
-        when :job_id
-          job_id
-        else
-          nil
-        end
-      end      
+      template = {
+        :tasktype => tasktype,
+        :job_id   => job_id
+      }
+      fields.collect do |field|
+        template[field]
+      end
     end
   
     def self.result_message(message,result,tasktype=:result, resulttype=:result)
-      message_array = fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field      
-        when :tasktype
-          tasktype
-        when :payload
-          result
-        when :payload_type
-          resulttype
-        else
-          message.send(fields[ii])
-        end
+      template = {
+        :tasktype     => tasktype,
+        :payload      => result,
+        :payload_type => resulttype
+      }
+
+      fields.each do |field|
+        template[field] ||= message.send(field)
       end
-      new(message_array)
+      new(template)
     end
   
     def result_message(result,tasktype=:result, resulttype=:result)
@@ -175,32 +184,23 @@ class Skynet
     end
   
     def self.outstanding_tasks_template(iteration=nil,queue_id=0)
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          :task
-        when :queue_id
-          queue_id
-        when :iteration
-          iteration
-        else
-          nil
-        end
+      template = {
+        :tasktype  => :task,
+        :queue_id  => queue_id,
+        :iteration => iteration
+      }
+      fields.collect do |field|
+        template[field]
       end
     end  
 
     def self.outstanding_results_template(queue_id=0)
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          :result
-        when :queue_id
-          queue_id
-        else
-          nil
-        end
+      template = {
+        :tasktype => :result,
+        :queue_id => queue_id
+      }
+      fields.collect do |field|
+        template[field]
       end
     end
   
@@ -213,16 +213,15 @@ class Skynet
     end
   
     def self.error_template(message)
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          message.tasktype
-        when :drburi, :version, :task_id, :queue_id
-          message.send(fields[ii])
-        else
-          nil
-        end
+      template = {
+        :tasktype  => message.tasktype,
+        :drburi    => message.drburi, 
+        :version   => message.version, 
+        :task_id   => message.task_id, 
+        :queue_id  => message.queue_id
+      }
+      fields.collect do |field|
+        template[field]
       end
     end
     
@@ -231,32 +230,29 @@ class Skynet
     end  
 
     def self.fallback_task_message(message)
-       opts = Hash.new
-       fields.values.each do |field|
-         case field
-         when :iteration
-           if message.retry
-             if (message.retry and message.iteration >= message.retry)
-               opts[:iteration] = -1
-             else
-               opts[:iteration] = message.iteration + 1
-             end
-           # Originally I was gonna do this for map and reduce, but we don't know that here, just whether its a master.
-           elsif message.payload_type.to_sym == :master and Skynet::CONFIG[:DEFAULT_MASTER_RETRY] and message.iteration >= Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
-             opts[:iteration] = -1           
-           elsif Skynet::CONFIG[:MAX_RETRIES] and message.iteration >= Skynet::CONFIG[:MAX_RETRIES]
-             opts[:iteration] = -1           
-           else
-             opts[:iteration] = message.iteration + 1
-           end
-         when :expire_time
-           opts[:expire_time] = Time.now.to_i + message.expiry
+       template = {}
+       if message.retry
+         if (message.retry and message.iteration >= message.retry)
+           template[:iteration] = -1
          else
-           opts[field] = message.send(field)
+           template[:iteration] = message.iteration + 1
          end
+       # Originally I was gonna do this for map and reduce, but we don't know that here, just whether its a master.
+       elsif message.payload_type.to_sym == :master and Skynet::CONFIG[:DEFAULT_MASTER_RETRY] and message.iteration >= Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
+         template[:iteration] = -1           
+       elsif Skynet::CONFIG[:MAX_RETRIES] and message.iteration >= Skynet::CONFIG[:MAX_RETRIES]
+         template[:iteration] = -1           
+       else
+         template[:iteration] = message.iteration + 1
        end
-       # debug "BUILDING NEXT FALLBACK TASK MESSAGE OFF"#, opts
-       Skynet::Message.new(opts)
+
+       template[:expire_time] = Time.now.to_i + message.expiry
+
+       fields.each do |field|
+         template[field] ||= message.send(field)
+       end
+       # debug "BUILDING NEXT FALLBACK TASK MESSAGE OFF"#, template
+       Skynet::Message.new(template)
     end      
   
     def fallback_task_message
@@ -264,18 +260,16 @@ class Skynet
     end
 
     def self.fallback_template(message)
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          message.tasktype
-        when :drburi, :version, :task_id, :queue_id
-          message.send(field)
-        when :iteration
-          (1..Skynet::CONFIG[:MAX_RETRIES])
-        else
-          nil
-        end
+      template = {
+        :tasktype  => message.tasktype,
+        :drburi    => message.drburi, 
+        :version   => message.version, 
+        :task_id   => message.task_id, 
+        :queue_id  => message.queue_id,        
+        :iteration => (1..Skynet::CONFIG[:MAX_RETRIES]),        
+      }
+      fields.collect do |field|
+        template[field]
       end
     end
   
@@ -300,50 +294,43 @@ class Skynet
     end
 
     def self.template
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          :current_worker_rev
-        else
-          nil
-        end
+      template = {
+        :tasktype  => :current_worker_rev
+      }
+      fields.collect do |field|
+        template[field]
       end
     end
     
     def template
-      fields.keys.sort.collect do |ii|
-        field = fields[ii]
-        case field
-        when :tasktype
-          :current_worker_rev
-        when :expire_time
-          nil
-        else
-          self.send(field)        
-        end
+      template = {
+        :tasktype    => :current_worker_rev,
+        :expire_time => nil
+      }
+      fields.collect do |field|
+        template[field] || self.send(field)
       end
     end
   end
 
   class WorkerStatusMessage < Skynet::Message
-    self.fields = {
-      0  => :tasktype,
-      1  => :tasksubtype,
-      2  => :worker_id,
-      3  => :hostname,
-      4  => :process_id,
-      5  => :job_id,
-      6  => :task_id,
-      7  => :iteration,
-      8  => :name,
-      9  => :map_or_reduce,
-      10 => :started_at,
-      11 => :version,
-      12 => :processed,
-      13 => :queue_id
-    }
-    self.fields.values.each { |method| attr_accessor method }
+    self.fields = [
+      :tasktype,
+      :tasksubtype,
+      :worker_id,
+      :hostname,
+      :process_id,
+      :job_id,
+      :task_id,
+      :iteration,
+      :name,
+      :map_or_reduce,
+      :started_at,
+      :version,
+      :processed,
+      :queue_id
+    ]
+    self.fields.each { |method| attr_accessor method }
 
     def initialize(opts)
       super
@@ -352,31 +339,27 @@ class Skynet
     end
     
     def self.worker_status_template(opts)
-      fields.keys.sort.collect do |key|      
-        case fields[key]
-        when :tasktype : :status
-        when :tasksubtype : :worker
-        when :hostname : opts[:hostname]
-        when :process_id : opts[:process_id]
-        else 
-          nil
-        end
+      template = {
+        :tasktype    => :status,
+        :tasksubtype => :worker,
+        :hostname    => opts[:hostname],
+        :process_id  => opts[:process_id]        
+      }
+      fields.collect do |field|
+        template[field]
       end
     end
     
     def self.all_workers_template(hostname=nil)
-      fields.keys.sort.collect do |key|      
-        case fields[key]
-        when :tasktype : :status
-        when :tasksubtype : :worker
-        when :hostname 
-          hostname if hostname
-        else 
-          nil
-        end
+      template = {
+        :tasktype    => :status,
+        :tasksubtype => :worker,
+        :hostname    => hostname,
+      }
+      fields.collect do |field|
+        template[field]
       end
-    end
-    
-  end
+    end    
+  end # class WorkerStatusMessage
 
 end

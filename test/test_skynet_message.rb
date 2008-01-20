@@ -1,8 +1,4 @@
-ENV["RAILS_ENV"] = "test"
-
-require 'test/unit'
-require 'pp'        
-require '../lib/skynet.rb'
+require File.dirname(__FILE__) + '/test_helper.rb'
 
 class MysqlMessageQueueTest < Test::Unit::TestCase
   
@@ -51,22 +47,25 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
   
   def test_worker_status_message
     setup_worker_message
-    {:queue_id=>0,
-     :tasksubtype=>:worker,
-     :tasktype=>:status,
-     :name=>"name",
-     :hostname=>nil,
-     :worker_id=>nil,
-     :map_or_reduce=>nil,
-     :process_id=>nil,
-     :started_at=>nil,
-     :job_id=>1,
-     :iteration=>0,
-     :processed=>nil,
-     :task_id=>2,
-     :version=>1}.each do |key, val|
-       assert_equal val, @worker_message.send(key)
+    {
+       :queue_id      => 0,
+       :tasksubtype   => :worker,
+       :tasktype      => :status,
+       :name          => "name",
+       :hostname      => nil,
+       :worker_id     => nil,
+       :map_or_reduce => nil,
+       :process_id    => nil,
+       :started_at    => nil,
+       :job_id        => 1,
+       :iteration     => 0,
+       :processed     => nil,
+       :task_id       => 2,
+       :version       => 1
+    }.each do |key, val|
+       assert_equal val, @worker_message.send(key), key
      end
+     assert_equal @worker_message.to_a, Skynet::WorkerStatusMessage.new([:status, :worker, nil, nil, nil, 1, 2, 0, "name", nil, nil, 1, nil, 0]).to_a
   end              
 
   def test_task_message
@@ -86,6 +85,7 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
      :version=>1}.each do |key, val|
        assert_equal val, @task_message.send(key)
      end
+     assert_equal @task_message.to_a, Skynet::Message.new([:task, "localhost", 2, 1, "payload", :task, "name", 20, 0, 0, 1, 2, 0]).to_a
   end              
   
 

@@ -15,8 +15,7 @@ module Enumerable
       :map_timeout            => 3600,
       :reduce_timeout         => 3600,
       :master_timeout         => 3600,
-      :master_result_timeout  => 3600,
-      :async                  => false
+      :master_result_timeout  => 3600
     }                                
 
     jobopts[:map_reduce_class] = klass.to_s if klass
@@ -27,7 +26,7 @@ module Enumerable
     end                               
     
     if block_given? or not jobopts[:async]
-      job = Skynet::Job.new(jobopts)
+      job = Skynet::Job.new(jobopts.merge(:local_master => true))
     else
       job = Skynet::AsyncJob.new(jobopts)
     end

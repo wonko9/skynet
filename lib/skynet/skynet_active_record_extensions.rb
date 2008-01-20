@@ -24,7 +24,7 @@ class ActiveRecord::Base
       :map_retry             => 0
     }   
     job = Skynet::AsyncJob.new(jobopts)
-    job.run_master
+    job.run
   end
 end
 
@@ -163,7 +163,7 @@ module ActiveRecord
 
       job = nil
       if block_given?
-        job = Skynet::Job.new(jobopts.merge(:map_reduce_class => "#{self.class}"))
+        job = Skynet::Job.new(jobopts.merge(:map => block), :local_master => true)
       else
         job = Skynet::AsyncJob.new(jobopts.merge(:map_reduce_class => "#{self.class}"))
       end         

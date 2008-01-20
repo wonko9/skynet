@@ -117,7 +117,7 @@ class Skynet
            error "Missing worker #{wpid} from worker queue. Removing and/or killing."
            Process.kill("TERM",wpid) if worker_alive?(wpid)
            @workers_running.delete(wpid)
-           q_pids.delete(wpid)
+           q_pids.delete(wpid)          
          end
       end
       
@@ -173,7 +173,7 @@ class Skynet
         if q_pids.size.to_f / @workers_requested.to_f < 0.85
           starting = @workers_requested - q_pids.size  
           error "Expected #{@number_of_workers} workers.  #{q_pids.size} running. Starting #{starting}"          
-          @number_of_workers += starting 
+          @number_of_workers = q_pids.size
           add_worker(starting)          
         else          
           error "Expected #{@number_of_workers} workers.  #{q_pids.size} running."

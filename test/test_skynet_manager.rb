@@ -1,10 +1,4 @@
-ENV["RAILS_ENV"] = "test"
-
-require 'test/unit'
-require 'pp'        
-require '../lib/skynet.rb'
-require 'rubygems'
-require 'mocha'
+require File.dirname(__FILE__) + '/test_helper.rb'
 
 class SkynetManagerTest < Test::Unit::TestCase
 
@@ -16,9 +10,10 @@ class SkynetManagerTest < Test::Unit::TestCase
       :ENABLE                         => false,
       # :SKYNET_PIDS_FILE               => File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pids"),
       :SKYNET_LOG_FILE                => STDOUT,
-      :SKYNET_LOG_LEVEL               => Logger::ERROR,
+      :SKYNET_LOG_LEVEL               => 4,
       :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
-      :MYSQL_NEXT_TASK_TIMEOUT              => 1
+      :MYSQL_TEMPERATURE_CHANGE_SLEEP => 1,
+      :MYSQL_NEXT_TASK_TIMEOUT        => 1
     )      
     ActiveRecord::Base.establish_connection(
         :adapter  => "mysql",
@@ -33,6 +28,7 @@ class SkynetManagerTest < Test::Unit::TestCase
 
     @pids = []
     @pidfile = []
+    @worker_queue = []
     
     PIDS.delete_if {true}
     PIDFILE.delete_if {true}
@@ -41,49 +37,67 @@ class SkynetManagerTest < Test::Unit::TestCase
     Process.stubs(:kill).returns(true)
 
     @minstance = Skynet::Manager.any_instance
+    @hostname = Socket.gethostname
    
     Skynet::Worker.any_instance.stubs(:max_memory_reached?).returns(false)
-
+  end                                                                     
+  
+  def setup_manager
     @manager = Skynet::Manager.new(:script_path => "path", :workers => 2)
+    @manager.extend(Functor)
+
+    mq = functor
+    @manager.stubs(:mq).returns(mq)
+
+    mq.get_worker_version = 1
     
-    def @manager.fork
-      newpid = SkynetManagerTest::PIDS.size + 1
-      SkynetManagerTest::PIDS << newpid
-      worker = Skynet::Worker.new(:any,{:process_id => newpid})
-      worker.stubs(:process_id).returns(newpid)
-      worker.notify_worker_started
+    worker_queue = @worker_queue
+    mq.read_all_worker_statuses = lambda do |hostname|
+      worker_queue
+    end
+
+    mq.take_worker_status = lambda do |options, timeout|
+      worker_queue.delete_if {|w|w.process_id == options[:process_id] }.first
+    end
+    
+    pids     = @pids                   
+    hostname = @hostname
+    @manager.define_method(:fork) do
+      newpid = pids.size + 1
+      pids << newpid
+      worker_info = {
+        :hostname     => hostname,
+        :process_id   => newpid,
+        :worker_type  => :task, 
+        :worker_id    => newpid,
+        :version      => 1
+      }
+            
+      worker_queue << Skynet::WorkerStatusMessage.new(worker_info)
       newpid
     end
-  end  
-  
-  def test_clear_worker_status  
-    @manager.start_workers
-    assert_equal 2, @manager.worker_pids.size
-    assert_equal PIDS.sort, @manager.worker_pids.sort
-    assert_equal PIDS.sort, @manager.worker_queue.collect {|q|q.process_id}.sort
-    assert_equal 2, SkynetWorkerQueue.count(:id, :conditions => "id is not null")
-    mq.clear_worker_status
-    assert_equal 0, SkynetWorkerQueue.count(:id, :conditions => "id is not null")
-    
   end
-
+  
   def test_manager_start  
+    setup_manager
     @manager.start_workers
     assert_equal 2, @manager.worker_pids.size
-    assert_equal PIDS.sort, @manager.worker_pids.sort
-    assert_equal PIDS.sort, @manager.worker_queue.collect {|q|q.process_id}.sort
+    assert_equal @pids.sort, @manager.worker_pids.sort
+    assert_equal @pids.sort, @manager.worker_queue.collect {|q|q.process_id}.sort
   end
 
   def test_check_workers
+    setup_manager
     Skynet::Manager.any_instance.expects(:worker_alive?).times(2).returns(true)
     @manager.start_workers
     @manager.check_workers
     assert_equal 2, @manager.worker_pids.size
-    assert_equal PIDS.sort, @manager.worker_pids.sort
-    assert_equal PIDS.sort, @manager.worker_queue.collect {|q|q.process_id}.sort
+    assert_equal @pids.sort, @manager.worker_pids.sort
+    assert_equal @pids.sort, @manager.worker_queue.collect {|q|q.process_id}.sort
   end
   
   def test_running_pids
+    setup_manager
     Skynet::Manager.any_instance.expects(:worker_alive?).with(1).returns(true)
     Skynet::Manager.any_instance.expects(:worker_alive?).with(2).returns(false)
     @manager.start_workers
@@ -95,17 +109,22 @@ class SkynetManagerTest < Test::Unit::TestCase
 
   ## XXX FIXME.  What happens if there's a worker missing from the pidfile, but was running?
   def test_more_in_pidfile_than_queue_alive
-    Skynet::Manager.any_instance.expects(:worker_alive?).with(1).returns(true)
-    Skynet::Manager.any_instance.expects(:worker_alive?).with(2).returns(true)
-    @manager.start_workers
-    SkynetWorkerQueue.find(:first, :conditions => "process_id = 1").destroy
-    @manager.check_workers
-    assert_equal 1, @manager.worker_pids.size
-    assert_equal [2], @manager.worker_pids.sort
-    assert_equal [2], @manager.worker_queue.collect {|q|q.process_id}.sort
+    setup_manager
+    @manager.expects(:worker_alive?).with(1).returns(false)
+    Skynet.configure(:SKYNET_LOG_LEVEL => 4) do
+      @manager.start_workers
+
+      @manager.expects(:worker_alive?).with(2).returns(true)
+      @worker_queue.delete_if {|w| w.process_id == 1}
+      @manager.check_workers
+    end
+    assert_equal 2, @manager.worker_pids.size
+    assert_equal [2,3], @manager.worker_pids.sort
+    assert_equal [2,3], @manager.worker_queue.collect {|q|q.process_id}.sort
   end
 
   def test_dead_workers
+    setup_manager
     Skynet::Manager.any_instance.expects(:worker_alive?).times(1).with(1).returns(false)
     # Skynet::Manager.any_instance.expects(:worker_alive?).with(2).returns(true)
     @manager.start_workers     

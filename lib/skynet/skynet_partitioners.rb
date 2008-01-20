@@ -7,7 +7,7 @@ class Skynet
     #
     class SimplePartitionData < Partitioners
 
-      def self.reduce_partitioner(data, partitions)    
+      def self.reduce_partition(data, partitions)    
         partitioned_data = Array.new
 
         # If data size is significantly greater than the number of desired
@@ -49,7 +49,7 @@ class Skynet
     class RecombineAndSplit < Partitioners
       # Tries to be smart about what kind of data its getting, whether array of arrays or array of arrays of arrays.
       #
-      def self.reduce_partitioner(post_map_data,new_partitions)
+      def self.reduce_partition(post_map_data,new_partitions)
         return post_map_data unless post_map_data.is_a?(Array) and (not post_map_data.empty?) and post_map_data.first.is_a?(Array) and (not post_map_data.first.empty?)
         if not post_map_data.first.first.is_a?(Array)
           partitioned_data = post_map_data.flatten
@@ -58,7 +58,7 @@ class Skynet
             data += part
           end    
         end    
-        partitioned_data = Skynet::Partitioners::SimplePartitionData.reduce_partitioner(partitioned_data, new_partitions)
+        partitioned_data = Skynet::Partitioners::SimplePartitionData.reduce_partition(partitioned_data, new_partitions)
         debug "POST PARTITIONED DATA", partitioned_data
         partitioned_data
       end
@@ -68,7 +68,7 @@ class Skynet
       # Smarter partitioner for array data, generates simple sum of array[0]
       # and ensures that all arrays sharing that key go into the same partition.
       #
-      def self.reduce_partitioner(partitioned_data, new_partitions)
+      def self.reduce_partition(partitioned_data, new_partitions)
         partitions = Array.new
         (0..new_partitions - 1).each { |i| partitions[i] = Array.new }
 

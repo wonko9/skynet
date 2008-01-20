@@ -1,8 +1,4 @@
-ENV["RAILS_ENV"] = "test"
-
-require 'test/unit'
-require 'pp'        
-require '../lib/skynet.rb'
+require File.dirname(__FILE__) + '/test_helper.rb'
 
 class TuplespaceMessageQueueTest < Test::Unit::TestCase
   

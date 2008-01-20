@@ -1,9 +1,17 @@
-ENV["RAILS_ENV"] = "test"
-
-require 'test/unit'
-require '../lib/skynet.rb'
+require File.dirname(__FILE__) + '/test_helper.rb'
 
 class MysqlMessageQueueTest < Test::Unit::TestCase
+  ENV["RAILS_ENV"] = "test"
+  
+  ActiveRecord::Base.establish_connection(
+    :adapter  => "mysql",
+    :host     => "localhost",
+    :username => "root",
+    :password => "",
+    :database => "skynet_test"
+  )
+  ActiveRecord::Base.connection.execute("delete from skynet_message_queues")
+  ActiveRecord::Base.connection.execute("delete from skynet_worker_queues")
   
   def setup
     Skynet.configure(
@@ -12,18 +20,19 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
       :SKYNET_LOG_FILE                => STDOUT,
       :SKYNET_LOG_LEVEL               => Logger::ERROR,
       :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
-      :MYSQL_NEXT_TASK_TIMEOUT              => 1
+      :MYSQL_NEXT_TASK_TIMEOUT        => 1,
+      :MYSQL_TEMPERATURE_CHANGE_SLEEP => 1
     )      
-    ActiveRecord::Base.establish_connection(
-        :adapter  => "mysql",
-        :host     => "localhost",
-        :username => "root",
-        :password => "",
-        :database => "skynet_test"
-      )
 
-    mq.clear_outstanding_tasks
-    mq.clear_worker_status
+    ActiveRecord::Base.establish_connection(
+      :adapter  => "mysql",
+      :host     => "localhost",
+      :username => "root",
+      :password => "",
+      :database => "skynet_test"
+    )
+    ActiveRecord::Base.connection.execute("delete from skynet_message_queues")
+    ActiveRecord::Base.connection.execute("delete from skynet_worker_queues")
     
     @message_options = {
       :tasktype     => "task", 
@@ -35,7 +44,9 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
       :expire_time  => 1095108406.9251,
       :iteration    => 0,
       :name         => "name",       
-      :version      => 1
+      :version      => 1,
+      :queue_id     => 0,
+      :retry        => 1
     }
     @worker_message = Skynet::Message.new(@message_options)
     
@@ -70,11 +81,13 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     assert_match "expire_time BETWEEN 0 AND", conditions
   end
   
+# =============
+# = XXX FIXME =
+# =============
   def test_take_next_task
     assert mq.write_message(@worker_message,10)
     message = SkynetMessageQueue.find(:first, :conditions => "tasktype = 'task'")
     assert_equal 0, message.iteration
-
     task = mq.take_next_task(1,1,:task)                       
     assert_equal @worker_message.payload, task.payload
 
@@ -91,6 +104,9 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     assert excep    
   end
   
+  # =============
+  # = XXX FIXME =
+  # =============
   def test_task_failover
     message = @worker_message.clone
     message.expiry=0.4
@@ -98,13 +114,41 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     task = mq.take_next_task(1)
     assert_equal 2, task.task_id
     assert_equal 0, task.iteration
-    sleep 0.6
     ntt = Skynet::Message.next_task_template(1)
-    next_task = mq.take_next_task(1,0.00001)
+    next_task = mq.take_next_task(1,1)
     assert_equal 2, next_task.task_id
     assert_equal 1, next_task.iteration
+  end               
+  
+  def test_take_race_condition
+    message = @worker_message.clone
+    message.expiry=0.4
+    assert mq.write_message(message)
+    template = Skynet::Message.next_task_template(1, :task, 0)
+
+    message_row = mq.send(:find_next_message,template,:task)
+    assert !message_row.tran_id
+
+    assert_equal 1, mq.send(:write_fallback_message,message_row, message)
+    assert_equal 0, mq.send(:write_fallback_message,message_row, message)
+    assert_equal 0, mq.send(:write_fallback_message,message_row, message)
+
+    template = Skynet::Message.next_task_template(1, :task, 0)
+    another_row = mq.send(:find_next_message,template,:task)
+    assert !another_row
+    sleep 1
+    template = Skynet::Message.next_task_template(1, :task, 0)
+    message_row2 = mq.send(:find_next_message,template,:task)
+    assert message_row2
+    assert_equal message_row.tran_id, message_row2.tran_id
+
+    message_row2.tran_id = 4
+    assert_equal 0, mq.send(:write_fallback_message,message_row2, message)
   end
 
+  # =============
+  # = XXX FIXME =
+  # =============
   def test_write_and_take_result
     assert mq.write_message(@worker_message,10)  
     message = mq.take_next_task(1)

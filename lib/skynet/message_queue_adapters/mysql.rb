@@ -64,12 +64,11 @@ class Skynet
       end
 
       def template_to_conditions(template,fields=Skynet::Message.fields)
-        fields = fields.invert
         conditions = []             
         values = []            
         
-        fields.keys.each do |field|
-          value = template[fields[field]]
+        fields.each_with_index do |field,ii|
+          value = template[ii]
           next unless value
           if value.is_a?(Range)              
             conditions << "#{field} BETWEEN #{value.first} AND #{value.last}"
@@ -86,7 +85,7 @@ class Skynet
       def message_to_hash(message,timeout=nil,fields=Skynet::Message.fields)
         timeout ||= message.expiry        
         hash = {}
-        fields.values.each do |field|
+        fields.each do |field|
           next if field == :drburi
           # next unless message.send(field)
           if message.send(field).is_a?(Symbol)
@@ -104,30 +103,133 @@ class Skynet
         hash
       end
 
-      def take_next_task(curver,timeout=0,payload_type=nil,queue_id=0)
+      # def take(template,start=Time.now, timeout=1, sleep_time=nil, queue_id=0)      
+      #   sleep_time ||= timeout
+      #   times_tried = 0
+      #   payload_type = template[Skynet::Message.fields.index(:payload_type)]
+      #   payload_type ||= :any                                             
+      #   payload_type = payload_type.to_sym
+      # 
+      #   10.times do         
+      #     begin              
+      #       ## TEPERATURE
+      #       message = find_next_message(template,payload_type)
+      #       if message
+      #         rows = set_message_tran_id(message)
+      #         if rows < 1
+      #           old_temp = temperature(payload_type)
+      #           set_temperature(payload_type, template_to_conditions(template), queue_id)
+      #           debug "MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+      #           next 
+      #         end
+      #         return message
+      #       else
+      #         old_temp = temperature(payload_type)                                                              
+      #         set_temperature(payload_type, template_to_conditions(template), queue_id)
+      #         debug "MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+      #         break if temperature(payload_type) == 1 and old_temp == 1
+      #         next
+      #       end
+      #     rescue ActiveRecord::StatementInvalid => e
+      #       if e.message =~ /Deadlock/                                 
+      #         old_temp = temperature(payload_type)
+      #         set_temperature(payload_type, template_to_conditions(template), queue_id)
+      #         debug "COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+      #         next
+      #       else
+      #         raise e
+      #       end
+      #     end
+      #   end
+      # 
+      #   if Time.now.to_f > start.to_f + timeout
+      #     debug "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
+      #     raise Skynet::RequestExpiredError.new
+      #   else    
+      #     sleepy = rand(sleep_time * 0.5 )
+      #     debug "EMPTY QUEUE #{temperature(payload_type)} SLEEPING: #{sleep_time} / #{sleepy}"
+      #     sleep sleepy
+      #     return false 
+      #   end
+      # end
+
+      @@temperature ||= {}
+      @@temperature[:task] ||= 1
+      @@temperature[:master] ||= 1
+      @@temperature[:any] ||= 1
+      
+      def write_fallback_message(message_row, message)
+        tran_id  = get_unique_id(1)
+        ftm = message.fallback_task_message            
+        update_sql = %{
+          update #{message_queue_table} 
+          SET iteration = #{ftm.iteration }, 
+          expire_time = #{ftm.expire_time}, 
+          updated_on = '#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}',
+          tran_id = #{tran_id}                   
+          WHERE id = #{message_row.id} AND iteration = #{message.iteration}
+          AND tran_id #{(message_row.tran_id ? " =#{message_row.tran_id}" : ' IS NULL')}
+        }            
+        rows = update(update_sql) || 0
+        message_row.tran_id = tran_id if rows == 1
+        rows        
+      end
+
+      def take_next_task(curver,timeout=0.5,payload_type=nil,queue_id=0)
         timeout = Skynet::CONFIG[:MYSQL_NEXT_TASK_TIMEOUT] if timeout < 1
         debug "TASK NEXT TASK!!!!!!! timeout: #{timeout} queue_id:#{queue_id}"     
-        message = nil
-        start = Time.now    
-        rows = nil
-        loop do
-          # debug "start #{Time.now} timeout #{start + timeout}"
-          message_row = take(Skynet::Message.next_task_template(curver, payload_type, queue_id), start, timeout, queue_id)
-          next unless message_row
 
-          begin
-            message = Skynet::Message.new(message_row.attributes)
+        start    = Time.now    
+        template = Skynet::Message.next_task_template(curver, payload_type)        
+        message  = nil
+        
+        loop do
+          rows     = 0
+          message  = nil
+          template = Skynet::Message.next_task_template(curver, payload_type)
+          begin              
+            message_row = find_next_message(template, payload_type)
+            if message_row
+              message = Skynet::Message.new(message_row.attributes)
+              rows = write_fallback_message(message_row, message)
+
+              if rows < 1
+                old_temp = temperature(payload_type)
+                set_temperature(payload_type, template_to_conditions(template), queue_id)
+                debug "MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+              else
+                break
+              end
+            else # no messages on queue with this temp
+              old_temp = temperature(payload_type)                                                              
+              if old_temp > 1
+                set_temperature(payload_type, template_to_conditions(template), queue_id)
+              end
+              debug "MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+            end
           rescue Skynet::Message::BadMessage => e
-            message = nil
             message_row.destroy
             next
+          rescue ActiveRecord::StatementInvalid => e
+            if e.message =~ /Deadlock/                                 
+              old_temp = temperature(payload_type)
+              set_temperature(payload_type, template_to_conditions(template), queue_id)
+              debug "COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
+            else
+              raise e
+            end
           end
-          ftm = message.fallback_task_message        
-          rows = update("update #{message_queue_table} set iteration = #{ftm.iteration }, expire_time = #{ftm.expire_time}, updated_on = '#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}' where iteration = #{message.iteration} and id = #{message_row.id}")
-            
-          # message = nil if rows == 0
-          return message if message
+          if Time.now.to_f > start.to_f + timeout
+            debug "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
+            raise Skynet::RequestExpiredError.new
+          else    
+            sleepy = rand(timeout * 0.5 )
+            debug "EMPTY QUEUE #{temperature(payload_type)} SLEEPING: #{timeout} / #{sleepy}"
+            sleep sleepy
+          end
         end
+
+        return message
       end
       
       def write_message(message,timeout=nil)
@@ -139,10 +241,10 @@ class Skynet
         timeout ||= message.expiry
         result_message = message.result_message(result)
         result_message.expire_time = nil
-        update_message(result_message,timeout)
+        update_message_with_result(result_message,timeout)
       end
       
-      def update_message(message,timeout=nil)
+      def update_message_with_result(message,timeout=nil)
         timeout ||= message.expiry
         timeout_sql = (timeout ? ", timeout = #{timeout}, expire_time = #{Time.now.to_f + timeout}" : '')
         rows = 0
@@ -209,12 +311,12 @@ class Skynet
 
       def write_error(message,error='',timeout=nil)
         message.expire_time = nil
-        update_message(message.error_message(error),timeout)
+        update_message_with_result(message.error_message(error),timeout)
       end
 
       def write_worker_status(task, timeout=nil)
         message = Skynet::WorkerStatusMessage.new(task)
-        worker_fields = Skynet::WorkerStatusMessage.fields.reject {|k,f| f == :process_id or f == :hostname or f == :tasksubtype or f == :tasktype}
+        # worker_fields = Skynet::WorkerStatusMessage.fields.reject {|f| f == :process_id or f == :hostname or f == :tasksubtype or f == :tasktype}
         update_hash = message_to_hash(message, timeout, Skynet::WorkerStatusMessage.fields)
         update_hash.each do |k,v|
           if not v
@@ -232,7 +334,7 @@ class Skynet
             rows = update(insert_sql)
           rescue ActiveRecord::StatementInvalid => e
             if e.message =~ /Duplicate/
-              error "DUPLICATE WORKER #{e.message}"
+              error "DUPLICATE WORKER #{e.message} #{e.backtrace.join("\n")}"
             else
               raise e
             end
@@ -427,13 +529,15 @@ class Skynet
       def update(sql)                                            
         rows = 0
         3.times do
-          begin
-            rows = SkynetMessageQueue.connection.update(sql)
+          begin    
+            SkynetMessageQueue.transaction do
+              rows = SkynetMessageQueue.connection.update(sql)
+            end
             return rows
           rescue ActiveRecord::StatementInvalid => e
             if e.message =~ /Deadlock/ or e.message =~ /Transaction/
               error "#{self.class} update had collision #{e.message}"            
-              sleep 0.1
+              sleep 0.2
               next
             else
               raise e
@@ -444,84 +548,42 @@ class Skynet
       end
     
       Skynet::CONFIG[:MYSQL_TEMPERATURE_CHANGE_SLEEP] ||= 40
-
-      @@temperature ||= {}
-      @@temperature[:task] ||= 1
-      @@temperature[:master] ||= 1
-      @@temperature[:any] ||= 1
       
-      def take(template,start=Time.now, timeout=1, sleep_time=nil, queue_id=0)      
+      def find_next_message(template, payload_type)
         conditions = template_to_conditions(template)
-        sleep_time ||= timeout
-        transaction_id = get_unique_id(1)
-        times_tried = 0
-        payload_type = template[Skynet::Message.fields.invert[:payload_type]]
-        payload_type ||= :any                                             
-        payload_type = payload_type.to_sym
+        temperature_sql = (temperature(payload_type) > 1 ? " AND id % #{temperature(payload_type).ceil} = #{rand(temperature(payload_type)).to_i} " : '')
 
-        10.times do         
-          begin              
-            ## TEPERATURE
-            temperature_sql = (temperature(payload_type) > 1 ? " AND id % #{temperature(payload_type).ceil} = #{rand(temperature(payload_type)).to_i} " : '')
-
-            ###  Mqke sure we get the old ones.  If we order by on ever select its VERY expensive.
-            order_by = (payload_type != :master and rand(100) < 5) ? "ORDER BY payload_type desc, created_on desc" : '' 
-            
-            sql = <<-SQL 
-              SELECT *
-              FROM #{message_queue_table} 
-              WHERE #{conditions} #{temperature_sql}
-              #{order_by}
-              LIMIT 1
-            SQL
-            
-            message_row = SkynetMessageQueue.find_by_sql(sql).first
-            if message_row
-      # ================================================================================
-      # = XXX This will not work with retries since the tran_id will not be null!!!!!! =
-      # ================================================================================
-              update_sql = "UPDATE #{message_queue_table} set tran_id = #{transaction_id} WHERE id = #{message_row.id} and tran_id is null"
-              
-              rows = 0
-              SkynetMessageQueue.transaction do
-                rows = SkynetMessageQueue.connection.update(update_sql)
-              end
-              if rows < 1
-                old_temp = temperature(payload_type)
-                set_temperature(payload_type, conditions, queue_id)
-                debug "MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
-                next 
-              end
-              return message_row
-            else
-              old_temp = temperature(payload_type)                                                              
-              set_temperature(payload_type, conditions, queue_id)
-              debug "MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
-              break if temperature(payload_type) == 1 and old_temp == 1
-              next
-            end
-          rescue ActiveRecord::StatementInvalid => e
-            if e.message =~ /Deadlock/                                 
-              old_temp = temperature(payload_type)
-              set_temperature(payload_type, conditions, queue_id)
-              debug "COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}"
-              next
-            else
-              raise e
-            end
-          end
-        end
-
-        if Time.now.to_f > start.to_f + timeout
-          debug "MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}"
-          raise Skynet::RequestExpiredError.new
-        else    
-          sleepy = rand(sleep_time * 0.5 )
-          debug "EMPTY QUEUE #{temperature(payload_type)} SLEEPING: #{sleep_time} / #{sleepy}"
-          sleep sleepy
-          return false 
-        end
+        ###  Mqke sure we get the old ones.  If we order by on ever select its VERY expensive.
+        order_by = (payload_type != :master and rand(100) < 5) ? "ORDER BY payload_type desc, created_on desc" : '' 
+        
+        sql = <<-SQL 
+          SELECT *
+          FROM #{message_queue_table} 
+          WHERE #{conditions} #{temperature_sql}
+          #{order_by}
+          LIMIT 1
+        SQL
+        
+        SkynetMessageQueue.find_by_sql(sql).first
       end
+
+      # def set_message_tran_id(message)
+      #   tran_id = get_unique_id(1)
+      #   update_sql = %{
+      #     UPDATE #{message_queue_table} 
+      #     set tran_id = #{tran_id} 
+      #     WHERE id = #{message.id}}
+      #   update_sql << " AND tran_id " << (message.tran_id ? " =#{message.tran_id}" : ' IS NULL')
+      #   pp update_sql
+      # 
+      #   rows = 0
+      #   SkynetMessageQueue.transaction do
+      #     rows = SkynetMessageQueue.connection.update(update_sql)
+      #   end
+      #   message.tran_id = tran_id
+      #   rows
+      # end
+        
 
       # Skynet::CONFIG[:temperature_growth_rate] ||= 2
       # Skynet::CONFIG[:temperature_backoff_rate] ||= 0.75
@@ -550,12 +612,17 @@ class Skynet
       # end
         
       def temperature(payload_type)
+        payload_type ||= :any                                             
+        payload_type   = payload_type.to_sym
         @@temperature[payload_type.to_sym]
       end
       
       Skynet::CONFIG[:MYSQL_QUEUE_TEMP_POW] ||= 0.6
                
       def set_temperature(payload_type, conditions, queue_id=0)                                            
+        payload_type ||= :any                                             
+        payload_type   = payload_type.to_sym
+        
         temp_q_conditions = "queue_id = #{queue_id} AND type = '#{payload_type}' AND updated_on < '#{(Time.now - 5).strftime('%Y-%m-%d %H:%M:%S')}'"
 #        "POW(#{(rand(40) + 40) * 0.01})"
 # its almost like the temperature table needs to store the POW and adjust that to be adaptive.  Like some % of the time it
@@ -589,6 +656,8 @@ class Skynet
       end
       
       def get_temperature(payload_type, queue_id=0)
+        payload_type ||= :any                                             
+        payload_type   = payload_type.to_sym
         value = SkynetMessageQueue.connection.select_value("select temperature from skynet_queue_temperature WHERE type = '#{payload_type}'").to_f
         if not value
           SkynetMessageQueue.connection.execute("insert into skynet_queue_temperature (queue_id,type,temperature) values (#{queue_id},'#{payload_type}',#{@@temperature[payload_type.to_sym]})")
