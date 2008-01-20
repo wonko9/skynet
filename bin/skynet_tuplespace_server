@@ -47,6 +47,8 @@ OptionParser.new do |opt|
     else
       options[:drburi] = "druby://#{v}"
     end
+    options[:drburi] =~ /druby:\/\/.+?:(\d*)/
+    options[:port] = $1.to_i
   end
 
   opt.parse!(ARGV)

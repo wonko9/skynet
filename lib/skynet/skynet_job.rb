@@ -195,11 +195,7 @@ class Skynet
       # run the master task if we're running async or local_master
       if master?
         master_enqueue
-        if async?
-          return job_id
-        else
-          return master_results        
-        end
+        return master_results        
       else
         number_of_tasks_queued = self.map_enqueue
         map_results            = self.map_results(number_of_tasks_queued)
@@ -220,6 +216,7 @@ class Skynet
     end
     
     def master_results                     
+      return job_id if async?      
       results = gather_results(1,master_timeout,name)
     end
 

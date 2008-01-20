@@ -49,7 +49,7 @@ sometest.rb
 tasks/deployment.rake
 tasks/environment.rake
 tasks/website.rake
-test/all_models_test.rb
+test/test_active_record_extensions.rb
 test/test_generator_helper.rb
 test/test_helper.rb
 test/test_mysql_message_queue_adapter.rb
@@ -59,7 +59,7 @@ test/test_skynet_job.rb
 test/test_skynet_manager.rb
 test/test_skynet_message.rb
 test/test_skynet_task.rb
-test/tuplespace_message_queue_test.rb
+test/test_tuplespace_message_queue.rb
 tmtags
 website/doc/classes/ActiveRecord.html
 website/doc/classes/ActiveRecord/Base.html

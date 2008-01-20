@@ -144,7 +144,7 @@ class SkynetJobTest < Test::Unit::TestCase
   end
   
   def test_master_results
-    job = Skynet::AsyncJob.new(
+    job = Skynet::Job.new(
       :map_reduce_class => self.class,    
       :version          => 1, 
       :map_data         => [[1]], 
