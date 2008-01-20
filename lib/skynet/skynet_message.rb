@@ -9,7 +9,6 @@ class Skynet
       attr_accessor :fields
     end
 
-    # FIXME: make an array
     self.fields = [
      :tasktype,
      :drburi,
@@ -138,10 +137,7 @@ class Skynet
       expire_time * 2
     end
 
-    ####### TEMPLATES ############
-    
     def self.next_task_template(version=nil, payload_type=nil, queue_id=0)
-      # FIXME NOTE: do this other places
       template = {
         :expire_time  => (0 .. Time.now.to_i),
         :tasktype     => :task,

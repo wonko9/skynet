@@ -230,7 +230,6 @@ class Skynet
           number_of_tasks += 1
           enqueue_messages(tasks_to_messages(task))
         end            
-        # end           
       end
       return number_of_tasks
     end
@@ -717,13 +716,12 @@ class Skynet::TaskIterator
   
   def each     
     iteration = 0        
-    start_task_id = get_unique_id(1).to_i
     data.send(each_method) do |task_data|
       task = nil
       if @first and iteration == 0
         task = @first
       else
-        task = Skynet::Task.new(task_options.merge(:data => task_data, :task_id => (start_task_id + iteration)))
+        task = Skynet::Task.new(task_options.merge(:data => task_data, :task_id => (get_unique_id(1).to_i)))
         @first = task if iteration == 0
       end
       iteration += 1

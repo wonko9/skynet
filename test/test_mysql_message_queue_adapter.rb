@@ -81,9 +81,6 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     assert_match "expire_time BETWEEN 0 AND", conditions
   end
   
-# =============
-# = XXX FIXME =
-# =============
   def test_take_next_task
     assert mq.write_message(@worker_message,10)
     message = SkynetMessageQueue.find(:first, :conditions => "tasktype = 'task'")
@@ -104,9 +101,6 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     assert excep    
   end
   
-  # =============
-  # = XXX FIXME =
-  # =============
   def test_task_failover
     message = @worker_message.clone
     message.expiry=0.4
@@ -146,9 +140,6 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     assert_equal 0, mq.send(:write_fallback_message,message_row2, message)
   end
 
-  # =============
-  # = XXX FIXME =
-  # =============
   def test_write_and_take_result
     assert mq.write_message(@worker_message,10)  
     message = mq.take_next_task(1)
