@@ -69,6 +69,7 @@ Skynet::Message
 Now 90% more Tests!
 
 BUGFIXES
+- Skynet Workers now restart properly when the worker_version changes.
 - starting tuplespce_server, you no longer need to provide the --port if you're already providing the drburi- 
 - Fixed a bug where Skynet::MessageQueueAdapter::Mysql would sometimes pick up tasks another worker had already picked up.
 - Fix bug in Skynet::Worker where it wouldn't die right if the max processed was reached. 

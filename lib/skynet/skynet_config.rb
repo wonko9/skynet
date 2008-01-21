@@ -24,6 +24,7 @@ class Skynet
     :WORKER_CHECK_DELAY                   => 40,
     :WORKER_MAX_MEMORY                    => 500,
     :WORKER_MAX_PROCESSED                 => 1000,
+    :WORKER_VERSION_CHECK_DELAY           => 30,
     # :GUID_GENERATOR                     => nil,
     :PERCENTAGE_OF_TASK_ONLY_WORKERS      => 0.7,
     :PERCENTAGE_OF_MASTER_ONLY_WORKERS    => 0.2,

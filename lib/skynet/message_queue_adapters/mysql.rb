@@ -316,7 +316,6 @@ class Skynet
 
       def write_worker_status(task, timeout=nil)
         message = Skynet::WorkerStatusMessage.new(task)
-        # worker_fields = Skynet::WorkerStatusMessage.fields.reject {|f| f == :process_id or f == :hostname or f == :tasksubtype or f == :tasktype}
         update_hash = message_to_hash(message, timeout, Skynet::WorkerStatusMessage.fields)
         update_hash.each do |k,v|
           if not v

@@ -34,6 +34,7 @@ class Skynet
       @workers_by_type      = {:master => [], :task => [], :any => []}
       @signaled_workers     = []
       @workers_running      = {}
+      @workers_restarting   = 0
       @all_workers_started  = false                      
       @config               = Skynet::Config.new      
       @mutex                = Mutex.new
@@ -104,14 +105,17 @@ class Skynet
     end
     
     def check_workers
-      q_pids = worker_queue_pids || []
+      worker_queue = self.worker_queue
+      q_pids = worker_queue_pids(worker_queue) || []          
       info "Checking on #{@number_of_workers} workers..." unless @shutdown
-      check_running_pids(q_pids)
-      check_number_of_workers(q_pids)
+      check_running_pids(worker_queue)
+      check_number_of_workers(worker_queue)
       true          
     end
 
-    def check_running_pids(q_pids)
+    def check_running_pids(worker_queue)
+      # There are workers running that are not in the queue.  When does this happen?
+      q_pids = worker_queue_pids(worker_queue) || []
       if @workers_running.keys.size > q_pids.size
          (@workers_running.keys - q_pids).each do |wpid|
            error "Missing worker #{wpid} from worker queue. Removing and/or killing."
@@ -132,8 +136,40 @@ class Skynet
       end
       q_pids
     end                          
+
+    def check_number_of_workers(worker_queue)
+      q_pids = worker_queue_pids(worker_queue) || []
+      if @shutdown         
+        worker_shutdown(q_pids)
+        if q_pids.size < 1
+          exit
+        end        
+      elsif @workers_restarting > 0
+        if @workers_requested - q_pids.size != 0
+          restarting = @workers_requested - q_pids.size  
+          warn "RESTART MODE: Expected #{@number_of_workers} workers.  #{q_pids.size} running. #{restarting} are still restarting"          
+        else                    
+          warn "RESTART MODE: Expected #{@number_of_workers} workers.  #{q_pids.size} running."
+        end
+        @workers_restarting = @workers_requested - q_pids.size
+        
+      elsif q_pids.size != @number_of_workers
+        starting = 0        
+        if q_pids.size.to_f / @workers_requested.to_f < 0.85
+          starting = @workers_requested - q_pids.size  
+          error "Expected #{@number_of_workers} workers.  #{q_pids.size} running. Starting #{starting}"          
+          @number_of_workers = q_pids.size
+          add_worker(starting)          
+        else          
+          
+          error "Expected #{@number_of_workers} workers.  #{q_pids.size} running."
+          @number_of_workers = q_pids.size
+        end
+      end
+    end
                         
-    def worker_shutdown(q_pids)
+    def worker_shutdown(worker_queue)
+      q_pids = worker_queue_pids(worker_queue) || []
       if not @masters_dead
         workers_to_kill = worker_queue.select do |w| 
           w.map_or_reduce == "master" and @workers_running.include?(w.process_id)
@@ -150,10 +186,10 @@ class Skynet
           signal_workers("INT")
           @masters_dead = true
           sleep 1
-          return check_number_of_workers(worker_queue_pids)
+          return check_number_of_workers(worker_queue)
         else
           sleep 4
-          return check_number_of_workers(worker_queue_pids)
+          return check_number_of_workers(worker_queue)
         end
       else
         warn "Shutting down.  #{q_pids.size} workers still running." if q_pids.size > 0
@@ -162,27 +198,7 @@ class Skynet
         info "No more workers running."
       end        
     end      
-    
-    def check_number_of_workers(q_pids)
-      if @shutdown         
-        worker_shutdown(q_pids)
-        if q_pids.size < 1
-          exit
-        end        
-      elsif q_pids.size != @number_of_workers
-        if q_pids.size.to_f / @workers_requested.to_f < 0.85
-          starting = @workers_requested - q_pids.size  
-          error "Expected #{@number_of_workers} workers.  #{q_pids.size} running. Starting #{starting}"          
-          @number_of_workers = q_pids.size
-          add_worker(starting)          
-        else          
-          error "Expected #{@number_of_workers} workers.  #{q_pids.size} running."
-          @number_of_workers = q_pids.size
-        end
-      end
-
-    end
-    
+        
     def take_worker_status(worker_process_id)
       begin
         mq.take_worker_status({
@@ -260,7 +276,6 @@ class Skynet
         @number_of_workers -= 1
         @workers_running.delete(wpid)      
         warn "REMOVING WORKER #{wpid}"
-        # error "SHUTTING DOWN #{wpid} MR:",worker_queue.detect{|w|w.process_id == wpid}
         @signaled_workers << wpid
         Process.kill("INT",wpid)      
       end                       
@@ -296,6 +311,19 @@ class Skynet
       signal_workers("INT",:any)
       sleep @number_of_workers
       check_started_workers
+    end
+
+# ===========================
+# = XXX THIS IS A HORRIBLE HACK =
+# ===========================
+    def restart_worker(wpid)
+      info "RESTARTING WORKER #{wpid}"
+      @mutex.synchronize do
+        @workers_running.delete(wpid)
+        @workers_restarting += 1
+      end
+      Process.kill("HUP",wpid)
+      sleep Skynet::CONFIG[:WORKER_CHECK_DELAY]
     end
 
     def restart_workers
@@ -358,7 +386,7 @@ class Skynet
       mq.read_all_worker_statuses(hostname)
     end
     
-    def worker_queue_pids
+    def worker_queue_pids(worker_queue=self.worker_queue)
       worker_queue.collect {|w| w.process_id}
     end        
 

@@ -330,14 +330,14 @@ class Skynet
 
     def initialize(opts)
       super
-      self.tasktype    = :status
-      self.tasksubtype = :worker
+      self.tasktype    = :worker
+      self.tasksubtype = opts[:tasksubtype] || :status
     end
     
     def self.worker_status_template(opts)
       template = {
-        :tasktype    => :status,
-        :tasksubtype => :worker,
+        :tasktype    => :worker,
+        :tasksubtype => opts[:tasksubtype] || :status,
         :hostname    => opts[:hostname],
         :process_id  => opts[:process_id]        
       }
@@ -348,8 +348,8 @@ class Skynet
     
     def self.all_workers_template(hostname=nil)
       template = {
-        :tasktype    => :status,
-        :tasksubtype => :worker,
+        :tasktype    => :worker,
+        :tasksubtype => :status,
         :hostname    => hostname,
       }
       fields.collect do |field|

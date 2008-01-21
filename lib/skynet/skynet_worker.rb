@@ -5,7 +5,7 @@ class Skynet
     include Skynet::GuidGenerator
 
     RETRY_TIME = 2
-    VERSION_CHECK_DELAY = 5
+    Skynet::CONFIG[:WORKER_VERSION_CHECK_DELAY] ||= 30
 
     Skynet::CONFIG[:WORKER_MAX_MEMORY] ||= 500
 
@@ -66,7 +66,7 @@ class Skynet
           @curver = 1
         end
       else    
-        if Time.now < (@verchecktime + VERSION_CHECK_DELAY)
+        if Time.now < (@verchecktime + Skynet::CONFIG[:WORKER_VERSION_CHECK_DELAY])
           return false
         else                    
           @verchecktime = Time.now
@@ -173,7 +173,7 @@ class Skynet
           if @die             
             exit                                  
           elsif @respawn
-            raise Skynet::Worker::RespawnWorker.new("Caught TERM")
+            raise Skynet::Worker::RespawnWorker.new()
           end
 
           if local_mem = max_memory_reached?
@@ -223,23 +223,25 @@ class Skynet
           info "STEP 6 WROTE RESULT MESSAGE #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
           # debug "STEP 6.1 RESULT_MESSAGE:", result_message
           notify_task_complete          
+
         rescue Skynet::Task::TimeoutError => e
           error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
           next
+
         rescue Skynet::Worker::RespawnWorker => e  
           info "Respawning and taking worker status #{e.message}"
           notify_worker_stop
           raise e          
+
         rescue Skynet::RequestExpiredError => e
-
-          ## This caused big problems
-          # if new_version_respawn?
-          #   notify_worker_stop
-          #   raise Skynet::Worker::RespawnWorker.new("New version respawn after Skynet::RequestExpiredError #{e.backtrace.join("\n")}")
-          # end
-
+          if new_version_respawn?
+            notify_worker_stop
+            manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+            manager.restart_worker($$) if manager
+          end
           sleep 1
           next
+
         rescue Skynet::ConnectionError, DRb::DRbConnError => e
           conerror += 1
           retry_time = conerror > 6 ? RETRY_TIME * 3 : RETRY_TIME
@@ -252,6 +254,7 @@ class Skynet
             raise e 
           end
           next
+
         rescue NoManagerError => e
           fatal e.message
           break          
@@ -393,7 +396,6 @@ class Skynet
         cmd = "RAILS_ENV=#{RAILS_ENV} ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]}"
         cmd << "-r #{options[:required_libs].join(' -r ')}" if options[:required_libs] and not options[:required_libs].empty?
         pid = fork_and_exec(cmd)
-        warn "parent_pid: #{$$}, child_pid: #{pid}"
         exit
       rescue SystemExit
         info "WORKER #{$$} EXITING GRACEFULLY"
