@@ -37,7 +37,7 @@ class Skynet
         :job_id       => job.job_id,
         :expire_time  => job.start_after,
         :version      => job.version,
-        :queue_id     => job.queue_id,
+        :queue_id     => job.queue_id || 0,
         :iteration    => 0,
         :tasktype     => :task, 
         :task_id      => task.task_id,
