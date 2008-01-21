@@ -29,7 +29,7 @@ class SkynetJobTest < Test::Unit::TestCase
       :mappers               => 2,
       :name                  => "SkynetJobTest MASTER",
       :reducers              => 1,
-      :reduce_partitioner    => nil,
+      :reduce_partition      => nil,
       :reduce                => "SkynetJobTest",
       :queue_id              => 0,
       :start_after           => 0,
@@ -48,23 +48,23 @@ class SkynetJobTest < Test::Unit::TestCase
   def test_new_async_job
     job = Skynet::AsyncJob.new(:map_reduce_class => self.class)
     {
-      :map_timeout           =>60,
-      :reduce_partitioner    =>nil,
-      :master_timeout        =>60,
-      :reduce_timeout        =>60,
-      :name                  =>"SkynetJobTest MASTER",
-      :version               =>1,
-      :result_timeout        =>1200,
-      :map_name              =>"SkynetJobTest MAP",
-      :reducers              =>1,
-      :queue_id              =>0,
-      :reduce_name           =>"SkynetJobTest REDUCE",
-      :map                   =>"SkynetJobTest",
-      :async                 =>true,
-      :master_result_timeout =>1200,
-      :mappers               =>2,
-      :reduce                =>"SkynetJobTest",
-      :start_after           =>0
+      :map_timeout           => 60,
+      :reduce_partition      => nil,
+      :master_timeout        => 60,
+      :reduce_timeout        => 60,
+      :name                  => "SkynetJobTest MASTER",
+      :version               => 1,
+      :result_timeout        => 1200,
+      :map_name              => "SkynetJobTest MAP",
+      :reducers              => 1,
+      :queue_id              => 0,
+      :reduce_name           => "SkynetJobTest REDUCE",
+      :map                   => "SkynetJobTest",
+      :async                 => true,
+      :master_result_timeout => 1200,
+      :mappers               => 2,
+      :reduce                => "SkynetJobTest",
+      :start_after           => 0
     }.each do |key, val|    
       assert_equal val, job.send(key), key
     end
@@ -213,7 +213,7 @@ class SkynetJobTest < Test::Unit::TestCase
     assert_equal [[1],[2]], results.sort
   end
 
-  def test_reduce_partition
+  def test_partition
     job = Skynet::AsyncJob.new(
       :map_reduce_class => self.class,    
       :version          => 1, 
@@ -221,7 +221,7 @@ class SkynetJobTest < Test::Unit::TestCase
       :reducers         => 2
     )                       
     
-    partitioned_data = job.reduce_partition([[1],[2],[3]])
+    partitioned_data = job.partition_data([[1],[2],[3]])
     assert_equal [[1, 3], [2]], partitioned_data
   end
 
@@ -272,10 +272,10 @@ class SkynetJobTest < Test::Unit::TestCase
     master_job = Skynet::Job.new(mt.process)
     assert_equal job.map, self.class.to_s
     assert_equal job.reduce, self.class.to_s
-    assert_equal nil, job.reduce_partitioner
+    assert_equal nil, job.reduce_partition
     assert_equal master_job.map, self.class.to_s
     assert_equal master_job.reduce, self.class.to_s
-    assert_equal nil, master_job.reduce_partitioner
+    assert_equal nil, master_job.reduce_partition
     assert_equal 4, master_job.queue_id
     Skynet::Job::FIELDS.each do |field|
       case field
