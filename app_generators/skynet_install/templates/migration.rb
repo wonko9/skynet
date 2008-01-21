@@ -2,7 +2,7 @@ class <%= migration_name %> < ActiveRecord::Migration
   def self.up
     create_table :skynet_worker_queues do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id       :integer      
+      t.column  :queue_id       :integer, :default => 0      
       t.column  :created_on,    :timestamp
       t.column  :updated_on,    :timestamp
       t.column  :tasktype,      :string
@@ -22,7 +22,7 @@ class <%= migration_name %> < ActiveRecord::Migration
     end                                 
     create_table :skynet_message_queues do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id       :integer
+      t.column  :queue_id       :integer, :default => 0
       t.column  :created_on,    :timestamp
       t.column  :updated_on,    :timestamp
       t.column  :tasktype,      :string
@@ -40,7 +40,7 @@ class <%= migration_name %> < ActiveRecord::Migration
     end                                   
     create_table :skynet_queue_temperature do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id       :integer      
+      t.column  :queue_id       :integer, :default => 0      
       t.column  :updated_on,    :timestamp
       t.column  :count,         :integer, :default => 0
       t.column  :temperature,   "decimal(6,4) default 1"
