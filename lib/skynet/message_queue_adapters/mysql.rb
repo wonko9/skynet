@@ -403,7 +403,7 @@ class Skynet
       end       
 
       def delete_expired_messages
-        SkynetMessageQueue.connection.execute("delete from #{message_queue_table} where (expire_time BETWEEN 1 AND '#{Time.now.to_f}') OR iteration = -1")
+        SkynetMessageQueue.connection.execute("delete from #{message_queue_table} where (expire_time BETWEEN 1 AND '#{Time.now.to_f}') and iteration = -1")
       end
 
 # select hostname, iteration, count(id) as number_of_workers, count(iteration) as iteration, sum(processed) as processed, max(started_at) as most_recent_task_time from skynet_worker_queues where tasksubtype = 'worker' group by hostname, iteration;      
