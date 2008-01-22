@@ -140,7 +140,7 @@ class Skynet
     def check_number_of_workers(worker_queue)
       q_pids = worker_queue_pids(worker_queue) || []
       if @shutdown         
-        worker_shutdown(q_pids)
+        worker_shutdown(worker_queue)
         if q_pids.size < 1
           exit
         end        
