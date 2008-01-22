@@ -371,8 +371,8 @@ class Skynet
       elsif results.is_a?(Array) and results.first.is_a?(Array)
         results = results.compact      
       end
-      debug "RUN REDUCE 3.4 AFTER REDUCE #{display_info} results size: #{results.size}"
-      debug "RUN REDUCE 3.4 AFTER REDUCE #{display_info} results:", results
+      debug "RUN REDUCE 3.4 AFTER REDUCE #{display_info} results size: #{results ? results.size : ''}"
+      debug "RUN REDUCE 3.4 AFTER REDUCE #{display_info} results:", results if results
       return results
     end
 
