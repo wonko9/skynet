@@ -213,7 +213,7 @@ class SkynetJobTest < Test::Unit::TestCase
     assert_equal [[1],[2]], results.sort
   end
 
-  def test_partition
+  def test_partition_data
     job = Skynet::AsyncJob.new(
       :map_reduce_class => self.class,    
       :version          => 1, 
@@ -223,6 +223,18 @@ class SkynetJobTest < Test::Unit::TestCase
     
     partitioned_data = job.partition_data([[1],[2],[3]])
     assert_equal [[1, 3], [2]], partitioned_data
+  end
+
+  def test_partition_data_class
+    job = Skynet::AsyncJob.new(
+      :map_reduce_class => "SkynetJobTest::PartitionTest",    
+      :version          => 1, 
+      :map_data         => [[1]], 
+      :reducers         => 2
+    )                       
+    
+    partitioned_data = job.partition_data([[1],[2],[3]])
+    assert_equal [[1], [2], [3]], partitioned_data
   end
 
   def test_reduce_enqueue
@@ -577,6 +589,13 @@ class SkynetJobTest < Test::Unit::TestCase
 
   def mq
     Skynet::MessageQueueAdapter::TupleSpace.new
+  end
+
+  class PartitionTest < SkynetJobTest
+    
+    def self.reduce_partition(post_map_data, reducers)
+      return post_map_data.compact
+    end
   end
 
 end

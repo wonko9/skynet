@@ -315,16 +315,18 @@ class Skynet
     end
     
     def map_results(number_of_tasks)
+      debug "RUN MAP 2.4 BEFORE MAP #{display_info} MAP_LOCAL?:#{map_local?} USE_LOCAL_QUEUE?:#{use_local_queue?}"
       results = gather_results(number_of_tasks, map_timeout, map_name)
       return unless results
-      debug "RUN MAP 2.5 RESULTS AFTER RUN #{display_info} results:", results.inspect
       results.compact! if results.is_a?(Array)
+      debug "RUN MAP 2.5 RESULTS AFTER RUN #{display_info} MAP_LOCAL:#{map_local?} USE_LOCAL_QUEUE?:#{use_local_queue?} results:", results.inspect
       results
     end
 
     def partition_data(post_map_data)
       debug "RUN REDUCE 3.1 BEFORE PARTITION #{display_info} reducers: #{reducers}"
       debug "RUN REDUCE 3.1 : #{reducers} #{name}, job_id:#{job_id}", post_map_data  
+      return unless post_map_data
       partitioned_data = nil
       if not @reduce_partition
         # =====================
@@ -342,9 +344,9 @@ class Skynet
       else
         partitioned_data = @reduce_partition.call(post_map_data, reducers)
       end
-      partitioned_data.compact!
-      debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} reducers: #{partitioned_data.length}"
-      debug "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", partitioned_data
+      partitioned_data.compact! if partitioned_data
+      debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} reducers: #{reducers}"
+      debug "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", partitioned_data if partitioned_data
       partitioned_data
     end
 
@@ -408,7 +410,7 @@ class Skynet
           break if (number_of_tasks - (results.keys + errors.keys).uniq.size) <= 0
         end
       rescue Skynet::RequestExpiredError => e
-        local_mq.reset! if use_local_queue?
+        local_mq_reset!
         error "A WORKER EXPIRED or ERRORED, #{description}, job_id: #{job_id}"
         if not errors.empty?
           raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{number_of_tasks} workers. #{errors.pretty_print_inspect}")
@@ -416,7 +418,7 @@ class Skynet
           raise Skynet::RequestExpiredError.new("WORKER ERROR, A WORKER EXPIRED!  Did not get results or even errors back from all workers!")
         end
       end
-      local_mq.reset! if use_local_queue?
+      local_mq_reset!
 
       # ==========
       # = FIXME Tricky one.  Should we throw an exception if we didn't get all the results back, or should we keep going.
@@ -426,9 +428,17 @@ class Skynet
       #   raise WorkerError.new("WORKER ERROR #{description}, job_id: #{job_id} errors:#{errors.keys.size} out of #{number_of_tasks} workers. #{errors.pretty_print_inspect}")
       # end
       
-      return nil if results.values.compact.empty?            
+      return nil if results.values.compact.empty?
       return results.values
     end
+    
+    def local_mq_reset!
+      if use_local_queue?
+        local_mq.reset!
+        self.use_local_queue=false
+      end
+    end
+      
 
     def master_task
       @master_task ||= begin    
@@ -517,7 +527,7 @@ class Skynet
       @reduce_retry      || Skynet::CONFIG[:DEFAULT_REDUCE_RETRY]
     end
 
-    def keep_map_tasks
+    def keep_map_tasks      
       @keep_map_tasks    || Skynet::CONFIG[:DEFAULT_KEEP_MAP_TASKS]
     end
     
@@ -528,6 +538,7 @@ class Skynet
 	  def map_local?
       return true if solo? or single?
       return true if keep_map_tasks == true
+      # error "RUN MAP 2.4 BEFORE MAP #{display_info} KEEPMT:#{keep_map_tasks} DKMT:#{Skynet::CONFIG[:DEFAULT_KEEP_MAP_TASKS]} MDCLASS: #{map_tasks.data.class} #{(map_tasks.data.is_a?(Array) ? map_tasks.data.size : '')}"
       return true if keep_map_tasks and map_tasks.data.is_a?(Array) and map_tasks.data.size <= keep_map_tasks
       return false
     end

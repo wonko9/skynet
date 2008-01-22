@@ -170,7 +170,7 @@ class Skynet
       }
 
       fields.each do |field|
-        template[field] ||= message.send(field)
+        template[field] = message.send(field) unless template.has_key?(field)
       end
       new(template)
     end
@@ -245,7 +245,7 @@ class Skynet
        template[:expire_time] = Time.now.to_i + message.expiry
 
        fields.each do |field|
-         template[field] ||= message.send(field)
+         template[field] = message.send(field) unless template.has_key?(field)
        end
        # debug "BUILDING NEXT FALLBACK TASK MESSAGE OFF"#, template
        Skynet::Message.new(template)

@@ -32,8 +32,8 @@ class Skynet
     :DEFAULT_MASTER_RETRY                 => 0,
     :DEFAULT_MAP_RETRY                    => 3,
     :DEFAULT_REDUCE_RETRY                 => 3,
-    :DEFAILT_KEEP_MAP_TASKS               => 1,
-    :DEFAILT_KEEP_REDUCE_TASKS            => 1,
+    :DEFAULT_KEEP_MAP_TASKS               => 1,
+    :DEFAULT_KEEP_REDUCE_TASKS            => 1,
     :MESSAGE_QUEUES                       => ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'nineth']
   } unless defined?(CONFIG)
                            

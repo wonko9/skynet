@@ -247,17 +247,20 @@ class Skynet
       def update_message_with_result(message,timeout=nil)
         timeout ||= message.expiry
         timeout_sql = (timeout ? ", timeout = #{timeout}, expire_time = #{Time.now.to_f + timeout}" : '')
-        rows = 0
-        rows = update(%{
+        rows = 0      
+        raw_payload_sql = " raw_payload = "
+        raw_payload_sql << (message.raw_payload ? "'#{::Mysql.escape_string(message.raw_payload)}'" : 'NULL')
+        update_sql = %{
           update #{message_queue_table} 
           set tasktype = "#{message.tasktype}", 
-          raw_payload = "#{::Mysql.escape_string(message.raw_payload)}",
+          #{raw_payload_sql},
           payload_type = "#{message.payload_type}",
           updated_on = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}",
           tran_id = NULL
           #{timeout_sql}
           where task_id = #{message.task_id}
-          })                  
+          }                     
+        rows = update(update_sql)                  
          
         raise Skynet::RequestExpiredError.new() if rows == 0         
       end
@@ -281,6 +284,7 @@ class Skynet
           # sleep_time ||= timeout
 
           message_row = SkynetMessageQueue.find(:first,:conditions => conditions)
+          
           break if message_row
 
           if Time.now.to_f > start.to_f + timeout
