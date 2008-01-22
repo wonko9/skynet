@@ -137,7 +137,7 @@ class Skynet
       q_pids
     end                          
 
-    def check_number_of_workers(worker_queue)
+    def check_number_of_workers(worker_queue=self.worker_queue)
       q_pids = worker_queue_pids(worker_queue) || []
       if @shutdown         
         worker_shutdown(worker_queue)
@@ -186,10 +186,10 @@ class Skynet
           signal_workers("INT")
           @masters_dead = true
           sleep 1
-          return check_number_of_workers(worker_queue)
+          return check_number_of_workers()
         else
           sleep 4
-          return check_number_of_workers(worker_queue)
+          return check_number_of_workers()
         end
       else
         warn "Shutting down.  #{q_pids.size} workers still running." if q_pids.size > 0
