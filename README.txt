@@ -12,7 +12,13 @@ Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed sys
 
 Feel free to read on if you want more of an overview of Skynet with some specific examples. More specific documentation can be found here:
 
-Skynet::Job, Skynet::Config, bin/skynet[link:files/bin/skynet.html], bin/skynet_install[link:files/bin/skynet_install.html]
+Skynet::Job - The main interface to Skynet
+
+Skynet::Config - Configuration Options
+
+bin/skynet[link:files/bin/skynet.html] - Starting Skynet
+
+bin/skynet_install[link:files/bin/skynet_install.html] - Installing Skynet into a local project
 
 == Map/Reduce
 

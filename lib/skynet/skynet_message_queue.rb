@@ -12,15 +12,14 @@ class Skynet
   class RequestExpiredError < Skynet::Error
   end
 
+  # This class is the interface to the Skynet Message Queue.   
   class MessageQueue
 
     include SkynetDebugger
 
     require 'forwardable'    
     extend Forwardable    
-    
-    # require 'skynet_message'                            
-    
+        
     def self.adapter
       Object.module_eval(Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER], __FILE__, __LINE__).adapter
     end
@@ -34,8 +33,21 @@ class Skynet
       mq
     end
 
-    def message_fields
-      Skynet::Message.fields
+    # Retrieves the current worker version
+    def get_worker_version
+      mq.get_worker_version
+    end
+    
+    # Sets the current worker version (causing workers to restart)
+    def set_worker_version(version)
+      mq.set_worker_version(version)
+    end
+    
+    # Increments the current worker version (causing workers to restart)
+    def increment_worker_version
+      newver = self.get_worker_version + 1
+      self.set_worker_version(newver)
+      newver
     end
 
     def mq
@@ -43,13 +55,15 @@ class Skynet
     end
                
     def_delegators :mq, :take_next_task, :write_message, :take_result, :write_error, :write_result,
-                   :list_tasks, :list_results,
+                   :list_tasks, :list_results, :stats,
                    :clear_outstanding_tasks, :clear_outstanding_results,
-                   :take_worker_status, :write_worker_status, :read_all_worker_statuses, :clear_worker_status,
-                   :get_worker_version, :set_worker_version, :stats
-                           
-
+                   :take_worker_status, :write_worker_status, :read_all_worker_statuses, :clear_worker_status
                    
+
+          
+   def message_fields
+     Skynet::Message.fields
+   end
 
     def print_stats
       "TAKEN TASKS: #{list_tasks(1).size}, UNTAKEN_TASKS: #{list_tasks(0).size} RESULTS: #{list_results.size}"
@@ -57,12 +71,6 @@ class Skynet
 
     def list
       list_tasks + list_results
-    end
-
-    def increment_worker_version
-      newver = self.get_worker_version + 1
-      self.set_worker_version(newver)
-      newver
     end
 
     def ansi_clear

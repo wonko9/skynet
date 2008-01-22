@@ -1,4 +1,49 @@
 class Skynet		
+  # Skynet::Job is the main interface to Skynet.   You create a job object giving 
+  # it the starting data (map_data), along with what class has the map/reduce
+  # functions in it.   Even though Skynet is distributed, when you call #run on
+  # a plain Skynet::Job, it will still block in your current process until it has completed
+  # your task.   If you want to go on to do other things you'll want to pass :async => true
+  # when creating a new job.  Then later call job.results to retrieve your results.
+  #     
+  # There are also many global configuration options which can be controlled through Skynet::CONFIG
+  #
+  # Example Usage:
+  # 
+  #   class MapReduceTest
+  #   
+  #     def self.run
+  #       job = Skynet::Job.new(
+  #         :mappers          => 2, 
+  #         :reducers         => 1,
+  #         :map_reduce_class => self,
+  #         :map_data         => [OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 3})]
+  #       )    
+  #       results = job.run
+  #     end
+  #   
+  #     def self.map(profiles)
+  #       result = Array.new
+  #       profiles.each do |profile|
+  #         result << [profile.created_by, 1] if profile.created_by
+  #       end
+  #       result
+  #     end
+  #   
+  #     def self.reduce(pairs)
+  #       totals = Hash.new
+  #       pairs.each do |pair|
+  #         created_by, count = pair[0], pair[1]
+  #         totals[created_by] ||= 0
+  #         totals[created_by] += count
+  #       end
+  #       totals
+  #     end
+  #   end
+  # 
+  #   MapReduceTest.run
+  #
+  # There are many other options to control various defaults and timeouts.
   class Job
     include SkynetDebugger
     include Skynet::GuidGenerator		
@@ -49,57 +94,13 @@ class Skynet
       "JOB"
     end
 
-    # Skynet::Job is the main interface to Skynet.   You create a job object giving 
-    # it the starting data (map_data), along with what class has the map/reduce
-    # functions in it.   Even though Skynet is distributed, when you call run on
-    # a plain Skynet::Job, it will still block in your current process until it has completed
-    # your task.   If you want to go on to do other things you'll want to pass :async => true
-    # when creating a new job.  Then later call job.results to retrieve your results.
-    #     
-    # There are also many global configuration options which can be controlled through Skynet::CONFIG
-    #
-    # Example Usage:
-    # 
-    #   class MapReduceTest
-    #   
-    #     def self.run
-    #       job = Skynet::Job.new(
-    #         :mappers          => 2, 
-    #         :reducers         => 1,
-    #         :map_reduce_class => self,
-    #         :map_data         => [OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 3})]
-    #       )    
-    #       results = job.run
-    #     end
-    #   
-    #     def self.map(profiles)
-    #       result = Array.new
-    #       profiles.each do |profile|
-    #         result << [profile.created_by, 1] if profile.created_by
-    #       end
-    #       result
-    #     end
-    #   
-    #     def self.reduce(pairs)
-    #       totals = Hash.new
-    #       pairs.each do |pair|
-    #         created_by, count = pair[0], pair[1]
-    #         totals[created_by] ||= 0
-    #         totals[created_by] += count
-    #       end
-    #       totals
-    #     end
-    #   end
-    # 
-    #   MapReduceTest.run
-    #
-    # There are many other options to control various defaults and timeouts.
+    # Most of the time you will merely call #new(options) and then #run on the returned object.
     #
     # Options are:
     # <tt>:local_master</tt> BOOL (DEFAULT true)
     #   By default, your Skynet::Job will act as the master for your map/reduce job, doling out
     #   tasks, waiting for other workers to complete and return their results and dealing with
-    #   merging and partitioning the data.   If you run in async mode, another worker will handle 
+    #   merging and partitioning the data.   If you call #run in async mode, another worker will handle 
     #   being the master for your job without blocking.  If you run :async => false, :local_master => false
     #   Skynet will let another worker be the master for your job, but will block waiting for the 
     #   final results.  The benefit of this is that if your process dies, the Job will continue to
@@ -110,27 +111,27 @@ class Skynet
     #   You can not pass :local_master => true, :async => true since the only way to allow your
     #   job to run asyncronously is to have a remote_master.
     #
-    # <tt>:map_data</tt> (Array or Enumerable)
+    # <tt>:map_data</tt>(Array or Enumerable)
     #    map_data should be an Array or Enumerable that data Skynet::Job will split up 
     #    and distribute among your workers.   You can stream data to Skynet::Job by passing
     #    an Enumerable that implements next or each.    
     #
-    # <tt>:map_reduce_class</tt> Class or Class Name
+    # <tt>:map_reduce_class</tt>(Class or Class Name)
     #   Skynet::Job will look for class methods named self.map, self.reduce, self.map_partitioner, 
     #   self.reduce_partition in your map_reduce_class.  The only method requires is self.map.
     #   Each of these methods must accept an array.  Examples above.
     #
-    # <tt>:map</tt> Class Name
+    # <tt>:map</tt>(Class Name)
     #   You can pass a classname, or a proc.  If you pass a classname, Job will look for a method
     #   called self.map in that class.
     #   WARNING: Passing a proc does not work right now.
     #
-    # <tt>:reduce</tt> Class Name
+    # <tt>:reduce</tt>(Class Name)
     #   You can pass a classname, or a proc.  If you pass a classname, Job will look for a method
     #   called self.reduce in that class.
     #   WARNING: Passing a proc does not work right now.
     #
-    # <tt>:reduce_partition</tt> Class Name
+    # <tt>:reduce_partition</tt>(Class Name)
     #   You can pass a classname, or a proc.  If you pass a classname, Job will look for a method
     #   called self.reduce_partition in that class.
     #   WARNING: Passing a proc does not work right now.
@@ -187,8 +188,14 @@ class Skynet
     #   Skynet.solo {} to run that code in solo mode.
     #
     # <tt>:version</tt> Fixnum
-    #   Skynet workers run at a specific version and only look for jobs with their correct version.
     #   If you do not provide a version the current worker version will be used.
+    #   Skynet workers start at a specific version and only look for jobs that match that version.
+    #   A worker will continue looking for jobs at that version until there are no more jobs left on
+    #   the queue for that version.  At that time, the worker will check to see if there is a new version.
+    #   If there is, it will restart itself at the new version (assuming you had already pushed code to
+    #   said workers.)
+    #   To retrieve the current version, set the current version or increment the current version, see
+    #   Skynet::Job.set_worker_version, Skynet::Job.get_worker_version, Skynet::Job.increment_worker_version
     #
     # <tt>:name</tt>, <tt>:map_name</tt>, <tt>:reduce_name</tt>
     #   These name methods are merely for debugging while watching the Skynet logs or the Skynet queue.
@@ -654,7 +661,7 @@ class Skynet
       error "run_master has been deprecated, please use run"
       run(:local_master => false)
     end
-
+    
     def mq
       if use_local_queue?
         local_mq
@@ -666,6 +673,23 @@ class Skynet
     def local_mq
       @local_mq ||= LocalMessageQueue.new
     end
+
+    def self.mq
+      Skynet::MessageQueue.new
+    end
+    
+    def self.set_worker_version(version)
+      mq.set_worker_version(version)
+    end
+    
+    def self.get_worker_version
+      mq.get_worker_version
+    end
+    
+    def self.increment_worker_version
+      mq.increment_worker_version
+    end
+        
   end ### END class Skynet::Job 
 end  
 
