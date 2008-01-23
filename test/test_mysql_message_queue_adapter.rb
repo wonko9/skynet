@@ -237,6 +237,22 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
     mq.set_worker_version(12)
     assert_equal 1, SkynetMessageQueue.count(:id, :conditions => "tasktype = 'version'")
   end
+  
+  def test_version_active?
+    mq.set_worker_version(98)
+    @worker_message.version = mq.get_worker_version
+    mq.write_message(@worker_message,10)
+    message = SkynetMessageQueue.find(:first, :conditions => "tasktype = 'task'")
+    assert_equal message.version, 98
+    mq.set_worker_version(99)
+    assert_equal 99, mq.get_worker_version
+    assert_equal true, mq.version_active?(98)
+    assert_equal true, mq.version_active?(99)
+    message.destroy
+    assert_equal false, mq.version_active?(98)    
+    assert_equal true, mq.version_active?(99)    
+  end
+    
 
   private
 

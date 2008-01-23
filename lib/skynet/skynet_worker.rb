@@ -73,7 +73,7 @@ class Skynet
           begin
             newver = mq.get_worker_version
             # debug "CURVER #{@curver} NEWVER: #{newver}"
-            if newver != @curver
+            if newver != @curver and not mq.version_active?(@curver, queue_id)              
               info "RESTARTING WORKER ON PID #{$$}"
               return true
             end

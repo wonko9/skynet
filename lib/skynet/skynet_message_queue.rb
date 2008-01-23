@@ -33,6 +33,11 @@ class Skynet
       mq
     end
 
+    # Is this version still active in the queue?
+    def version_active?(version,queue_id=0)
+      mq.version_active?(version,queue_id)
+    end
+
     # Retrieves the current worker version
     def get_worker_version
       mq.get_worker_version

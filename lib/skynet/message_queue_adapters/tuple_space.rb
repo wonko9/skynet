@@ -110,6 +110,17 @@ class Skynet
         read_all(Skynet::Message.outstanding_results_template)
       end
 
+      def version_active?(curver=nil, queue_id= 0)
+        return true unless curver
+        begin
+          message_row = read(Skynet::Message.next_task_template(curver, nil, queue_id),0.00001)
+          true
+        rescue Skynet::RequestExpiredError
+          return true if curver.to_i == get_worker_version.to_i
+          false
+        end
+      end
+
       def get_worker_version
         begin
           message = Skynet::WorkerVersionMessage.new(read(Skynet::WorkerVersionMessage.template,0.00001))
