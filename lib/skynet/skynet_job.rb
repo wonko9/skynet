@@ -43,6 +43,14 @@ class Skynet
   # 
   #   MapReduceTest.run
   #
+  # You might notice that self.map and self.reduce both accept Arrays.   If you do not want to deal with
+  # getting arrays of map_data or reduce_data, you can include MapreduceHelper into your class and then
+  # implement self.map_each and self.reduce_each methods.  The included self.map and self.reduce methods
+  # will handle iterating over the map_data and reduce_data, passing each element to your map_each and
+  # reduce_each methods respectively.  They will also handle error handling within that loop to make sure
+  # even if a single map or reduce fails, processing will continue.  If you do not want processing to
+  # continue if a map fails, do not use the MapreduceHelper mixin.
+  #
   # There are many other options to control various defaults and timeouts.
   class Job
     include SkynetDebugger
@@ -259,7 +267,7 @@ class Skynet
       end
       raise Error.new("You can not run a local master in async mode.") if self.async and self.local_master
       
-      info "RUN 1 BEGIN #{name}, job_id:#{job_id} async:#{async}, local_master: #{local_master}, master?: #{master?}"
+      info "RUN 1 BEGIN #{name}, job_id:#{job_id} vers: #{version} async:#{async}, local_master: #{local_master}, master?: #{master?}"
       
       # run the master task if we're running async or local_master
       if master?

@@ -14,6 +14,7 @@ bin/skynet_tuplespace_server
 config/hoe.rb
 config/requirements.rb
 lib/skynet.rb
+lib/skynet/mapreduce_helper.rb
 lib/skynet/mapreduce_test.rb
 lib/skynet/message_queue_adapters/message_queue_adapter.rb
 lib/skynet/message_queue_adapters/mysql.rb
@@ -69,6 +70,7 @@ website/doc/classes/ActiveRecord/Base.src/M000262.html
 website/doc/classes/ActiveRecord/Base.src/M000294.html
 website/doc/classes/ActiveRecord/Base.src/M000297.html
 website/doc/classes/ActiveRecord/Base.src/M000301.html
+website/doc/classes/ActiveRecord/Base.src/M000302.html
 website/doc/classes/ActiveRecord/Mapreduce.html
 website/doc/classes/ActiveRecord/Mapreduce.src/M000236.html
 website/doc/classes/ActiveRecord/Mapreduce.src/M000237.html
@@ -116,6 +118,7 @@ website/doc/classes/ActiveRecord/Mapreduce.src/M000297.html
 website/doc/classes/ActiveRecord/Mapreduce.src/M000298.html
 website/doc/classes/ActiveRecord/Mapreduce.src/M000299.html
 website/doc/classes/ActiveRecord/Mapreduce.src/M000300.html
+website/doc/classes/ActiveRecord/Mapreduce.src/M000301.html
 website/doc/classes/Enumerable.html
 website/doc/classes/Enumerable.src/M000248.html
 website/doc/classes/Enumerable.src/M000253.html
@@ -124,6 +127,7 @@ website/doc/classes/Enumerable.src/M000263.html
 website/doc/classes/Enumerable.src/M000295.html
 website/doc/classes/Enumerable.src/M000298.html
 website/doc/classes/Enumerable.src/M000302.html
+website/doc/classes/Enumerable.src/M000303.html
 website/doc/classes/ExceptionReport.html
 website/doc/classes/ExceptionReport.src/M000011.html
 website/doc/classes/ExceptionReport.src/M000012.html
@@ -136,6 +140,7 @@ website/doc/classes/Rinda/Tuple.src/M000264.html
 website/doc/classes/Rinda/Tuple.src/M000296.html
 website/doc/classes/Rinda/Tuple.src/M000299.html
 website/doc/classes/Rinda/Tuple.src/M000303.html
+website/doc/classes/Rinda/Tuple.src/M000304.html
 website/doc/classes/Rinda/TupleSpaceProxy.html
 website/doc/classes/Rinda/TupleSpaceProxy.src/M000250.html
 website/doc/classes/Rinda/TupleSpaceProxy.src/M000251.html
@@ -151,6 +156,7 @@ website/doc/classes/Rinda/TupleSpaceProxy.src/M000300.html
 website/doc/classes/Rinda/TupleSpaceProxy.src/M000301.html
 website/doc/classes/Rinda/TupleSpaceProxy.src/M000304.html
 website/doc/classes/Rinda/TupleSpaceProxy.src/M000305.html
+website/doc/classes/Rinda/TupleSpaceProxy.src/M000306.html
 website/doc/classes/Skynet/AbstractClassError.html
 website/doc/classes/Skynet/ActiveRecordAsync.html
 website/doc/classes/Skynet/ActiveRecordAsync.src/M000096.html
@@ -244,6 +250,7 @@ website/doc/classes/Skynet/Job.src/M000247.html
 website/doc/classes/Skynet/Job.src/M000248.html
 website/doc/classes/Skynet/Job.src/M000249.html
 website/doc/classes/Skynet/Job.src/M000250.html
+website/doc/classes/Skynet/Job.src/M000251.html
 website/doc/classes/Skynet/Job/BadMapOrReduceError.html
 website/doc/classes/Skynet/Job/Error.html
 website/doc/classes/Skynet/Job/LocalMessageQueue.html
@@ -262,6 +269,7 @@ website/doc/classes/Skynet/Job/LocalMessageQueue.src/M000255.html
 website/doc/classes/Skynet/Job/LocalMessageQueue.src/M000256.html
 website/doc/classes/Skynet/Job/LocalMessageQueue.src/M000257.html
 website/doc/classes/Skynet/Job/LocalMessageQueue.src/M000258.html
+website/doc/classes/Skynet/Job/LocalMessageQueue.src/M000259.html
 website/doc/classes/Skynet/Job/WorkerError.html
 website/doc/classes/Skynet/Loggable.html
 website/doc/classes/Skynet/Loggable.src/M000014.html
@@ -289,6 +297,7 @@ website/doc/classes/Skynet/Logger.src/M000262.html
 website/doc/classes/Skynet/Logger.src/M000263.html
 website/doc/classes/Skynet/Logger.src/M000266.html
 website/doc/classes/Skynet/Logger.src/M000267.html
+website/doc/classes/Skynet/Logger.src/M000268.html
 website/doc/classes/Skynet/Manager.html
 website/doc/classes/Skynet/Manager.src/M000157.html
 website/doc/classes/Skynet/Manager.src/M000158.html
@@ -346,6 +355,7 @@ website/doc/classes/Skynet/MapreduceTest.src/M000264.html
 website/doc/classes/Skynet/MapreduceTest.src/M000265.html
 website/doc/classes/Skynet/MapreduceTest.src/M000268.html
 website/doc/classes/Skynet/MapreduceTest.src/M000269.html
+website/doc/classes/Skynet/MapreduceTest.src/M000270.html
 website/doc/classes/Skynet/Message.html
 website/doc/classes/Skynet/Message.src/M000019.html
 website/doc/classes/Skynet/Message.src/M000020.html
@@ -518,6 +528,7 @@ website/doc/classes/Skynet/TaskIterator.src/M000262.html
 website/doc/classes/Skynet/TaskIterator.src/M000263.html
 website/doc/classes/Skynet/TaskIterator.src/M000264.html
 website/doc/classes/Skynet/TaskIterator.src/M000265.html
+website/doc/classes/Skynet/TaskIterator.src/M000266.html
 website/doc/classes/Skynet/TaskIterator/Error.html
 website/doc/classes/Skynet/UniqueDBNumGenerator.html
 website/doc/classes/Skynet/UniqueDBNumGenerator.src/M000189.html
@@ -621,6 +632,7 @@ website/doc/classes/SkynetDebugger.src/M000275.html
 website/doc/classes/SkynetDebugger.src/M000276.html
 website/doc/classes/SkynetDebugger.src/M000277.html
 website/doc/classes/SkynetDebugger.src/M000278.html
+website/doc/classes/SkynetDebugger.src/M000279.html
 website/doc/classes/SkynetDebugger/ClassMethods.html
 website/doc/classes/SkynetDebugger/ClassMethods.src/M000227.html
 website/doc/classes/SkynetDebugger/ClassMethods.src/M000228.html
@@ -660,6 +672,7 @@ website/doc/classes/SkynetDebugger/ClassMethods.src/M000284.html
 website/doc/classes/SkynetDebugger/ClassMethods.src/M000285.html
 website/doc/classes/SkynetDebugger/ClassMethods.src/M000286.html
 website/doc/classes/SkynetDebugger/ClassMethods.src/M000287.html
+website/doc/classes/SkynetDebugger/ClassMethods.src/M000288.html
 website/doc/classes/SkynetMessageQueue.html
 website/doc/classes/SkynetWorkerQueue.html
 website/doc/created.rid

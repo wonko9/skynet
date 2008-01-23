@@ -35,6 +35,9 @@ Skynet::Job
   - Skynet::Jobs can not be told what queue to use for that job by passing :queue or :queue_id DEFAULT 0
   - Skynet::Job won't call the reduce_partitioner if there are no valid results from the map_step.
 
+MapreduceHelper mixin
+  - You can include MapreduceHelper into your class and then implement self.map_each and self.reduce_each methods.  The included self.map and self.reduce methods will handle iterating over the map_data and reduce_data, passing each element to your map_each and reduce_each methods respectively.  They will also handle error handling within that loop to make sure even if a single map or reduce fails, processing will continue.  If you do not want processing to continue if a map fails, do not use the MapreduceHelper mixin.
+
 Multiple Message Queues!
   - Add the ability to have multiple message queues in the same table message_queue_table. 
   - You can start skynet with a --queue_id or --queue option to determine which queue workers should look in.
@@ -62,7 +65,8 @@ Mysql Message Queue Adapter
   - Fixed Mysql Message Adaptor to take_next_task safer and more efficiently.   There seems to be far less risk of a race condition where two workers would take the same task.
   - Eliminated 1 db update per every task taken making it MUCH more efficient.
   - Skynet::MessageQueueAdaptor::Mysql now tries to reconnect if it gets disconnected.   This was to solve the "Mysql Server has Gone Away" errors.
-
+  - Implemented version_active? in mysql message queue adapter.   It's a way for workers to check to see if a version is still in the queue.  
+  
 Skynet::Task
   - Skynet::Task#master_task takes care of creating the master job and task now. I have mixed feelings about this.
   - ENFORCED TIMEOUTS - Even though a master might give up on a worker if it didn't respond in time, there was nothing to step any given worker from running forever.  We now enforce the timeouts (master_timeout, map_timeout, reduce_timeout) given in Skynet::Job using the Timeout module.  This causes a Timeout::Error to be thrown.   If you are using the mysql adapter, this can cause strange results sometimes.   If the Timeout error is thrown during a DB query, ActiveRecord will throw an ActiveRecord::StatementInvalid exception which includes the Timeout::Error exception in it.  Not sure how to prevent that from happening.
@@ -70,6 +74,7 @@ Skynet::Task
 Skynet::Worker
   - Workers now have a Skynet::CONFIG[:WORKER_MAX_PROCESSED] setting to control when to respawn based on how many that worker has processed.
   - You can start skynet with a --queue_id or --queue option to determine which queue workers should look in.
+  - Workers do not restart until there are no more items in the queue of that version.
 
 Skynet::Message
   - Skynet::Message now stores fields as an array.  It is far more efficient now as well.

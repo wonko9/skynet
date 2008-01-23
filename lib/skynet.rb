@@ -34,3 +34,4 @@ end
 require 'mapreduce_test'
 require 'skynet_launcher'
 require 'skynet_console'
+require 'mapreduce_helper'
