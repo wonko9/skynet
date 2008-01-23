@@ -35,7 +35,8 @@ class Skynet
         :mysql
       end
 
-      def initialize
+      def initialize     
+        pp caller
         if Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
           SkynetMessageQueue.table_name = Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
         end
@@ -44,8 +45,18 @@ class Skynet
             SkynetMessageQueue.establish_connection Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]
             SkynetWorkerQueue.establish_connection Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]
           rescue ActiveRecord::AdapterNotSpecified => e
-            warn "#{Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
+            error "#{Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
           end
+        elsif not ActiveRecord::Base.connected?
+            db_options = {
+              :adapter  => Skynet::CONFIG[:MYSQL_ADAPTER],
+              :host     => Skynet::CONFIG[:MYSQL_HOST],
+              :username => Skynet::CONFIG[:MYSQL_USERNAME],
+              :password => Skynet::CONFIG[:MYSQL_PASSWORD],
+              :database => Skynet::CONFIG[:MYSQL_DATABASE]
+            }
+            pp db_options
+            ActiveRecord::Base.establish_connection(db_options)
         end
         @@db_set = true
         

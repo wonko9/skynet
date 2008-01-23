@@ -418,7 +418,12 @@ class Skynet
       config = Skynet::Config.new
 
       OptionParser.new do |opt|
-        opt.banner = "Usage: skynet [options]"
+        opt.banner = %{Usage: 
+        > skynet [options]
+
+        You can also run:
+        > skynet console [options]
+        }
         opt.on('', '--restart-all-workers', 'Restart All Workers') do |v| 
           puts "Restarting ALL workers on ALL machines."
           begin

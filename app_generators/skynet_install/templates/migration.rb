@@ -2,7 +2,7 @@ class <%= migration_name %> < ActiveRecord::Migration
   def self.up
     create_table :skynet_worker_queues do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id       :integer, :default => 0      
+      t.column  :queue_id,      :integer, :default => 0      
       t.column  :created_on,    :timestamp
       t.column  :updated_on,    :timestamp
       t.column  :tasktype,      :string
@@ -22,7 +22,8 @@ class <%= migration_name %> < ActiveRecord::Migration
     end                                 
     create_table :skynet_message_queues do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id       :integer, :default => 0
+      t.column  :queue_id,      :integer, :default => 0
+      t.column  :tran_id,       "bigint unsigned"
       t.column  :created_on,    :timestamp
       t.column  :updated_on,    :timestamp
       t.column  :tasktype,      :string
@@ -36,11 +37,11 @@ class <%= migration_name %> < ActiveRecord::Migration
       t.column  :iteration,     :integer
       t.column  :version,       :integer
       t.column  :timeout,       "decimal(16,4)"
-      t.column  :retry          :integer, :default => 0
+      t.column  :retry,         :integer, :default => 0
     end                                   
     create_table :skynet_queue_temperature do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id       :integer, :default => 0      
+      t.column  :queue_id,      :integer, :default => 0      
       t.column  :updated_on,    :timestamp
       t.column  :count,         :integer, :default => 0
       t.column  :temperature,   "decimal(6,4) default 1"
@@ -48,6 +49,7 @@ class <%= migration_name %> < ActiveRecord::Migration
     end
     add_index :skynet_message_queues, :job_id
     add_index :skynet_message_queues, :task_id
+    add_index :skynet_message_queues, :tran_id, :unique => true
     add_index :skynet_message_queues, [:queue_id,:tasktype,:payload_type,:expire_time], :name => "index_skynet_mqueue_for_take"
     add_index :skynet_worker_queues, [:hostname, :process_id]
     add_index :skynet_worker_queues, :worker_id, :unique=> true

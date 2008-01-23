@@ -55,11 +55,16 @@ Since Skynet is a distributed system, it requires you have a skynet message queu
 
   $ skynet
 
-This starts a skynet tuple space message queue and 4 workers.   You can now run the skynet_console[link:files/bin/skynet_console.html] to play with skynet a little.
+This starts a skynet tuple space message queue and 4 workers.   You can now run the skynet console to play with skynet a little.  See Skynet::ConsoleHelper for commands.
 
-  $ skynet_console
+  $ skynet console
+  
+For help try:
+  $ skynet --help
+or
+  $ skynet console --help
 
-Here are some commands you can run.  
+Here are some commands you can run in the skynet console.
   > stats
   > manager.worker_pids
   > [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)
@@ -75,7 +80,7 @@ To be really useful, you'll want to run skynet in your own application.   To do 
 If you pass --rails it will assume it is installing in a rails app.   Once it is installed in your application, you can run skynet with
 
   $ ./script/skynet
-  $ ./script/skynet_console
+  $ ./script/skynet console
 
 == USAGE:
 

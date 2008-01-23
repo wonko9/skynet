@@ -28,17 +28,13 @@ class TestSkynetInstallGenerator < Test::Unit::TestCase
   def test_generator_without_options
     run_generator('skynet_install', [APP_ROOT], sources)
     assert_directory_exists "script"
-    assert_directory_exists "db/migrate"
     assert_generated_file   "script/skynet"
-    assert_generated_file   "script/skynet_console"
   end
 
   def test_generator_in_rails
     run_generator('skynet_install', [APP_ROOT], sources, {"--rails"=>''})
     assert_directory_exists "script"
-    assert_directory_exists "db/migrate"
     assert_generated_file   "script/skynet"
-    assert_generated_file   "script/skynet_console"
   end
   
   private

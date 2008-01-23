@@ -297,7 +297,7 @@ class Skynet
     end
     
     def master_results                     
-      @results ||= gather_results(1,master_timeout,name)
+      @results = gather_results(1,master_timeout,name) unless defined?(@results)
     end
     
     def map_enqueue      

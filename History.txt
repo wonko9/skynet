@@ -41,6 +41,10 @@ Multiple Message Queues!
   - Skynet::Jobs can not be told what queue to use for that job by passing :queue or :queue_id.  DEFAULT 0
   - Queues can be configred via Skynet::CONFIG[:MESSAGE_QUEUES] = [] which comes with an array of queues id 1 through 10 named "one" through "ten"
 
+Skynet Console
+  - You now start the skynet console by running 'skynet console' at the command line.   There is no longer a skynet_console app.
+  - The console now loads the configs that are in your local skynet script.
+  
 Skynet::Config
   - Added Skynet.silent {} Runs your code with no debugging output.
   - Made sure all config options for TupleSpace? adapter begin with TS and all Mysql adapter CONFIG settings start with MYSQL.        
@@ -50,6 +54,8 @@ Skynet::Partitioners
   - Created a Skynet::Partitioners class where various partitioners can be found.  To specify one of them merely provide that specific Skynet::Partitioners subclass as your reduce_partitioner in your Skynet::Job
 
 Mysql Message Queue Adapter
+  - skynet_install now has a --mysql options.
+  - You can now configure your database options outside of rails with Skynet::CONFIG[:MYSQL_*] options.
   - Mysql adapter now updates the updated_on time of rows in skynet_message_queues
   - Fixed Mysql Message Adaptor to take_next_task safer and more efficiently.   There seems to be far less risk of a race condition where two workers would take the same task.
   - Eliminated 1 db update per every task taken making it MUCH more efficient.
