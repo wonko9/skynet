@@ -36,7 +36,6 @@ class Skynet
       end
 
       def initialize     
-        pp caller
         if Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
           SkynetMessageQueue.table_name = Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
         end
@@ -55,7 +54,6 @@ class Skynet
               :password => Skynet::CONFIG[:MYSQL_PASSWORD],
               :database => Skynet::CONFIG[:MYSQL_DATABASE]
             }
-            pp db_options
             ActiveRecord::Base.establish_connection(db_options)
         end
         @@db_set = true

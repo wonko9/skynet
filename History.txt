@@ -53,8 +53,10 @@ Skynet::Config
 Skynet::Partitioners
   - Created a Skynet::Partitioners class where various partitioners can be found.  To specify one of them merely provide that specific Skynet::Partitioners subclass as your reduce_partitioner in your Skynet::Job
 
+Skynet Install
+ - skynet_install now has a --mysql option.  This installs the migration as well as a skynet_schema.sql file.
+
 Mysql Message Queue Adapter
-  - skynet_install now has a --mysql options.
   - You can now configure your database options outside of rails with Skynet::CONFIG[:MYSQL_*] options.
   - Mysql adapter now updates the updated_on time of rows in skynet_message_queues
   - Fixed Mysql Message Adaptor to take_next_task safer and more efficiently.   There seems to be far less risk of a race condition where two workers would take the same task.
