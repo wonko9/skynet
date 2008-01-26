@@ -589,6 +589,31 @@ class SkynetJobTest < Test::Unit::TestCase
     assert_equal [2,3], map_results.flatten.sort
     assert_equal [3,4], results.flatten.sort
   end
+
+  def test_mapreduce_helper_mixin_again
+    [JobMRTest2, JobMRTest3].each do |klass|
+      job = Skynet::Job.new(
+        :mappers          => 2,
+        :reducers         => 1,
+        :map_reduce_class => klass,
+        :map_data         => [
+          OpenStruct.new({:created_by => 2}),
+          OpenStruct.new({:created_by => 2}),
+          OpenStruct.new({:created_by => 3})]
+      )
+         
+      map_results = nil
+      results = nil
+      Skynet.solo do       
+        map_results      = job.map_results(job.map_enqueue)              
+        partitioned_data = job.partition_data(map_results)
+        results          = job.reduce_results(job.reduce_enqueue(partitioned_data))
+      end                 
+      assert_equal [1, 1, 1, 2, 2, 3], map_results.flatten.sort
+      expected_results = {2=>2, 3=>1}
+      assert_equal expected_results, results
+    end
+  end
   
   
   private
@@ -634,5 +659,59 @@ class JobMapreduceHelperTest
   
   def self.reduce_each(data)
     return data + 1
+  end
+end
+
+class JobMRTest2
+  include MapreduceHelper
+
+  # def self.map(profiles)
+  #   result = Array.new
+  #   profiles.each do |profile|
+  #     result << [profile.created_by, 1] if profile.created_by
+  #   end
+  #   result
+  # end
+
+  def self.map_each(item)
+    return [item.created_by, 1] if item.created_by
+  end
+
+  def self.reduce(pairs)
+    totals = Hash.new
+    pairs.each do |pair|
+      created_by, count = pair[0], pair[1]
+      totals[created_by] ||= 0
+      totals[created_by] += count
+    end
+    return totals
+  end
+end
+
+class JobMRTest3
+
+  include MapreduceHelper
+
+  def self.map(profiles)
+    result = Array.new
+    profiles.each do |profile|
+      result << [profile.created_by, 1] if profile.created_by
+    end
+    result
+  end
+
+  # def self.map_each(item)
+  #   return [item.created_by, 1] if item.created_by
+  # end
+
+  def self.reduce(pairs)
+    totals = Hash.new
+    pairs.each do |pair|
+      created_by, count = pair[0], pair[1]
+      totals[created_by] ||= 0
+      totals[created_by] += count
+    end
+
+    return totals
   end
 end

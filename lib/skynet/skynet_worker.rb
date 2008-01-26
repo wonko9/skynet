@@ -393,7 +393,7 @@ class Skynet
         exit          
       rescue Skynet::Worker::RespawnWorker => e
         warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING #{e.message}"
-        cmd = "RAILS_ENV=#{RAILS_ENV} ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]}"
+        cmd = "ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]} --queue_id=#{options[:queue_id]}"
         cmd << "-r #{options[:required_libs].join(' -r ')}" if options[:required_libs] and not options[:required_libs].empty?
         pid = fork_and_exec(cmd)
         exit

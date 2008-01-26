@@ -279,7 +279,7 @@ class Skynet
       else
         number_of_tasks_queued = self.map_enqueue
         map_results            = self.map_results(number_of_tasks_queued)
-        return unless map_results
+        return map_results unless map_results and self.reduce
 
         partitioned_data       = self.partition_data(map_results)
         return unless partitioned_data
@@ -464,7 +464,7 @@ class Skynet
     def map_tasks
       @map_tasks ||= begin
         map_tasks = []
-        debug "RUN MAP 2.1 #{display_info} data size before partition: #{@map_data.size}"
+        debug "RUN MAP 2.1 #{display_info} data size before partition: #{@map_data.size}" if @map_data.respond_to?(:size)
         debug "RUN MAP 2.1 #{display_info} data before partition:", @map_data
 
         task_options = {
@@ -620,12 +620,6 @@ class Skynet
       "#{name}, job_id: #{job_id}"
     end    
 
-    def increment_worker_version
-      newver = self.mq.get_worker_version + 1
-      self.mq.set_worker_version(newver)
-      newver
-    end    
-
     def start_after=(time)
       @start_after = (time.is_a?(Time) ? time.to_i : time)
     end
@@ -696,19 +690,7 @@ class Skynet
     def self.mq
       Skynet::MessageQueue.new
     end
-    
-    def self.set_worker_version(version)
-      mq.set_worker_version(version)
-    end
-    
-    def self.get_worker_version
-      mq.get_worker_version
-    end
-    
-    def self.increment_worker_version
-      mq.increment_worker_version
-    end
-        
+            
   end ### END class Skynet::Job 
 end  
 
@@ -779,7 +761,7 @@ class Skynet::Job::LocalMessageQueue
     result = nil
     (message.retry + 1).times do
       task = message.payload
-      debug "RUN TASKS LOCALLY SUBMITTING #{message.name} task #{task.task_id}"        
+      debug "RUN TASKS LOCALLY SUBMITTING #{message.name} task #{task.task_id}", task
       begin
         result = task.run
         break

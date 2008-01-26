@@ -33,6 +33,25 @@ module MapreduceHelper
   def self.included(base)
     base.extend MapreduceHelper
   end               
+
+  # Takes an array of map_data, iterates over that array calling self.map_each(item) for each 
+  # item in that array.   Catches exceptions in each iteration and continues processing.
+  def map(map_data_array)
+    raise Skynet::Job::BadMapOrReduceError.new("#{self.class} has no self.map_each method.") unless self.respond_to?(:map_each)
+    if map_data_array.is_a?(Array)
+      results = []
+      map_data_array.each do |data|
+        begin
+          results << map_each(data)
+        rescue Exception => e
+          error "ERROR IN #{self} [#{e.class} #{e.message}] #{e.backtrace.join("\n")}"
+        end                
+      end
+      results
+    else
+      map_each(map_data_array)
+    end
+  end
   
   # Takes an array of post reduce_partitioned data, iterates over that array calling self.reduce_each(item) for each 
   # item in that array.   Catches exceptions in each iteration and continues processing.
@@ -47,37 +66,9 @@ module MapreduceHelper
           error "ERROR IN #{self} [#{e.class} #{e.message}] #{e.backtrace.join("\n")}"
         end        
       end
-      if results.is_a?(Array) and results.size == 1
-        results.first
-      else
-        results
-      end
+      results
     else
       reduce_each(reduce_partitioned_data_array)
     end
-  end
-
-  # Takes an array of map_data, iterates over that array calling self.map_each(item) for each 
-  # item in that array.   Catches exceptions in each iteration and continues processing.
-  def map(map_data_array)
-    raise Skynet::Job::BadMapOrReduceError.new("#{self.class} has no self.map_each method.") unless self.respond_to?(:map_each)
-    if map_data_array.is_a?(Array)
-      results = []
-      map_data_array.collect do |data|
-        begin
-          results << map_each(data)
-        rescue Exception => e
-          error "ERROR IN #{self} [#{e.class} #{e.message}] #{e.backtrace.join("\n")}"
-        end                
-      end
-      if results.is_a?(Array) and results.size == 1
-        results.first
-      else
-        results
-      end    
-    else
-      map_each(map_data_array)
-    end
-  end
-  
+  end  
 end

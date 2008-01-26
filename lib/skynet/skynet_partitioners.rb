@@ -50,7 +50,7 @@ class Skynet
       # Tries to be smart about what kind of data its getting, whether array of arrays or array of arrays of arrays.
       #
       def self.reduce_partition(post_map_data,new_partitions)
-        return post_map_data unless post_map_data.is_a?(Array) and (not post_map_data.empty?) and post_map_data.first.is_a?(Array) and (not post_map_data.first.empty?)
+        return post_map_data unless post_map_data.is_a?(Array) and (not post_map_data.empty?) and post_map_data.first.is_a?(Array)
         if not post_map_data.first.first.is_a?(Array)
           partitioned_data = post_map_data.flatten
         else
