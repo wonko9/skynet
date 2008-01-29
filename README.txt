@@ -119,17 +119,18 @@ Most of the time, you will only need to pass a map_reduce_class and map_data.  A
 Your map and reduce class methods should ALWAYS assume they are being passed an array.  Your map method must always return an array as well.
 
 == CREDITS
+
 There are a number of people who either directly or indirectly worked on Skynet.
-John Beppu (wrote the original worker/manager code)
-Justin Balthrop
-Zack Parker
-Amos Elliston
-Zack Hobson
-Alan Braverman
-Mike Stangel
-Scott Steadman
-Andrew Arrow
-Jason Rojas
+* John Beppu (wrote the original worker/manager code)
+* Justin Balthrop
+* Zack Parker
+* Amos Elliston
+* Zack Hobson
+* Alan Braverman
+* Mike Stangel
+* Scott Steadman
+* Andrew Arrow
+* Jason Rojas
 
 Skynet was inspired by and heavily influenced by Josh Carter and this blog post.
 http://multipart-mixed.com/software/simple_mapreduce_in_ruby.html
