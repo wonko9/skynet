@@ -66,16 +66,23 @@ module ActiveRecord
     attr_accessor :find_args, :batch_size
     attr_reader :model_class
     
+    delegate :primary_key, :table_name, :to => :model_klass
+    delegate :execute, :select_all, :to => 'model_klass.connection'
+    
     def initialize(options = {})
       @find_args = options[:find_args]
       @batch_size = options[:batch_size] || BATCH_SIZE
       @model_class = options[:model_class]
     end
 
+    def model_klass
+      @model_klass ||= model_class.constantize
+    end
+
     def model_class=(model_c)
       @model_class = model_c.to_s
     end
-    
+
     def self.find(*args)
       if not args.first.is_a?(Hash)
         args.shift
@@ -121,10 +128,8 @@ module ActiveRecord
     end  
 
     def chunk_query(opts={})
-      mc = model_class.constantize
-      table_name = mc.table_name
 
-      conditions = "#{table_name}.id > #{opts[:id]} AND ((@t1:=(@t1+1) % #{batch_size})=0)"
+      conditions = "#{table_name}.#{primary_key} > #{opts[:id]} AND ((@t1:=(@t1+1) % #{batch_size})=0)"
       opts = opts.clone                                                               
       if opts[:conditions].nil? or opts[:conditions].empty?
         opts[:conditions] = conditions
@@ -140,10 +145,10 @@ module ActiveRecord
         # select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=id as last from profiles where ((@t1:=(@t1+1) % 1000)=0) order by id LIMIT 100;
         # select (@t2:=(@t2+1) % 2) as evenodd, ((@t3:=@t4)+1) as first, @t4:=id as last from profiles where ((@t1:=(@t1+1) % 1000)=0) order by id LIMIT 100;
 
-      mc.connection.execute('select @t1:=0, @t2:=-1, @t3:=0, @t4:=0')
-      sql = "select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=#{table_name}.id as last from #{table_name} #{opts[:joins]} where #{opts[:conditions]} ORDER BY #{table_name}.id #{limit}"
+      execute('select @t1:=0, @t2:=-1, @t3:=0, @t4:=0')
+      sql = "select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=#{table_name}.#{primary_key} as last from #{table_name} #{opts[:joins]} where #{opts[:conditions]} ORDER BY #{table_name}.#{primary_key} #{limit}"
       # log.error "SQL #{sql}"
-      mc.connection.select_all(sql)
+      select_all(sql)
 
       # mc.connection.select_values(mc.send(:construct_finder_sql, :select => "#{mc.table_name}.id", :joins => opts[:joins], :conditions => conditions, :limit => opts[:limit], :order => :id))
     end
@@ -220,8 +225,8 @@ module ActiveRecord
         next if data.empty?
         model_class = data[3].constantize
         table_name = model_class.table_name
-        conditions = "#{table_name}.id >= #{data[0]}"
-        conditions += " AND #{table_name}.id <= #{data[1]}" if data[1] > data[0]
+        conditions = "#{table_name}.#{model_class.primary_key} >= #{data[0]}"
+        conditions += " AND #{table_name}.#{model_class.primary_key} <= #{data[1]}" if data[1] > data[0]
         conditions = "(#{conditions})"
         # conditions = "ID BETWEEN #{data[0]} and #{data[1]}"
         if not data[2]
