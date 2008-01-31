@@ -10,7 +10,7 @@ class Skynet
   #
   # Example Usage:
   # 
-  #   class MapReduceTest
+  #   class Skynet::MapReduceTest
   #   
   #     def self.run
   #       job = Skynet::Job.new(
