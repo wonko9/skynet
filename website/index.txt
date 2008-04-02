@@ -3,6 +3,14 @@ h1. skynet
 <a href="http://rubyforge.org/projects/skynet/">Skynet RubyForge Home</a><br />
 <a href="doc/index.html">Documentation</a>
 
+h2. See Skynet at RailsConf 08
+
+h4. Sat Mar 31, 2008 4:25pm - 5:15pm PDT @ Portland Ballroom 255
+
+<a href="http://www.railsconf.com">
+<img src="http://conferences.oreillynet.com/banners/rails/speaker/728x90.jpg" width="728" height="90"  border="0"  alt="RailsConf 2008" title="RailsConf 2008"  />
+</a>
+
 h2. What is Skynet
 
 Skynet is an open source Ruby implementation of Google's Map/Reduce framework, created at Geni.com. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.
