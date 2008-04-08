@@ -1,4 +1,6 @@
 ENV["RAILS_ENV"] = "test"
+$VERBOSE=false
+
 
 require 'test/unit'
 require 'rubygems'
