@@ -328,20 +328,6 @@ class Skynet
       end      
     end    
 
-
-      # kinda like system() but gives me back a pid
-    def self.fork_and_exec(command)
-      sleep 0.01  # remove contention on manager drb object
-      log = Skynet::Logger.get
-      info "executing /bin/sh -c \"#{command}\""
-      pid = fork do
-        exec("/bin/sh -c \"#{command}\"")
-        exit
-      end
-      Process.detach(pid)
-      pid
-    end
-
     def self.start(options={})
       options[:worker_type]    ||= :any
       options[:required_libs]  ||= []
@@ -395,7 +381,7 @@ class Skynet
         warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING #{e.message}"
         cmd = "ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]} --queue_id=#{options[:queue_id]}"
         cmd << "-r #{options[:required_libs].join(' -r ')}" if options[:required_libs] and not options[:required_libs].empty?
-        pid = fork_and_exec(cmd)
+        pid = Skynet.fork_and_exec(cmd)
         exit
       rescue SystemExit
         info "WORKER #{$$} EXITING GRACEFULLY"

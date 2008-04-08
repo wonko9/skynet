@@ -43,4 +43,4 @@ rescue Skynet::ConnectionError
 end
 
 
-Skynet.new
+Skynet.start

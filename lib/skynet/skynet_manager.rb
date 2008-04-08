@@ -1,11 +1,4 @@
 class Skynet
-  begin
-    require 'fastthread'
-  rescue LoadError
-    # puts 'fastthread not installed, using thread instead'
-    require 'thread'
-  end
-
   class Manager
     
     class Error < StandardError
@@ -247,7 +240,8 @@ class Skynet
         cmd = "#{@script_path} --worker_type=#{worker_type}"
         cmd << " --queue_id=#{queue_id}"
         cmd << " -r #{required_libs.join(' -r ')}" if required_libs and not required_libs.empty?
-        wpid = self.fork_and_exec(cmd)
+        wpid = Skynet.fork_and_exec(cmd)
+        Skynet.close_console
         @workers_by_type[worker_type] ||= []
         @workers_by_type[worker_type] << wpid
         warn "Adding Worker ##{ii} PID: #{wpid} QUEUE: #{queue_id}, WORKER_TYPE?:#{worker_type}"
@@ -367,15 +361,6 @@ class Skynet
       info(:terminate)                  
       signal_workers("TERM")
       exit
-    end
-
-    def fork_and_exec(command)
-      pid = fork do                                                                  
-        exec("/bin/sh -c \"#{command}\"")
-        exit
-      end
-      Process.detach(pid) if (pid != 0)
-      pid
     end
 
     def mq

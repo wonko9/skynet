@@ -35,3 +35,43 @@ require 'mapreduce_test'
 require 'skynet_launcher'
 require 'skynet_console'
 require 'mapreduce_helper'
+
+
+begin
+  require 'fastthread'
+rescue LoadError
+  # puts 'fastthread not installed, using thread instead'
+  require 'thread'
+end
+
+class Skynet
+
+  # kinda like system() but gives me back a pid
+  def self.fork_and_exec(command)
+    sleep 0.01  # remove contention on manager drb object
+    log = Skynet::Logger.get
+    info "executing /bin/sh -c \"#{command}\""
+    pid = fork do
+      close_files
+      exec("/bin/sh -c \"#{command}\"")
+      exit
+    end
+    Process.detach(pid)
+    pid
+  end
+
+  # close open file descriptors starting with STDERR+1
+  def self.close_files(from=3, to=50)
+    close_console
+    (from .. to).each do |fd|
+      IO.for_fd(fd).close rescue nil
+     end
+  end
+
+  def self.close_console
+    STDIN.reopen "/dev/null"
+    STDOUT.reopen "/dev/null", "a"
+    STDERR.reopen STDOUT 
+  end
+
+end
