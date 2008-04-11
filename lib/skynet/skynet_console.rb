@@ -30,7 +30,10 @@ class Skynet
       end
       
       IRB.setup(Skynet::CONFIG[:LAUNCHER_PATH])
-      IRB.conf[:PROMPT_MODE]  = :SIMPLE
+      IRB.conf[:PROMPT][:SKYNET]  = IRB.conf[:PROMPT][:SIMPLE].dup
+      IRB.conf[:PROMPT][:SKYNET][:PROMPT_I] = "skynet>>"
+      
+      IRB.conf[:PROMPT_MODE]  = :SKYNET
       irb = IRB::Irb.new()
       IRB.conf[:MAIN_CONTEXT] = irb.context      
       irb.context.workspace.main.extend Skynet::ConsoleHelper

@@ -9,8 +9,10 @@ class Skynet
   # There are also many global configuration options which can be controlled through Skynet::CONFIG
   #
   # Example Usage:
+  # Create a file called mapreduce_test.rb with the following.
   # 
-  #   class Skynet::MapreduceTest
+  #   class MapreduceTest
+  #     include SkynetDebugger   ## This gives you logging methods such as log, error, info, fatal
   #   
   #     def self.run
   #       job = Skynet::Job.new(
@@ -41,17 +43,28 @@ class Skynet
   #     end
   #   end
   # 
-  #   MapreduceTest.run
   #
-  # You might notice that self.map and self.reduce both accept Arrays.   If you do not want to deal with
-  # getting arrays of map_data or reduce_data, you can include MapreduceHelper into your class and then
-  # implement self.map_each and self.reduce_each methods.  The included self.map and self.reduce methods
-  # will handle iterating over the map_data and reduce_data, passing each element to your map_each and
-  # reduce_each methods respectively.  They will also handle error handling within that loop to make sure
-  # even if a single map or reduce fails, processing will continue.  If you do not want processing to
-  # continue if a map fails, do not use the MapreduceHelper mixin.
+  # You need to make sure Skynet is running with your class loaded.  That's is how Skynet works.
+  # Since there is no easy way to actually pass code around the network, each skynet worker must
+  # already have your code loaded.  If you have skynet started, stop it and then start it with the -r flag
+  # to tell it where to find your class it should require.
+  #    $ skynet -r mapreduce_test.rb
+  # Then go into the skynet console to test running your map reduce task.
+  #    $ skynet console -r mapreduce_test.rb
+  #    skynet>> MapreduceTest.run     # returns {2=>2, 3=>1}
   #
-  # There are many other options to control various defaults and timeouts.
+  # In the example above, you might notice that self.map and self.reduce both accept Arrays.   
+  # If you do not want to deal with getting arrays of map_data or reduce_data, you can include MapreduceHelper
+  # into your class and then implement self.map_each and self.reduce_each methods.  
+  # The included self.map and self.reduce methods will handle iterating over the map_data and reduce_data, 
+  # passing each element to your map_each and reduce_each methods respectively.  They will also handle error 
+  # handling within that loop to make sure even if a single map or reduce fails, processing will continue.  
+  # If you do not want processing to continue if a map fails, do not use the MapreduceHelper mixin.
+  #
+  # Since Skynet must have your code, you will probably want to install skynet into the application
+  # that skynet needs access to in order to run your jobs.  See bin/skynet_install[link:files/bin/skynet_install.html] for more info.
+  #
+  # See new for the many other options to control various Skynet::Job settings.
   class Job
     include SkynetDebugger
     include Skynet::GuidGenerator		

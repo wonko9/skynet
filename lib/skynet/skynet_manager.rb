@@ -21,7 +21,7 @@ class Skynet
       @script_path          = options[:script_path]
       # info "Skynet Launcher Path: [#{@script_path}]"
       @workers_requested    = options[:workers]  || 4
-      @required_libs        = options[:adlibs]   || []
+      @required_libs        = options[:required_libs]   || []
       @queue_id             = options[:queue_id] || 0
       @number_of_workers    = 0
       @workers_by_type      = {:master => [], :task => [], :any => []}

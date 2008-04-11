@@ -7,7 +7,7 @@ class Skynet
     :SKYNET_LOG_DIR                       => LOGDIR,
     :SKYNET_PID_DIR                       => "/tmp",
     :SKYNET_PIDS_FILE                     => "/tmp/skynet.pid",
-    :SKYNET_LOG_FILE                      => STDERR,
+    :SKYNET_LOG_FILE                      => "skynet.log",
     :SKYNET_LOG_LEVEL                     => Logger::INFO,
     :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
     :MESSAGE_QUEUE_ADAPTER                => ("Skynet::MessageQueueAdapter::TupleSpace" || "Skynet::MessageQueueAdapter::Mysql"),

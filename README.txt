@@ -12,7 +12,7 @@ Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed sys
 
 Feel free to read on if you want more of an overview of Skynet with some specific examples. More specific documentation can be found here:
 
-Skynet::Job - The main interface to Skynet
+Skynet::Job - The main interface to Skynet.  These docs include an example of how to use Skynet.
 
 Skynet::Config - Configuration Options
 
@@ -71,6 +71,8 @@ Here are some commands you can run in the skynet console.
   
 That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It's not a very useful task, but it shows how easy it is to use.
 
+For more information on creating your own Skynet jobs read the Skynet::Job documentation.
+
 == RUNING SKYNET IN YOUR APPLICATION
 
 To be really useful, you'll want to run skynet in your own application.   To do that run:
@@ -107,10 +109,10 @@ Sometimes you have a method you want to call on a model asynchronously.  Using :
 
 == Creating Skynet Jobs
 
-The main interface to Skynet is through Skynet::AsyncJob or Skynet::Job
+The main interface to Skynet is through Skynet::Job
 
-  job = Skynet::AsyncJob.new(options)
-  job.run_master
+  job = Skynet::Job.new(options)
+  job.run
   
 There are many options you can pass or change once you have a job object.  See Skynet::Job for more info.
   
