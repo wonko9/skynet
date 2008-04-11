@@ -11,7 +11,7 @@ class SkynetTaskTest < Test::Unit::TestCase
   end      
   
   def test_master_task
-    job = Skynet::Job.new(:map_reduce_class => self.class, :async => true, :local => false)
+    job = Skynet::Job.new(:map_reduce_class => self.class, :async => true, :local_master => false, :solo => true)
     master_task = Skynet::Task.master_task(job)
     master_job = Skynet::Job.new(master_task.process)
     assert_equal self.class.to_s, master_job.map
