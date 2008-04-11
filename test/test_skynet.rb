@@ -3,10 +3,11 @@ require File.dirname(__FILE__) + '/test_helper.rb'
 require 'tempfile'
 class TestSkynet < Test::Unit::TestCase
 
+  # this test doesn't work on a mac
   def test_fork_and_exec
     Tempfile.new('control').open
     file = Tempfile.new('fork_exec')
-    Skynet.fork_and_exec("/bin/ls -l /proc/$$/fd >#{file.path}")
+    Skynet.fork_and_exec("/usr/sbin/lsof -p $$ >#{file.path}")
     sleep 1
     open("#{file.path}", 'r') do |f| 
       lines = f.readlines

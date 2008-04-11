@@ -1,4 +1,5 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
+require 'functor'
 
 class SkynetManagerTest < Test::Unit::TestCase
 
@@ -6,6 +7,16 @@ class SkynetManagerTest < Test::Unit::TestCase
   PIDFILE = []
   
   def setup
+    connection = ActiveRecord::Base.establish_connection(
+        :adapter  => "mysql",
+        :host     => "localhost",
+        :username => "root",
+        :password => "",
+        :database => "skynet_test"
+      )
+      
+    ActiveRecord::Base.connection.reconnect!
+     
     Skynet.configure(
       :ENABLE                         => false,
       # :SKYNET_PIDS_FILE               => File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pids"),
@@ -13,15 +24,9 @@ class SkynetManagerTest < Test::Unit::TestCase
       :SKYNET_LOG_LEVEL               => 4,
       :MESSAGE_QUEUE_ADAPTER          => "Skynet::MessageQueueAdapter::Mysql",
       :MYSQL_TEMPERATURE_CHANGE_SLEEP => 1,
-      :MYSQL_NEXT_TASK_TIMEOUT        => 1
+      :MYSQL_NEXT_TASK_TIMEOUT        => 1,
+      :MYSQL_QUEUE_DATABASE           => nil
     )      
-    ActiveRecord::Base.establish_connection(
-        :adapter  => "mysql",
-        :host     => "localhost",
-        :username => "root",
-        :password => "",
-        :database => "skynet_test"
-      )
 
     mq.clear_outstanding_tasks
     mq.clear_worker_status
@@ -62,7 +67,17 @@ class SkynetManagerTest < Test::Unit::TestCase
     
     pids     = @pids                   
     hostname = @hostname
-    @manager.define_method(:fork) do
+    Skynet.extend(Functor)
+    Skynet.define_method(:close_files) do
+      true
+    end
+
+    Skynet.define_method(:close_console) do
+      true
+    end
+
+    
+    Skynet.define_method(:fork_and_exec) do |cmd|
       newpid = pids.size + 1
       pids << newpid
       worker_info = {
