@@ -10,7 +10,7 @@ class Skynet
   #
   # Example Usage:
   # 
-  #   class Skynet::MapReduceTest
+  #   class Skynet::MapreduceTest
   #   
   #     def self.run
   #       job = Skynet::Job.new(
@@ -41,7 +41,7 @@ class Skynet
   #     end
   #   end
   # 
-  #   MapReduceTest.run
+  #   MapreduceTest.run
   #
   # You might notice that self.map and self.reduce both accept Arrays.   If you do not want to deal with
   # getting arrays of map_data or reduce_data, you can include MapreduceHelper into your class and then
