@@ -7,7 +7,9 @@ h2. See Skynet at RailsConf 08
 
 h4. Sat Mar 31, 2008 4:25pm - 5:15pm PDT @ Portland Ballroom 255
 
-<a href="http://www.railsconf.com">
+<a href="http://en.oreilly.com/rails2008/public/schedule/detail/2022" target="_blank">More Info</a>
+
+<a href="http://en.oreilly.com/rails2008/public/schedule/detail/2022" target="_blank">
 <img src="http://conferences.oreillynet.com/banners/rails/speaker/728x90.jpg" width="728" height="90"  border="0"  alt="RailsConf 2008" title="RailsConf 2008"  />
 </a>
 

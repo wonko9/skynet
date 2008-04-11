@@ -77,12 +77,16 @@ For more information on creating your own Skynet jobs read the Skynet::Job docum
 
 To be really useful, you'll want to run skynet in your own application.   To do that run:
 
-  $ skynet_install [--rails] YOUR_APP_DIRECTORY
+  $ skynet_install [--rails] [--mysql] YOUR_APP_DIRECTORY
 
-If you pass --rails it will assume it is installing in a rails app.   Once it is installed in your application, you can run skynet with
+If you pass --rails it will assume it is installing in a rails app.  If you pass --mysql it will assume you are using the mysql as your message queue.
+
+Once it is installed in your application, you can run skynet with
 
   $ ./script/skynet
   $ ./script/skynet console
+
+Now you can create your own Skynet jobs. Make sure to require your libraries in your ./script/skynet BEFORE running skynet so that skynet can use your code.
 
 == USAGE:
 
