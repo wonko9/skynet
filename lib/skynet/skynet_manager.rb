@@ -74,7 +74,7 @@ class Skynet
 
       @all_workers_started = true
 
-      warn "FINISHED STARTING ALL #{workers.size} WORKERS"
+      printlog "FINISHED STARTING ALL #{workers.size} WORKERS"
       if workers.size > @number_of_workers
         warn "EXPECTED #{@number_of_workers}" 
         @number_of_workers = workers.size
@@ -510,7 +510,7 @@ class Skynet
         end
 
         begin                                                                                                                   
-          info "STARTING THE MANAGER!!!!!!!!!!!"
+          printlog "STARTING THE MANAGER!!!!!!!!!!!"
           @manager = Skynet::Manager.new(options)
           DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
           info "WORKER MANAGER URI: #{DRb.uri}"

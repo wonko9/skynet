@@ -48,5 +48,9 @@ class Skynet
     def fatal
       log = Skynet::Logger.get
     end
+    
+    def unknown
+      log = Skynet::Logger.get
+    end
   end
 end

@@ -3,6 +3,7 @@
      Skynet::Worker and Skynet::Manager now call Skynet.fork_and_exec instead of their own versions.
      Skynet.fork_and_exec prevents file descriptor exhaustion by calling Skynet.close_file_handles.
      Skynet::Manager detatches from console by calling Skynet.close_console
+ - Added printlog logging method which always prints to the log as [LOG]
  - Deprecated Skynet.new to Skynet.start 
  - Mysql Message Queue Adapter - Make delete_expired_messages much safer.
  - ActiveRecord::Base.distributed_find - Patch submitted by Lourens Naude (lourens@methodmissing.com) which checks the model for the primary_key name as opposed to assuming it is

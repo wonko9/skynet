@@ -92,7 +92,8 @@ Skynet was designed to make doing easy things easy and hard things possible.   T
 
 Skynet includes an addition to ActiveRecord that is very powerful.   
 
-=== distributed_find
+=== distributed_find         
+
   $ YourModel.distributed_find(:all).each(YourClass)
 or
   $ YourModel.distributed_find(:all).each(:somemethod)
@@ -119,6 +120,17 @@ There are many options you can pass or change once you have a job object.  See S
 Most of the time, you will only need to pass a map_reduce_class and map_data.  All other options just give you finer grain control.   map_data must be an array.   The map_reduce_class must AT LEAST implement a self.map class method.  It may also implement self.reduce, self.reduce_partitioner, and self.map_partitioner.  Skynet will assume it can use all of those methods in the map_reduce_class you pass.
 
 Your map and reduce class methods should ALWAYS assume they are being passed an array.  Your map method must always return an array as well.
+
+== Skynet Logging
+
+  You might be interested in seeing what skynet is doing.  There are 2 Skynet::Config options which control logging.  
+  Skynet::CONFIG[:SKYNET_LOG_LEVEL] and Skynet::CONFIG[:SKYNET_LOG_FILE]
+  Skynet::CONFIG[:SKYNET_LOG_LEVEL] is set to Logger::ERROR by default.  Other possibilities are Logger::DEBUG, Logger::INFO, Logger::WARN, Logger::ERROR, Logger::FATAL 
+
+  You might try Logger::INFO to see more of what's going on.  To use the Skynet::Logger inside your own classes simple
+    include SkynetDebugger
+
+SkynetDebugger[link:files/lib/skynet/skynet_debugger_rb.html]    
 
 == CREDITS
 
