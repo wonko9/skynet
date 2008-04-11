@@ -1,6 +1,10 @@
 module Skynet::ConsoleHelper
 # All of these commands can be run at the 'skynet console'.
 
+    def log
+      Skynet::Logger.get
+    end
+
     def mq
       @mq ||= Skynet::MessageQueue.new
     end                       

@@ -25,7 +25,13 @@ class Skynet
     def self.log=(log)
       @@log = log
     end
+
+    def printlog(*args)
+      self.class.get.unknown(*args)
+    end
+
   end
+  
     
   # This module can be mixed in to add logging methods to your class.
   module Loggable
