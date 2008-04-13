@@ -36,6 +36,18 @@ class Skynet
         :tuplespace
       end
 
+      def self.connect_or_create
+        begin
+          mq = new
+        rescue Skynet::ConnectionError
+          pid = fork do
+            exec("skynet_tuplespace_server start")
+          end
+          sleep 5
+          mq = new
+        end
+      end
+      
       def initialize(ts=nil)
         if not ts
           ts = self.class.get_tuple_space
@@ -70,36 +82,6 @@ class Skynet
         timeout ||= message.expiry
         write(message.error_message(error),timeout)
         take_fallback_message(message)
-      end
-
-
-      def write_worker_status(task, timeout=nil)
-        begin
-          take_worker_status(task,0.00001)
-        rescue Skynet::RequestExpiredError
-        end   
-        write(Skynet::WorkerStatusMessage.new(task), timeout)
-      end
-
-      def take_worker_status(task, timeout=nil)
-        Skynet::WorkerStatusMessage.new(take(Skynet::WorkerStatusMessage.worker_status_template(task), timeout))
-      end
-
-      def read_all_worker_statuses(hostname=nil)
-        ws = Skynet::WorkerStatusMessage.all_workers_template(hostname)
-        workers = read_all(ws).collect{ |w| Skynet::WorkerStatusMessage.new(w) }#.sort{ |a,b| a.process_id <=> b.process_id }
-      end
-
-      def clear_worker_status(hostname=nil)
-        cnt = 0
-        begin
-          loop do
-            take(Skynet::WorkerStatusMessage.new([:status, :worker, hostname, nil, nil]),0.01)
-            cnt += 1
-          end
-        rescue Skynet::RequestExpiredError
-        end
-        cnt
       end
 
       def list_tasks(iteration=nil,queue_id=0)

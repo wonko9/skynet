@@ -12,7 +12,7 @@ class Skynet
     MEMORY_CHECK_DELAY = 30
     MANAGER_PING_INTERVAL = 60
 
-    attr_accessor :message,:task, :mq, :processed
+    attr_accessor :message,:task, :mq, :wq, :processed
     attr_reader :worker_id, :worker_info, :worker_type, :queue_id
     
     class Error             < StandardError; end
@@ -30,6 +30,8 @@ class Skynet
       @queue_id     = options[:queue_id] || 0
       @processed    = 0
       @mq           = Skynet::MessageQueue.new
+      @wq           = Skynet::WorkerQueueAdapter::TupleSpace.connect_or_create
+      
 
       debug "THIS WORKER TAKES #{worker_type}"
 
@@ -90,14 +92,14 @@ class Skynet
 
     def take_worker_status
       begin               
-        mq.take_worker_status(@worker_info,0.00001)
+        wq.take_worker_status(@worker_info,0.00001)
       rescue Skynet::RequestExpiredError, Skynet::QueueTimeout => e
         error "Couldnt take worker status for #{hostname} pid: #{process_id}"
       end
     end
     
     def notify_worker_started
-      mq.write_worker_status(
+      wq.write_worker_status(
         @worker_info.merge({
           :name       => "waiting for #{@worker_type}",
           :processed  => 0,
@@ -109,13 +111,13 @@ class Skynet
     def notify_task_begun(task)
       task[:processed] = @processed
       task[:started_at] = Time.now.to_i
-      mq.write_worker_status(@worker_info.merge(task))
+      wq.write_worker_status(@worker_info.merge(task))
     end
     
     def notify_task_complete
       @processed += 1
 
-      mq.write_worker_status(
+      wq.write_worker_status(
         @worker_info.merge({
           :task_id       => 0,
           :job_id        => 0,

@@ -47,7 +47,7 @@ class Skynet
             rescue ActiveRecord::AdapterNotSpecified => e
               error "#{Skynet::CONFIG[:MYSQL_QUEUE_DATABASE]} not defined as a database adaptor #{e.message}"
             end
-          elsif not ActiveRecord::Base.connected?
+          elsif (not ActiveRecord::Base.connected?) and Skynet::CONFIG[:MYSQL_DATABASE]
               db_options = {
                 :adapter  => Skynet::CONFIG[:MYSQL_ADAPTER],
                 :host     => Skynet::CONFIG[:MYSQL_HOST],

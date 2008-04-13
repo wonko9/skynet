@@ -22,8 +22,8 @@ class Skynet
     :MYSQL_NEXT_TASK_TIMEOUT              => 60,
     :MYSQL_ADAPTER                        => "mysql",
     :MYSQL_HOST                           => "localhost",
-    :MYSQL_DATABASE                       => "skynet",
-    :MYSQL_USERNAME                       => "root",
+    :MYSQL_DATABASE                       => nil, # 'skynet'
+    :MYSQL_USERNAME                       => nil,
     :MYSQL_PASSWORD                       => "",
     :NUMBER_OF_WORKERS                    => 4,
     :WORKER_CHECK_DELAY                   => 40,

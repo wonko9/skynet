@@ -17,6 +17,7 @@ require 'skynet_debugger'
 require 'skynet_message'
 require 'message_queue_adapters/message_queue_adapter'
 require 'message_queue_adapters/tuple_space'
+require 'worker_queue_adapters/tuple_space'
 require "skynet_message_queue"
 require 'skynet_partitioners'
 require 'skynet_job'

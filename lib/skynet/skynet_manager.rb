@@ -364,7 +364,7 @@ class Skynet
     end
 
     def mq
-      @mq ||= Skynet::MessageQueue.new
+      @mq ||= Skynet::WorkerQueueAdapter::TupleSpace.connect_or_create
     end    
 
     def worker_queue

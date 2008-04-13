@@ -37,6 +37,7 @@ lib/skynet/skynet_task.rb
 lib/skynet/skynet_tuplespace_server.rb
 lib/skynet/skynet_worker.rb
 lib/skynet/version.rb
+lib/skynet/worker_queue_adapters/tuple_space.rb
 log/debug.log
 log/skynet.log
 log/skynet_tuplespace_server.log
