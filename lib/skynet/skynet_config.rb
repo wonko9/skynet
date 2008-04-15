@@ -1,15 +1,15 @@
 class Skynet       
-  LOGDIR = "/var/log"
-  DEFAULT_LOG_FILE_LOCATION = "#{ENV["HOME"]}/skynet.log"
+  DEFAULT_LOG_FILE_LOCATION = ENV["HOME"]
   
   CONFIG = {
     :ENABLE                               => true,
     :SOLO                                 => false,
-    :SKYNET_LOG_DIR                       => LOGDIR,
+    :SKYNET_LOG_DIR                       => DEFAULT_LOG_FILE_LOCATION,
     :SKYNET_PID_DIR                       => "/tmp",
-    :SKYNET_PIDS_FILE                     => "/tmp/skynet.pid",
-    :SKYNET_LOG_FILE                      => DEFAULT_LOG_FILE_LOCATION,
-    :SKYNET_LOG_LEVEL                     => Logger::ERROR,
+    :SKYNET_PID_FILE                      => "skynet.pid",
+    :SKYNET_LOG_FILE                      => "skynet.log",
+    :SKYNET_MANAGER_STATS_FILE            => "skynet_manager_stats.txt",
+    :SKYNET_LOG_LEVEL                     => Logger::DEBUG,
     :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
     :MESSAGE_QUEUE_ADAPTER                => ("Skynet::MessageQueueAdapter::TupleSpace" || "Skynet::MessageQueueAdapter::Mysql"),
     :WORKER_QUEUE_ADAPTER                 => ("Skynet::WorkerQueueAdapter::TupleSpace" || "Skynet::WorkerQueueAdapter::Mysql"),
@@ -28,7 +28,7 @@ class Skynet
     :MYSQL_USERNAME                       => nil,
     :MYSQL_PASSWORD                       => "",
     :NUMBER_OF_WORKERS                    => 4,
-    :WORKER_CHECK_DELAY                   => 40,
+    :WORKER_CHECK_DELAY                   => 10,
     :WORKER_MAX_MEMORY                    => 500,
     :WORKER_MAX_PROCESSED                 => 1000,
     :WORKER_VERSION_CHECK_DELAY           => 30,
@@ -102,10 +102,10 @@ class Skynet
   #  Skynet.configure(
   #   :ENABLE                               => true,
   #   :SOLO                                 => false,
-  #   :SKYNET_LOG_DIR                       => LOGDIR,
   #   :SKYNET_PID_DIR                       => "/tmp",
-  #   :SKYNET_PIDS_FILE                     => "/tmp/skynet.pid",
-  #   :SKYNET_LOG_FILE                      => STDOUT,
+  #   :SKYNET_PID_FILE                      => "skynet.pid",
+  #   :SKYNET_LOG_DIR                       => ENV["HOME"],
+  #   :SKYNET_LOG_FILE                      => "skynet.log",
   #   :SKYNET_LOG_LEVEL                     => Logger::ERROR,
   #   :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
   #   :MESSAGE_QUEUE_ADAPTER                => "Skynet::MessageQueueAdapter::TupleSpace",
@@ -164,11 +164,11 @@ class Skynet
       Skynet::CONFIG.each {|k,v| yield k,v}
     end
 
-    def add_message_queue(queue_name)
+    def self.add_message_queue(queue_name)
       self.message_queues << queue_name
     end
     
-    def queue_id_by_name(queue_name)
+    def self.queue_id_by_name(queue_name)
       if Skynet::CONFIG[:MESSAGE_QUEUES].index(queue_name)
         return Skynet::CONFIG[:MESSAGE_QUEUES].index(queue_name)
       else     
@@ -176,7 +176,7 @@ class Skynet
       end
     end       
     
-    def queue_name_by_id(queue_id)               
+    def self.queue_name_by_id(queue_id)               
       queue_id = queue_id.to_i
       if Skynet::CONFIG[:MESSAGE_QUEUES][queue_id]
         return Skynet::CONFIG[:MESSAGE_QUEUES][queue_id]
@@ -185,9 +185,23 @@ class Skynet
       end
     end
     
+    def self.logfile_location
+      skynet_log_dir.sub(/\/$/,'') + "/" + skynet_log_file.sub(/^\//,'')
+    end
+
+    def self.pidfile_location
+      skynet_pid_dir.sub(/\/$/,'') + "/" + skynet_pid_file.sub(/^\//,'')
+    end
     
+    def method_missing(name,*args)
+      if self.class.respond_to?(name)
+        self.class.send(name,*args)
+      else        
+        self.class.method_missing(*args)
+      end
+    end                               
     
-    def method_missing(name, *args)
+    def self.method_missing(name, *args)
       name = name.to_s.upcase.to_sym
       if name.to_s =~ /^(.*)=$/
         name = $1.to_sym

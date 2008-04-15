@@ -1,14 +1,14 @@
 class Skynet
-  
+
   class WorkerQueueAdapter
-  	
+
     class TupleSpace < Skynet::MessageQueueAdapter::TupleSpace
 
       def write_worker_status(task, timeout=nil)
-        begin
-          take_worker_status(task,0.00001)
-        rescue Skynet::RequestExpiredError
-        end   
+        # begin
+        #   take_worker_status(task,0.00001)
+        # rescue Skynet::RequestExpiredError
+        # end
         write(Skynet::WorkerStatusMessage.new(task), timeout)
       end
 
@@ -19,6 +19,18 @@ class Skynet
       def read_all_worker_statuses(hostname=nil)
         ws = Skynet::WorkerStatusMessage.all_workers_template(hostname)
         workers = read_all(ws).collect{ |w| Skynet::WorkerStatusMessage.new(w) }#.sort{ |a,b| a.process_id <=> b.process_id }
+      end
+
+      def take_all_worker_statuses(hostname=nil,timeout=0.01)
+        ws = Skynet::WorkerStatusMessage.all_workers_template(hostname)
+        statuses = []
+        begin
+          loop do
+            statuses << Skynet::WorkerStatusMessage.new(take(ws, timeout))
+          end
+        rescue Skynet::RequestExpiredError
+        end
+        statuses
       end
 
       def clear_worker_status(hostname=nil)

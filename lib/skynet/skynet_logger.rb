@@ -16,7 +16,7 @@ class Skynet
     
     def self.get
       if not @@log
-        @@log = self.new(Skynet::CONFIG[:SKYNET_LOG_FILE])
+        @@log = self.new(Skynet::Config.new.logfile_location)
         @@log.level = Skynet::CONFIG[:SKYNET_LOG_LEVEL]
       end  
       @@log

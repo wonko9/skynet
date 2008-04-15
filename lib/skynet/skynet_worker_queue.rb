@@ -12,8 +12,8 @@ class Skynet
       Skynet::CONFIG[:WORKER_QUEUE_ADAPTER]
     end
     
-    def_delegators :mq, :take_next_task, :stats, :take_worker_status, 
-                   :write_worker_status, :read_all_worker_statuses, :clear_worker_status
+    def_delegators :mq, :take_next_task, :stats, :take_worker_status, :write_worker_status,
+                   :take_all_worker_statuses, :read_all_worker_statuses, :clear_worker_status
                    
   end
 end

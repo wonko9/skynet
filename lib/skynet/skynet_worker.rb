@@ -88,15 +88,6 @@ class Skynet
       return false
     end
 
-
-    def take_worker_status
-      begin
-        wq.take_worker_status(@worker_info,0.00001)
-      rescue Skynet::RequestExpiredError, Skynet::QueueTimeout => e
-        error "Couldnt take worker status for #{hostname} pid: #{process_id}"
-      end
-    end
-
     def notify_worker_started
       wq.write_worker_status(
         @worker_info.merge({
@@ -130,7 +121,17 @@ class Skynet
 
     def notify_worker_stop
       info "Worker #{process_id} stopping..."
-      take_worker_status
+      wq.write_worker_status(
+      @worker_info.merge({
+        :task_id       => 0,
+        :job_id        => 0,
+        :name          => "waiting for #{@worker_type}",
+        :processed     => @processed,
+        :process_id    => nil,
+        :map_or_reduce => nil,
+        :started_at    => Time.now.to_i
+        })
+      )
     end
 
     def payload_type
