@@ -1,7 +1,7 @@
-class Skynet  
+class Skynet
   class Worker
 
-    include SkynetDebugger    
+    include SkynetDebugger
     include Skynet::GuidGenerator
 
     RETRY_TIME = 2
@@ -14,7 +14,7 @@ class Skynet
 
     attr_accessor :message,:task, :mq, :wq, :processed
     attr_reader :worker_id, :worker_info, :worker_type, :queue_id
-    
+
     class Error             < StandardError; end
     class RespawnWorker     < Skynet::Error; end
     class ConnectionFailure < Skynet::Error; end
@@ -23,59 +23,58 @@ class Skynet
     def self.debug_class_desc
       "WORKER-#{$$}"
     end
-    
-    def initialize(worker_type, options = {})                
+
+    def initialize(worker_type, options = {})
       @worker_id    = get_unique_id(1).to_i
       @worker_type  = worker_type.to_sym
       @queue_id     = options[:queue_id] || 0
       @processed    = 0
       @mq           = Skynet::MessageQueue.new
-      @wq           = Skynet::WorkerQueueAdapter::TupleSpace.connect_or_create
-      
+      @wq           = Skynet::WorkerQueue.new
 
       debug "THIS WORKER TAKES #{worker_type}"
 
-      @worker_info = { 
+      @worker_info = {
         :hostname     => hostname,
         :process_id   => process_id,
-        :worker_type  => payload_type, 
+        :worker_type  => payload_type,
         :worker_id    => worker_id,
         :version      => mq.get_worker_version,
-      }                           
+      }
       @worker_info.merge!(options)
     end
 
     def process_id
       $$
     end
-    
+
     def hostname
       @machine_name ||= Socket.gethostname
-    end       
-    
+    end
+
     def version
       @curver
     end
-        
+
     def new_version_respawn?
        if !@verchecktime
         @verchecktime = Time.now
-        begin 
+        begin
           @curver = mq.get_worker_version
           debug "FINDING INITIAL VER #{@curver}"
         rescue  Skynet::RequestExpiredError => e
           warn "NO INITIAL VER IN MQ using 1"
           @curver = 1
         end
-      else    
+      else
         if Time.now < (@verchecktime + Skynet::CONFIG[:WORKER_VERSION_CHECK_DELAY])
           return false
-        else                    
+        else
           @verchecktime = Time.now
           begin
             newver = mq.get_worker_version
             # debug "CURVER #{@curver} NEWVER: #{newver}"
-            if newver != @curver and not mq.version_active?(@curver, queue_id)              
+            if newver != @curver and not mq.version_active?(@curver, queue_id)
               info "RESTARTING WORKER ON PID #{$$}"
               return true
             end
@@ -87,17 +86,17 @@ class Skynet
         end
       end
       return false
-    end                     
+    end
 
 
     def take_worker_status
-      begin               
+      begin
         wq.take_worker_status(@worker_info,0.00001)
       rescue Skynet::RequestExpiredError, Skynet::QueueTimeout => e
         error "Couldnt take worker status for #{hostname} pid: #{process_id}"
       end
     end
-    
+
     def notify_worker_started
       wq.write_worker_status(
         @worker_info.merge({
@@ -107,13 +106,13 @@ class Skynet
         })
       )
     end
-    
+
     def notify_task_begun(task)
       task[:processed] = @processed
       task[:started_at] = Time.now.to_i
       wq.write_worker_status(@worker_info.merge(task))
     end
-    
+
     def notify_task_complete
       @processed += 1
 
@@ -127,38 +126,38 @@ class Skynet
           :started_at    => Time.now.to_i
         })
       )
-    end 
-    
+    end
+
     def notify_worker_stop
       info "Worker #{process_id} stopping..."
       take_worker_status
-    end   
-    
+    end
+
     def payload_type
       return nil if worker_type == :any
-      return worker_type      
+      return worker_type
     end
-    
+
     def interrupt
       if @die
         exit
       else
         @die = true
-      end        
+      end
     end
-          
+
     def start
       exceptions = 0
       conerror   = 0
       @curver    = nil
-      
+
       # setup signal handlers for manager
       Signal.trap("HUP")  { @respawn = true }
       Signal.trap("TERM") { interrupt       }
       Signal.trap("INT")  { @die = true     }
-      
+
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
-        
+
       info "STARTING WORKER @ VER #{@curver} (#{@worker_type}) QUEUE_ID: #{queue_id}"
 
       notify_worker_started
@@ -167,13 +166,13 @@ class Skynet
       task    = nil
 
       loop do
-        message = nil      
-        begin               
+        message = nil
+        begin
           if Skynet::CONFIG[:WORKER_MAX_PROCESSED] and Skynet::CONFIG[:WORKER_MAX_PROCESSED] > 0 and @processed >= Skynet::CONFIG[:WORKER_MAX_PROCESSED]
             raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{get_memory_size} MAX: #{Skynet::CONFIG[:WORKER_MAX_MEMORY]}")
           end
-          if @die             
-            exit                                  
+          if @die
+            exit
           elsif @respawn
             raise Skynet::Worker::RespawnWorker.new()
           end
@@ -181,7 +180,7 @@ class Skynet
           if local_mem = max_memory_reached?
             raise Skynet::Worker::RespawnWorker.new("WORKER OVER MAX MEM AT: #{local_mem} MAX: #{Skynet::CONFIG[:WORKER_MAX_MEMORY]}")
           end
-          
+
           if conerror > 0
             @mq = Skynet::MessageQueue.new
             warn "WORKER RECONNECTED AFTER #{conerror} tries"
@@ -189,14 +188,14 @@ class Skynet
           end
 
           # debug "1 START LOOPSSS at VER #{@curver}"
-          # 
+          #
           # debug "LOOK FOR WORK USING TEMPLATE", Skynet::Message.task_template(@curver)
           # message = Skynet::Message.new(mq.take(Skynet::Message.task_template(@curver),0.00001))
           message = mq.take_next_task(@curver, 0.00001, payload_type, queue_id)
 
           next unless message.respond_to?(:payload)
 
-          task = message.payload                          
+          task = message.payload
           error "BAD MESSAGE", task unless task.respond_to?(:map_or_reduce)
 
           info "STEP 2 GOT MESSAGE #{message.name} type:#{task.map_or_reduce}, jobid: #{message.job_id}, taskid:#{message.task_id} it: #{message.iteration}"
@@ -209,11 +208,11 @@ class Skynet
           # task.debug "taking task #{task.task_id} name:#{task.name}..."
 
           info "STEP 4 RUNNING TASK #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
-          notify_task_begun({ 
-            :job_id        => message.job_id, 
-            :task_id       => message.task_id, 
-            :iteration     => message.iteration, 
-            :name          => message.name, 
+          notify_task_begun({
+            :job_id        => message.job_id,
+            :task_id       => message.task_id,
+            :iteration     => message.iteration,
+            :name          => message.name,
             :map_or_reduce => task.map_or_reduce
           })
           result = task.run(message.iteration)
@@ -224,16 +223,16 @@ class Skynet
           result_message = mq.write_result(message,result,task.result_timeout)
           info "STEP 6 WROTE RESULT MESSAGE #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
           # debug "STEP 6.1 RESULT_MESSAGE:", result_message
-          notify_task_complete          
+          notify_task_complete
 
         rescue Skynet::Task::TimeoutError => e
           error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
           next
 
-        rescue Skynet::Worker::RespawnWorker => e  
+        rescue Skynet::Worker::RespawnWorker => e
           info "Respawning and taking worker status #{e.message}"
           notify_worker_stop
-          raise e          
+          raise e
 
         rescue Skynet::RequestExpiredError => e
           if new_version_respawn?
@@ -253,13 +252,13 @@ class Skynet
           if conerror > 20
             fatal "TOO MANY RECONNECTION EXCEPTIONS #{e.message}"
             notify_worker_stop
-            raise e 
+            raise e
           end
           next
 
         rescue NoManagerError => e
           fatal e.message
-          break          
+          break
         rescue Interrupt, SystemExit => e
           warn "Exiting..."
           notify_worker_stop
@@ -284,7 +283,7 @@ class Skynet
     @@ok_to_mem_check = false
     @@lastmem = nil
     @@memct = 0
-    
+
     def max_memory_reached?
       return false unless ok_to_mem_check?
        if !@memchecktime
@@ -298,7 +297,7 @@ class Skynet
         false
       end
     end
-    
+
     def find_pid_size(file, format=:notpretty)
       begin
         open(file).each { |line|
@@ -323,17 +322,17 @@ class Skynet
       return false if @@ok_to_mem_check == :notok
       if File.exists?('/proc/self/status')
       @@lastmem ||= get_memory_size.to_i
-      return @@ok_to_mem_check = true         
+      return @@ok_to_mem_check = true
       else
         @@ok_to_mem_check = :notok
-        return false        
-      end      
-    end    
+        return false
+      end
+    end
 
     def self.start(options={})
       options[:worker_type]    ||= :any
       options[:required_libs]  ||= []
-      
+
       OptionParser.new do |opt|
         opt.banner = "Usage: worker [options]"
         opt.on('-r', '--required LIBRARY', 'Include the specified libraries') do |v|
@@ -346,12 +345,12 @@ class Skynet
             raise Skynet::Error.new("#{v} is not a valid worker_type")
           end
         end
-        opt.on('-q', '--queue QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v| 
+        opt.on('-q', '--queue QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v|
           options[:queue] = v
-        end               
-        opt.on('-i', '--queue_id queue_id', 'Which queue should these workers use (default 0).') do |v| 
+        end
+        opt.on('-i', '--queue_id queue_id', 'Which queue should these workers use (default 0).') do |v|
           options[:queue_id] = v.to_i
-        end               
+        end
         opt.parse!(ARGV)
       end
 
@@ -369,16 +368,16 @@ class Skynet
           error "The included lib #{adlib} was not found: #{e.inspect}"
           exit
         end
-      end        
+      end
 
       debug "WORKER STARTING WORKER_TYPE?:#{options[:worker_type]}. QUEUE: #{Skynet::Config.new.queue_name_by_id(options[:queue_id])}"
 
-      begin                               
+      begin
         worker = Skynet::Worker.new(options[:worker_type], options)
         worker.start
       rescue Skynet::Worker::NoManagerError => e
         fatal e.message
-        exit          
+        exit
       rescue Skynet::Worker::RespawnWorker => e
         warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING #{e.message}"
         cmd = "ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]} --queue_id=#{options[:queue_id]}"
@@ -396,10 +395,10 @@ class Skynet
   end
 end
 
-class ExceptionReport  
-  def initialize(*args)    
-  end                 
-  
+class ExceptionReport
+  def initialize(*args)
+  end
+
   def save
   end
 end

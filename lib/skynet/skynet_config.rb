@@ -1,5 +1,6 @@
 class Skynet       
   LOGDIR = "/var/log"
+  DEFAULT_LOG_FILE_LOCATION = "#{ENV["HOME"]}/skynet.log"
   
   CONFIG = {
     :ENABLE                               => true,
@@ -7,10 +8,11 @@ class Skynet
     :SKYNET_LOG_DIR                       => LOGDIR,
     :SKYNET_PID_DIR                       => "/tmp",
     :SKYNET_PIDS_FILE                     => "/tmp/skynet.pid",
-    :SKYNET_LOG_FILE                      => "skynet.log",
+    :SKYNET_LOG_FILE                      => DEFAULT_LOG_FILE_LOCATION,
     :SKYNET_LOG_LEVEL                     => Logger::ERROR,
     :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
     :MESSAGE_QUEUE_ADAPTER                => ("Skynet::MessageQueueAdapter::TupleSpace" || "Skynet::MessageQueueAdapter::Mysql"),
+    :WORKER_QUEUE_ADAPTER                 => ("Skynet::WorkerQueueAdapter::TupleSpace" || "Skynet::WorkerQueueAdapter::Mysql"),
     :TS_USE_RINGSERVER                    => true,
     :TS_DRBURIS                           => ["druby://localhost:47647"],   # If you do not use RINGSERVER, you must specifiy the DRBURI
     :TS_SERVER_HOSTS                      => ["localhost:7647"],

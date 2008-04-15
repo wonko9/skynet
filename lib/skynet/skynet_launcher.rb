@@ -8,6 +8,9 @@ class Skynet
     elsif options[:worker_type] or ARGV.detect {|a| a =~ /worker_type/ }
       Skynet::Worker.start(options)
     else
+      if Skynet::CONFIG[:SKYNET_LOG_FILE] == Skynet::DEFAULT_LOG_FILE_LOCATION
+        puts "Logging to the default log: #{File.expand_path(Skynet::CONFIG[:SKYNET_LOG_FILE])}.  Set Skynet::CONFIG[:SKYNET_LOG_FILE] to change.\nYou will no longer see this warning once the Skynet::CONFIG[:SKYNET_LOG_FILE] is set."
+      end
       Skynet::Manager.start(options)
     end
   end

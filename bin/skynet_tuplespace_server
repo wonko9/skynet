@@ -32,7 +32,7 @@ OptionParser.new do |opt|
   opt.on('-p', '--port PORT', 'Port to listen on. default 7647') do |v| 
     options[:port] = v.to_i
   end
-  opt.on('-o', '--log LOGFILE', 'Logfile to log to') do |v|
+  opt.on('-o', '--logfile LOGFILE', 'Logfile to log to') do |v|
     options[:logfile] = v
   end
   opt.on('-l', '--loglevel LOGLEVEL', 'Log level defaults to DEBUG') do |v|
@@ -52,6 +52,7 @@ OptionParser.new do |opt|
   end
 
   opt.parse!(ARGV)
+  pp "ADAMDEBUG: options", options
 end
 
 Daemons.run_proc("skynet_tuplespace_server#{options[:port]}",

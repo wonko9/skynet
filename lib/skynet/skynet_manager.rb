@@ -34,6 +34,8 @@ class Skynet
     end   
     
     def start_workers
+      @mq = Skynet::WorkerQueue.start_or_connect
+
       setup_signals
       
       starting = workers_to_start(@workers_requested)
@@ -364,7 +366,7 @@ class Skynet
     end
 
     def mq
-      @mq ||= Skynet::WorkerQueueAdapter::TupleSpace.connect_or_create
+      @mq ||= Skynet::WorkerQueue.new
     end    
 
     def worker_queue
