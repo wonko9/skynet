@@ -1,3 +1,5 @@
+require 'yaml'
+
 class Skynet
   class Manager
 
@@ -34,6 +36,8 @@ class Skynet
     end
 
     def start_workers
+      load_worker_queue_from_file
+
       @mq = Skynet::WorkerQueue.start_or_connect
 
       setup_signals
@@ -98,7 +102,7 @@ class Skynet
       end
     end
 
-    def check_workers        
+    def check_workers
       info "Checking on #{@number_of_workers} workers..." unless @shutdown
       check_running_pids
       check_number_of_workers
@@ -344,12 +348,63 @@ class Skynet
       end
       @worker_pids = active_workers.collect {|w| w.process_id}
       @active_workers = @worker_queue.values.select{|status| status.process_id.is_a?(Fixnum) }
+      save_worker_queue_to_file
+      @worker_queue
     end
-    
+
+    def save_worker_queue_to_file
+      File.open(Skynet.config.manager_statfile_location,"w") do |f|
+        f.write(YAML.dump(@worker_queue))
+      end
+    end
+
+    def load_worker_queue_from_file
+      if File.exists?(Skynet.config.manager_statfile_location)
+        File.open(Skynet.config.manager_statfile_location,"r") do |f|
+          @worker_queue = YAML.load(f.read)
+        end
+      end
+    end
+
+    def stats
+      started_times   = @worker_queue.values.collect{|worker|worker.started_at}.sort
+      stats = {
+        "total_processed"  => 0,
+        "earliest_update"  => started_times.first,
+        "latest_update"    => started_times.last,
+        "active_workers"   => {},
+        "inactive_workers" => {},
+      }
+      @worker_queue.values.collect{|worker|stats["total_processed"] += worker.processed}
+
+      set_stat = lambda do |worker|
+        {
+          "process_id"  => worker.process_id,
+          "processed"   => worker.processed,
+          "last_update" => worker.started_at,
+          "version"     => worker.version,
+          "tasksubtype" => worker.tasksubtype,
+          "queue_id"    => worker.queue_id
+        }
+      end
+      active_workers.each do |worker|
+        stats["active_workers"][worker.worker_id] = set_stat.call(worker)
+      end
+
+      inactive_workers.each do |worker|
+        stats["inactive_workers"][worker.worker_id] = set_stat.call(worker)
+      end
+      stats
+    end
+
     def active_workers
       @active_workers ||= @worker_queue.values.select{|status| status.process_id.is_a?(Fixnum) }
     end
-    
+
+    def inactive_workers
+      @worker_queue.values.select{|status| !status.process_id.is_a?(Fixnum) }
+    end
+
     def worker_pids
       @worker_pids
     end
@@ -364,6 +419,10 @@ class Skynet
 
     def ping
       true
+    end
+
+    def self.get
+      DRbObject.new(nil,Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
     end
 
     def self.start(options={})

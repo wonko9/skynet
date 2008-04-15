@@ -9,7 +9,7 @@ class Skynet
     :SKYNET_PID_FILE                      => "skynet.pid",
     :SKYNET_LOG_FILE                      => "skynet.log",
     :SKYNET_MANAGER_STATS_FILE            => "skynet_manager_stats.txt",
-    :SKYNET_LOG_LEVEL                     => Logger::DEBUG,
+    :SKYNET_LOG_LEVEL                     => Logger::ERROR,
     :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
     :MESSAGE_QUEUE_ADAPTER                => ("Skynet::MessageQueueAdapter::TupleSpace" || "Skynet::MessageQueueAdapter::Mysql"),
     :WORKER_QUEUE_ADAPTER                 => ("Skynet::WorkerQueueAdapter::TupleSpace" || "Skynet::WorkerQueueAdapter::Mysql"),
@@ -66,6 +66,10 @@ class Skynet
       old_config.each {|k,v| CONFIG[k] = v}
       ret
     end
+  end
+  
+  def self.config
+    Skynet::Config.new
   end
 
   def self.solo(config = {}) 
@@ -193,11 +197,15 @@ class Skynet
       skynet_pid_dir.sub(/\/$/,'') + "/" + skynet_pid_file.sub(/^\//,'')
     end
     
+    def manager_statfile_location
+      skynet_log_dir.sub(/\/$/,'') + "/" + skynet_manager_stats_file.sub(/^\//,'')
+    end
+    
     def method_missing(name,*args)
       if self.class.respond_to?(name)
         self.class.send(name,*args)
       else        
-        self.class.method_missing(*args)
+        self.class.method_missing(name,*args)
       end
     end                               
     
