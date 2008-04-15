@@ -38,6 +38,7 @@ lib/skynet/skynet_tuplespace_server.rb
 lib/skynet/skynet_worker.rb
 lib/skynet/skynet_worker_queue.rb
 lib/skynet/version.rb
+lib/skynet/worker_queue_adapters/mysql.rb
 lib/skynet/worker_queue_adapters/tuple_space.rb
 log/debug.log
 log/skynet.log
@@ -47,7 +48,6 @@ script/destroy
 script/generate
 script/txt2html
 setup.rb
-skynet.log
 tasks/deployment.rake
 tasks/environment.rake
 tasks/website.rake
