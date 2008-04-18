@@ -1,11 +1,8 @@
 class SkynetWorkerQueue < ActiveRecord::Base
 end
 
-
 class Skynet
-
-  class MessageQueueAdapter
-  	
+  class WorkerQueueAdapter
     class Mysql < Skynet::MessageQueueAdapter::Mysql
 
       def write_worker_status(task, timeout=nil)
@@ -35,7 +32,7 @@ class Skynet
         end
         return rows
       end
-      
+    
       def take_worker_status(task, timeout=nil)                 
         conditions = template_to_conditions(Skynet::WorkerStatusMessage.worker_status_template(task), Skynet::WorkerStatusMessage.fields)
         worker_status = nil       
@@ -47,10 +44,9 @@ class Skynet
         end
         worker_status
       end
-      
-      def read_all_worker_statuses(hostname=nil,process_id=nil)
+    
+      def read_all_worker_statuses(hostname=nil,timeout=nil)
         ws = Skynet::WorkerStatusMessage.all_workers_template(hostname)
-        ws[4] = process_id if process_id
         conditions = template_to_conditions(ws,Skynet::WorkerStatusMessage.fields)
         rows = SkynetWorkerQueue.find(:all, :conditions => conditions)
         workers = rows.collect{ |w| Skynet::WorkerStatusMessage.new(w.attributes) }#.sort{ |a,b| a.process_id <=> b.process_id }
@@ -59,7 +55,7 @@ class Skynet
       def take_all_worker_statuses(*args)
         statuses = []
         read_all_worker_statuses(*args).each do |worker|
-          statuses << take_worker_status(worker)
+          statuses << take_worker_status(worker.to_h)
         end        
       end
 
@@ -69,8 +65,7 @@ class Skynet
           sql << "where hostname = '#{hostname}'"
         end
         SkynetWorkerQueue.connection.execute(sql)        
-      end
-
+      end    
     end
   end
 end

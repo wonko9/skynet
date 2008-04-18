@@ -35,6 +35,7 @@ class Skynet
       debug "THIS WORKER TAKES #{worker_type}"
 
       @worker_info = {
+        :tasktype     => worker_type,
         :hostname     => hostname,
         :process_id   => process_id,
         :worker_type  => payload_type,

@@ -310,6 +310,7 @@ class Skynet
   end
 
   class WorkerStatusMessage < Skynet::Message
+# I'd love to rename tasktype and tasksubtype to something more reasonable
     self.fields = [
       :tasktype,
       :tasksubtype,
@@ -330,13 +331,11 @@ class Skynet
 
     def initialize(opts)
       super
-      self.tasktype    = :status
       self.tasksubtype = :worker
     end
     
     def self.worker_status_template(opts)
       template = {
-        :tasktype    => :status,
         :tasksubtype => :worker,
         :hostname    => opts[:hostname],
         :process_id  => opts[:process_id]        
@@ -348,7 +347,6 @@ class Skynet
     
     def self.all_workers_template(hostname=nil)
       template = {
-        :tasktype    => :status,
         :tasksubtype => :worker,
         :hostname    => hostname,
       }

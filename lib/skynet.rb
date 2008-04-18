@@ -31,6 +31,7 @@ begin
   require 'active_record'
   require 'skynet_active_record_extensions'
   require 'message_queue_adapters/mysql'
+  require 'worker_queue_adapters/mysql'
 rescue LoadError => e
 end
 require 'mapreduce_test'

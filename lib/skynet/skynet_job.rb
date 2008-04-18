@@ -408,6 +408,13 @@ class Skynet
       end
     end
 
+    def self.results_by_job_id(job_ids,timeout=2)
+      result_message = mq.take_result(job_id,timeout)
+      ret_result     = result_message.payload
+      return nil if results.values.compact.empty?
+      return results.values
+    end
+
     def gather_results(number_of_tasks, timeout=nil, description=nil)
       debug "GATHER RESULTS job_id: #{job_id} - NOT AN ASYNC JOB"
       results = {}

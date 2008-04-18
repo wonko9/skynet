@@ -21,7 +21,7 @@ class Skynet
     extend Forwardable
 
     def self.adapter
-      Object.module_eval(adapter_class, __FILE__, __LINE__).adapter
+      adapter_class.constantize.adapter
     end
 
     def self.adapter_class
@@ -46,8 +46,12 @@ class Skynet
       mq
     end
 
+    def self.message_queue_proxy_class
+      adapter_class.constantize
+    end
+
     def message_queue_proxy_class
-      @message_queue_proxy_class ||= Object.module_eval(self.class.adapter_class, __FILE__, __LINE__)
+      @message_queue_proxy_class ||= self.class.message_queue_proxy_class
     end
 
     # Is this version still active in the queue?
@@ -77,7 +81,7 @@ class Skynet
     end
 
     def_delegators :mq, :take_next_task, :write_message, :take_result, :write_error, :write_result,
-                   :list_tasks, :list_results, :clear_outstanding_tasks, :clear_outstanding_results
+                   :list_tasks, :list_results, :clear_outstanding_tasks, :clear_outstanding_results, :stats
 
 
 

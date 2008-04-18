@@ -341,9 +341,6 @@ class Skynet
 
     def update_worker_queue
       mq.take_all_worker_statuses(hostname,0.00001).each do |status|
-        if @worker_queue[status.worker_id]
-          status.processed = status.processed - @worker_queue[status.worker_id].processed
-        end
         @worker_queue[status.worker_id] = status
       end
       @worker_pids = active_workers.collect {|w| w.process_id}
@@ -366,34 +363,72 @@ class Skynet
       end
     end
 
+    def prune_inactive_worker_stats
+      @worker_queue.delete_if{|worker_id, worker| !worker.process_id.is_a?(Fixnum) }
+      update_worker_queue
+      stats
+    end
+    
+    def self.stats_for_hosts(manager_hosts=nil)
+      manager_hosts = Skynet::CONFIG[:MANAGER_HOSTS] || ["localhost"]
+      stats = {
+        :servers           => {}, 
+        :processed         => 0, 
+        :number_of_workers => 0,
+        :active_workers    => 0,
+        :idle_workers      => 0,
+        :hosts             => 0,
+        :masters           => 0,
+        :taskworkers       => 0,
+        :time              => Time.now.to_f            
+      }
+      servers = {}
+      manager_hosts.each do |manager_host|
+        manager = DRbObject.new(nil,"druby://#{manager_host}:40000")
+        manager_stats = manager.stats
+        servers[manager_host] = manager_stats
+        manager_stats.each do |key,value|
+          next unless value.is_a?(Fixnum)
+          stats[key] ||= 0
+          stats[key] += value            
+        end
+      end   
+      stats[:servers] = servers
+      stats[:hosts]   = manager_hosts
+      stats
+    end
+
     def stats
       started_times   = @worker_queue.values.collect{|worker|worker.started_at}.sort
+      active_started_times   = active_workers.collect{|worker|worker.started_at}.sort
       stats = {
-        "total_processed"  => 0,
-        "earliest_update"  => started_times.first,
-        "latest_update"    => started_times.last,
-        "active_workers"   => {},
-        "inactive_workers" => {},
+        :hostname                    => hostname,
+        :earliest_update             => started_times.first,
+        :latest_update               => started_times.last,
+        :active_earliest_update      => active_started_times.first,
+        :active_latest_update        => active_started_times.last,
+        :processed                   => 0,
+        :processed_by_active_workers => 0,
+        :number_of_workers           => 0,
+        :idle_workers                => 0,
+        :shutdown_workers            => 0,
       }
-      @worker_queue.values.collect{|worker|stats["total_processed"] += worker.processed}
-
-      set_stat = lambda do |worker|
-        {
-          "process_id"  => worker.process_id,
-          "processed"   => worker.processed,
-          "last_update" => worker.started_at,
-          "version"     => worker.version,
-          "tasksubtype" => worker.tasksubtype,
-          "queue_id"    => worker.queue_id
-        }
-      end
-      active_workers.each do |worker|
-        stats["active_workers"][worker.worker_id] = set_stat.call(worker)
-      end
-
-      inactive_workers.each do |worker|
-        stats["inactive_workers"][worker.worker_id] = set_stat.call(worker)
-      end
+      @worker_queue.values.collect{|worker|stats[:processed] += worker.processed}
+      active_workers.collect{|worker|stats[:processed_by_active_workers] += worker.processed}
+      currently_active_workers, idle_workers = active_workers.partition{|worker| worker.map_or_reduce }
+      stats[:number_of_workers]             = active_workers.size
+      stats[:active_workers]                = currently_active_workers.size
+      stats[:idle_workers]                  = idle_workers.size
+      stats[:shutdown_workers]              = inactive_workers.size
+      stats[:masters]                       = active_workers.select{|worker|worker.tasktype.to_s == "master"}.size
+      stats[:master_or_task_workers]        = active_workers.select{|worker|worker.tasktype.to_s == "any"}.size
+      stats[:taskworkers]                   = active_workers.select{|worker|worker.tasktype.to_s == "task"}.size
+      stats[:active_masters]                = currently_active_workers.select{|worker|worker.tasktype.to_s == "master"}.size
+      stats[:active_master_or_task_workers] = currently_active_workers.select{|worker|worker.tasktype.to_s == "any"}.size
+      stats[:active_taskworkers]            = currently_active_workers.select{|worker|worker.tasktype.to_s == "task"}.size
+      stats[:idle_masters]                  = idle_workers.select{|worker|worker.tasktype.to_s == "master"}.size
+      stats[:idle_master_or_task_workers]   = idle_workers.select{|worker|worker.tasktype.to_s == "any"}.size
+      stats[:idle_taskworkers]              = idle_workers.select{|worker|worker.tasktype.to_s == "task"}.size
       stats
     end
 
