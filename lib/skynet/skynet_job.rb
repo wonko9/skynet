@@ -411,9 +411,9 @@ class Skynet
     # Given a job_id, returns the results from the message queue.  Used to retrieve results of asyncronous jobs.
     def self.results_by_job_id(job_id,timeout=2)
       result_message = mq.take_result(job_id,timeout)
-      ret_result     = result_message.payload
-      return nil if results.values.compact.empty?
-      return results.values
+      result     = result_message.payload
+      return nil unless result
+      return result
     end
 
     def gather_results(number_of_tasks, timeout=nil, description=nil)
