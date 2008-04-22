@@ -190,17 +190,28 @@ class Skynet
     end
     
     def self.logfile_location
-      skynet_log_dir.sub(/\/$/,'') + "/" + skynet_log_file.sub(/^\//,'')
+      if skynet_log_file.is_a?(String)
+        skynet_log_dir.sub(/\/$/,'') + "/" + skynet_log_file.sub(/^\//,'')
+      else
+        skynet_log_file
+      end
     end
 
     def self.pidfile_location
-      skynet_pid_dir.sub(/\/$/,'') + "/" + skynet_pid_file.sub(/^\//,'')
+      if skynet_pid_dir.is_a?(String)
+        skynet_pid_dir.sub(/\/$/,'') + "/" + skynet_pid_file.sub(/^\//,'')
+      else
+        skynet_pid_dir
+      end
     end
     
     def manager_statfile_location
-      skynet_log_dir.sub(/\/$/,'') + "/" + skynet_manager_stats_file.sub(/^\//,'')
-    end
-    
+      if skynet_log_dir.is_a?(String)
+        skynet_log_dir.sub(/\/$/,'') + "/" + skynet_manager_stats_file.sub(/^\//,'')
+      else
+        skynet_log_dir
+      end
+    end    
     def method_missing(name,*args)
       if self.class.respond_to?(name)
         self.class.send(name,*args)
