@@ -16,7 +16,7 @@ class Skynet
     end
 
     attr_accessor :required_libs, :queue_id
-    attr_reader   :config
+    attr_reader   :config, :worker_queue
 
     def initialize(options)
       raise Error.new("You must provide a script path to Skynet::Manager.new.") unless options[:script_path]
@@ -341,6 +341,7 @@ class Skynet
 
     def update_worker_queue
       mq.take_all_worker_statuses(hostname,0.00001).each do |status|
+        status.started_at = status.started_at.to_i
         @worker_queue[status.worker_id] = status
       end
       @worker_pids = active_workers.collect {|w| w.process_id}
@@ -399,8 +400,8 @@ class Skynet
     end
 
     def stats
-      started_times   = @worker_queue.values.collect{|worker|worker.started_at}.sort
-      active_started_times   = active_workers.collect{|worker|worker.started_at}.sort
+      started_times   = @worker_queue.values.collect{|worker| worker.started_at }.sort
+      active_started_times   = active_workers.collect{|worker|worker.started_at }.sort
       stats = {
         :hostname                    => hostname,
         :earliest_update             => started_times.first,
