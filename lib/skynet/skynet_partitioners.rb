@@ -59,6 +59,7 @@ class Skynet
           end    
         end    
         partitioned_data = Skynet::Partitioners::SimplePartitionData.reduce_partition(partitioned_data, new_partitions)
+        debug "POST PARTITIONED DATA_SIZE", partitioned_data.size
         debug "POST PARTITIONED DATA", partitioned_data
         partitioned_data
       end

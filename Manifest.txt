@@ -7,6 +7,7 @@ app_generators/skynet_install/USAGE
 app_generators/skynet_install/skynet_install_generator.rb
 app_generators/skynet_install/templates/migration.rb
 app_generators/skynet_install/templates/skynet
+app_generators/skynet_install/templates/skynet_initializer.rb
 app_generators/skynet_install/templates/skynet_mysql_schema.sql
 bin/skynet
 bin/skynet_install

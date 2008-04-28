@@ -160,7 +160,7 @@ class Skynet
 
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
 
-      info "STARTING WORKER @ VER #{@curver} (#{@worker_type}) QUEUE_ID: #{queue_id}"
+      printlog "STARTING WORKER @ VER:#{@curver} type:#{@worker_type} QUEUE_ID:#{queue_id}"
 
       notify_worker_started
 
@@ -262,7 +262,7 @@ class Skynet
           fatal e.message
           break
         rescue Interrupt, SystemExit => e
-          warn "Exiting..."
+          printlog "Exiting..."
           notify_worker_stop
           break
         rescue Exception => e

@@ -94,7 +94,7 @@ class Skynet
           check_workers
           sleep Skynet::CONFIG[:WORKER_CHECK_DELAY]
         rescue SystemExit, Interrupt => e
-          fatal "Manager Exiting!"
+          printlog "Manager Exiting!"
           exit
         rescue Exception => e
           fatal "Something bad happened #{e.inspect} #{e.backtrace.join("\n")}"
@@ -112,7 +112,11 @@ class Skynet
     def check_running_pids
       worker_pids.each do |wpid|
         if not worker_alive?(wpid)
-          error "Worker #{wpid} was in queue and but was not running.  Removing from queue."
+          if @shutdown
+            info "Worker #{wpid} shut down gracefully.  Removing from queue."
+          else
+            error "Worker #{wpid} was in queue and but was not running.  Removing from queue."
+          end
           mark_worker_as_stopped(wpid)
           @number_of_workers -= 1
         end
@@ -153,7 +157,7 @@ class Skynet
     def worker_shutdown
       if not @masters_dead
         workers_to_kill = active_workers.select do |w|
-          w.map_or_reduce == "master" and active_workers.detect{|status| status.process_id == w.process_id}
+          w.map_or_reduce == "master" and active_workers.detect{|status| status.process_id == w.process_id and worker_alive?(w.process_id)}
         end
         warn "Shutting down masters.  #{worker_pids.size} workers still running." if worker_pids.size > 0
 
@@ -252,11 +256,13 @@ class Skynet
 
     def mark_worker_as_stopped(wpid)
       worker = @worker_queue.values.detect {|status| status.process_id == wpid}
-      if worker
+      if worker and not worker_alive?(wpid)
+        @worker_queue.delete_if{|status| status.process_id == wpid}
         worker_pids.delete(worker.process_id)
         worker.started_at = Time.now.to_f
         worker.process_id = nil
-        @active_workers = nil
+        @active_workers   = nil
+        @worker_pids      = nil
       end
     end
 
@@ -265,7 +271,7 @@ class Skynet
         next if worker_type and not @workers_by_type[worker_type].include?(worker.process_id)
         warn "SHUTTING DOWN #{worker.process_id} MR: #{worker.map_or_reduce}"
         Process.kill(signal,worker.process_id)
-        mark_worker_as_stopped(worker.process_id)
+        # mark_worker_as_stopped(worker.process_id)
         @signaled_workers << worker.process_id
       end
     end
@@ -344,11 +350,12 @@ class Skynet
         status.started_at = status.started_at.to_i
         @worker_queue[status.worker_id] = status
       end
-      @worker_pids = active_workers.collect {|w| w.process_id}
-      @active_workers = @worker_queue.values.select{|status| status.process_id.is_a?(Fixnum) }
+      @worker_pids = nil
       save_worker_queue_to_file
+      @active_workers = nil
       @worker_queue
     end
+    
 
     def save_worker_queue_to_file
       File.open(Skynet.config.manager_statfile_location,"w") do |f|
@@ -442,7 +449,7 @@ class Skynet
     end
 
     def worker_pids
-      @worker_pids
+      @worker_pids ||= active_workers.collect {|w| w.process_id}
     end
 
     def parent_pid
