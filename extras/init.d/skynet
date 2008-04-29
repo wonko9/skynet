@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# skynet	start/stop skynet
+#
+# processname: solr
+#
+
+# Source function library
+. /etc/init.d/functions
+
+# Get network config
+. /etc/sysconfig/network
+
+HOME=/skynet/current
+RAILS_ENV=production
+
+cd $HOME 
+RETVAL=0
+start() {
+        echo -n $"Starting Skynet: "
+	./script/skynet &
+        RETVAL=$?
+        echo
+        return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping Skynet: " 
+	pid=`cat /skynet/logs/skynet_production.pid`
+	kill ${pid}
+    RETVAL=$?
+    return $RETVAL
+}    
+
+restart() {
+        echo -n $"Restarting Skynet: "
+  ./script/skynet -r
+        RETVAL=$?
+        echo
+        return $RETVAL
+}
+
+
+reload() {
+    stop
+    start
+}
+
+case "$1" in
+  start)
+      start
+    ;;
+  stop)
+      stop
+    ;;
+  status)
+	exit
+    ;;
+  restart)
+      restart
+    ;;
+  condrestart)
+      [ -f /var/lock/subsys/skynet ] && restart || :
+    ;;
+  reload)
+    reload
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}" 
+    exit 1
+esac
+get_pid_for_cmd ()
+{
+	pid=`cat /skynet/logs/skynet_worker7647.pid`
+	return pid
+
+    #for pid in `ls -t /proc`; do
+    #    if [ -d /proc/$pid ] && [ -f /proc/$pid/cmdline ]; then
+    #        if [ "$1" = "$(</proc/$pid/cmdline)" ]; then
+    #            return
+    #        fi
+    #    fi
+    #done
+    #pid=0
+}
+
+exit $?

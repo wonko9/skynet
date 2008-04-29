@@ -14,6 +14,11 @@ bin/skynet_install
 bin/skynet_tuplespace_server
 config/hoe.rb
 config/requirements.rb
+extras/README
+extras/init.d/skynet
+extras/nagios/check_skynet.sh
+extras/rails/controllers/skynet_controller.rb
+extras/rails/views/skynet/index.rhtml
 lib/skynet.rb
 lib/skynet/mapreduce_helper.rb
 lib/skynet/mapreduce_test.rb

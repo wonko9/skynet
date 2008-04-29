@@ -1,0 +1,137 @@
+
+  <div class="hd">
+    <h1>SKYNET STATUS</h1>
+    <span>Last updated: <%= @last_updated || 'N/A' %></span>
+    <br />
+    <br />
+  </div>
+
+  <% if @stats %>
+  
+  <h2>Overall Stats</h2>
+  <table class="admin_table">
+    <thead>
+      <tr>
+        <th>Hosts</th>
+        <th>Workers</th>
+        <th>Active Workers<BR>(Masters / Tasks / Either)</th>
+        <th>Idle Workers<BR>(Masters / Tasks / Either)</th>
+        <th>Untaken Tasks<BR>(Master / Task)</th>
+        <th>Taken Tasks<BR>(Master / Task)</th>
+        <th>Results</th>
+        <th>Processed <br />(by active workers)</th>
+        <th>Process Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="numeric"><%= @stats[:hosts] %></td>
+        <td class="numeric"><%= @stats[:number_of_workers] %></td>
+        <td class="numeric"><b><%= @stats[:active_workers] %></b> (<%= @stats[:active_masters] %> / <%= @stats[:active_taskworkers] %> / <%= @stats[:active_master_or_task_workers] %>)</td>
+        <td class="numeric"><b><%= @stats[:idle_workers] %></b> (<%= @stats[:idle_masters] %> / <%= @stats[:idle_taskworkers] %> / <%= @stats[:idle_master_or_task_workers] %>)</td>
+        <td class="numeric"><%= @stats[:untaken_tasks] %> (<b><%= @stats[:untaken_master_tasks] %></b> / <%= @stats[:untaken_task_tasks] %>)</td>
+        <td class="numeric"><b><%= @stats[:taken_tasks] %></b> (<%= @stats[:taken_master_tasks] %> / <%= @stats[:taken_task_tasks] %>)</td>
+        <td class="numeric"><%= @stats[:results] %></td>
+        <td class="numeric"><%= @stats[:processed] %> (<%= @stats[:processed_by_active_workers] %>)</td>
+        <td><%= @stats[:time] %></td>
+      </tr>
+    </tbody>
+  </table>
+  
+
+  <BR>
+  <h2>Servers</h2>
+  <table class="admin_table">
+    <colgroup>
+      <col span="1" width="3%" />
+      <col span="1" width="10%" />
+      <col span="1" width="5%" />
+      <col span="1" width="5%" />
+      <col span="1" width="5%" />
+      <col span="1" width="5%" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="numeric">#</th>
+        <th>Hostname</th>
+        <th>Number of Workers</th>
+        <th>Active Workers<BR>Masters / Tasks / Either</th>
+        <th>Idle Workers<BR>Masters / Tasks / Either</th>
+        <th>Processed <br />(by active workers)</th>
+      </tr>
+    </thead>
+
+      <% if @stats[:servers] %>
+      <tbody>
+        <% @stats[:servers].keys.sort.each do |hostname| %>
+          <% server = @stats[:servers][hostname] %>
+          <%   i = 1 %>
+          <tr>
+            <td class="numeric"><%= i %></td>
+            <td><%= server[:hostname] %></td>
+            <td class="numeric"><%= server[:number_of_workers] %></td>
+            <td class="numeric"><%= server[:active_workers] %>  (<%= server[:active_masters] %> / <%= server[:active_taskworkers] %> / <%= server[:active_master_or_task_workers] %>) </td>
+            <td class="numeric"><%= server[:idle_workers] %>  (<%= server[:idle_masters] %> / <%= server[:idle_taskworkers] %> / <%= server[:idle_master_or_task_workers] %>) </td>
+            <td class="numeric"><%= server[:processed] %> (<%= server[:processed_by_active_workers] %>)</td>
+          </tr>
+          <%     i += 1 %>
+        <% end %>
+      </tbody>
+      <% end %>
+
+    </table>  
+
+    <% end %>
+
+  <!-- <table class="admin_table">
+    <colgroup>
+      <col span="1" width="5%" />
+      <col span="1" width="8%" />
+      <col span="1" width="10%" />
+      <col span="1" width="10%" />
+      <col span="1" width="5%" />
+      <col span="1" width="5%" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="numeric">#</th>
+        <th>Worker ID</th>
+        <th>Hostname</th>
+        <th>PID</th>
+        <th>Job ID</th>
+        <th>Task ID</th>
+        <th>Version</th>
+        <th>Processed</th>
+        <th>M/R</th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    
+    <% if false and @servers %>
+    <tbody>
+      <% @servers.each do |server| %>
+      <tr>
+        <td colspan="10"><%= server[:manager] %></td>
+      </tr>
+      <%   i = 1 %>
+      <%   server[:workers].each do |w| %>
+      <tr>
+        <td class="numeric"><%= i %></td>
+        <td><%= w.worker_id %></td>
+        <td><%= w.hostname %></td>
+        <td class="numeric"><%= w.process_id %></td>
+        <td class="numeric"><%= w.job_id %></td>
+        <td class="numeric"><%= w.task_id %></td>
+        <td class="numeric"><%= w.version %></td>
+        <td class="numeric"><%= w.processed %></td>
+        <td><%= w.map_or_reduce || '-' %></td>
+        <td><%= w.name %></td>
+      </tr>
+      <%     i += 1 %>
+      <%   end %>
+      <% end %>
+    </tbody>
+    <% end %>
+    
+  </table>   -->
+    
