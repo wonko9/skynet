@@ -29,7 +29,7 @@ class <%= migration_name %> < ActiveRecord::Migration
       t.column  :tasktype,      :string
       t.column  :task_id,       'bigint unsigned'
       t.column  :job_id,        'bigint unsigned'
-      t.column  :raw_payload,   :text
+      t.column  :raw_payload,   "longtext"
       t.column  :payload_type,  :string
       t.column  :name,          :string
       t.column  :expiry,        :integer
