@@ -10,8 +10,13 @@ class Skynet
     else
       if Skynet::CONFIG[:SKYNET_LOG_DIR] == Skynet::DEFAULT_LOG_FILE_LOCATION
         puts "Logging to the default log: #{File.expand_path(Skynet::CONFIG[:SKYNET_LOG_FILE])}.  Set Skynet::CONFIG[:SKYNET_LOG_FILE] to change.\nYou will no longer see this warning once the Skynet::CONFIG[:SKYNET_LOG_FILE] is set."
+      end                          
+      if ARGV.include?('stop')
+        Skynet::Manager.stop(options)
+      else
+        options["daemonize"] = true if ARGV.include?('start')      
+        Skynet::Manager.start(options)
       end
-      Skynet::Manager.start(options)
     end
   end
 

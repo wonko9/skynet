@@ -54,7 +54,7 @@ class Skynet
     sleep 0.01  # remove contention on manager drb object
     log = Skynet::Logger.get
     info "executing /bin/sh -c \"#{command}\""
-    pid = fork do
+    pid = safefork do
       close_files
       exec("/bin/sh -c \"#{command}\"")
       exit
@@ -62,6 +62,17 @@ class Skynet
     Process.detach(pid)
     pid
   end
+  
+  def self.safefork (&block)
+    @fork_tries ||= 0
+    fork(&block)
+  rescue Errno::EWOULDBLOCK
+    raise if @fork_tries >= 20
+    @fork_tries += 1
+    sleep 5
+    retry
+  end
+  
 
   # close open file descriptors starting with STDERR+1
   def self.close_files(from=3, to=50)

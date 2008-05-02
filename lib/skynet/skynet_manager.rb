@@ -185,14 +185,10 @@ class Skynet
     end
 
     def worker_alive?(worker_pid)
-      begin
-        IO.popen("ps -o pid,command -p #{worker_pid}", "r") do |ps|
-          return ps.detect {|line| line =~ /worker_type/}
-        end
-      rescue Errno::ENOENT => e
-        return false
-      end
-      false
+      Process.kill(0,worker_pid)
+      return true
+    rescue Errno::ESRCH => e
+      return false
     end
 
 
@@ -483,6 +479,11 @@ class Skynet
         opt.banner = %{Usage:
         > skynet [options]
 
+        OR to daemonize
+
+        > skynet [options] start 
+        > skynet stop
+
         You can also run:
         > skynet console [options]
         }
@@ -582,23 +583,61 @@ class Skynet
         debug "CONTINUING TO START : There IS an available MessageQueue", options
 
         # create main pid file
-        File.open(options[:pid_file], 'w') do |file|
-          file.puts($$)
-        end
 
         begin
           printlog "STARTING THE MANAGER!!!!!!!!!!!"
           @manager = Skynet::Manager.new(options)
           DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
-          info "WORKER MANAGER URI: #{DRb.uri}"
           @manager.start_workers
-          @manager.run
-          DRb.thread.join
+          if options["daemonize"]
+            Skynet.safefork do
+              sess_id = Process.setsid
+              Skynet.close_console
+              run_manager(@manager)
+            end
+          else
+            run_manager(@manager)
+          end
         rescue SystemExit, Interrupt
         rescue Exception => e
           fatal("Error in Manager.  Manager Dying. #{e.inspect} #{e.backtrace}")
         end
       end
+    end
+    
+    def self.run_manager(manager)    
+      write_pid_file
+      info "WORKER MANAGER URI: #{DRb.uri}"
+      manager.run
+      DRb.thread.join
+    end
+    
+    # stop the daemon, nicely at first, and then forcefully if necessary
+    def self.stop(options = {})
+      pid = read_pid_file
+      raise "The Skynet Manager is not running" unless pid
+      $stdout.puts "Stopping Skynet"
+      printlog "Stopping Skynet"
+      Process.kill("TERM", pid)
+      180.times { Process.kill(0, pid); sleep(1) }
+      $stdout.puts("using kill -9 #{pid}")
+      Process.kill(9, pid)
+    rescue Errno::ESRCH => e
+      $stdout.puts "process #{pid} has stopped"
+      printlog "Skynet Stopped"
+    ensure
+      File.unlink(Skynet::Config.pidfile_location) if File.exist?(Skynet::Config.pidfile_location)
+    end
+    
+    def self.read_pid_file
+      pidfile = Skynet::Config.pidfile_location
+      File.read(pidfile).to_i if File.exist?(pidfile)
+    end
+
+    def self.write_pid_file                    
+      pidfile = Skynet::Config.pidfile_location
+      open(pidfile, "w") {|f| f << Process.pid << "\n"}
+      at_exit { File.unlink(pidfile) if read_pid_file == Process.pid }      
     end
 
   end
