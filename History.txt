@@ -8,6 +8,8 @@ Skynet::Manager and Skynet Script Runner
      Skynet.fork_and_exec prevents file descriptor exhaustion by calling Skynet.close_file_handles.
      Skynet::Manager detatches from console by calling Skynet.close_console
 
+ - You now have to specify your PIDFILE and LOGFILE dirs and files differently. This will break all old skynet runners. Sorry.
+ - Skynet runner handles default config variables better
  - Added Skynet::Job.results_by_job_id to retrieve results from asyncronous jobs
  - Added printlog logging method which always prints to the log as [LOG]
  - Deprecated Skynet.new to Skynet.start 
