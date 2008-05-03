@@ -54,6 +54,7 @@ script/destroy
 script/generate
 script/txt2html
 setup.rb
+skynet.log
 tasks/deployment.rake
 tasks/environment.rake
 tasks/website.rake
@@ -68,6 +69,7 @@ test/test_skynet_manager.rb
 test/test_skynet_message.rb
 test/test_skynet_task.rb
 test/test_tuplespace_message_queue.rb
+tmp/ts_log.log
 tmtags
 website/doc/classes/ActiveRecord.html
 website/doc/classes/ActiveRecord/Base.html

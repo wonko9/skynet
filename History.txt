@@ -1,9 +1,14 @@
 == 0.9.3 2008-04-10
+Skynet::Manager and Skynet Script Runner
+ - Rewrote how Skynet workers and skynet manager talks on each machine.  See below for more info 
+ 
  - Support starting Skynet with ./script/skynet start and stop to daemonize
  - Close file handles on exec.
      Skynet::Worker and Skynet::Manager now call Skynet.fork_and_exec instead of their own versions.
      Skynet.fork_and_exec prevents file descriptor exhaustion by calling Skynet.close_file_handles.
      Skynet::Manager detatches from console by calling Skynet.close_console
+
+ - Added Skynet::Job.results_by_job_id to retrieve results from asyncronous jobs
  - Added printlog logging method which always prints to the log as [LOG]
  - Deprecated Skynet.new to Skynet.start 
  - Mysql Message Queue Adapter - Make delete_expired_messages much safer.
@@ -12,6 +17,20 @@
  - We don't want to use rails constantize so I've temporarily borrowed the method from ActiveSupport inflector and added it to skynet_ruby_extensions.
  - Fix bug in Job comment where it referenced MapreduceTest instead of Skynet::MapreduceTest 
  - Fix tests. For some reason you still can't run ALL the test at once with rake test, but if the files are run individually they all pass.
+ - Change mysql text fields to longtext in migration and schema files
+ - Include some extras including our init.d script, our nagios monitoring script, rails controller and view for monitoring
+ - Created a new skynet rails initializer which gets installed from skynet_install --rails
+ - Modified the skynet_install skynet runner to take skynet initializer into account
+ - Skynet::ActiveRecordExtensions Fixed a bug where it would fail if your table had fewer than 1000 rows.  It performs a count
+  first now to make sure there are enough rows.
+ - Introduced some new Skynet::Config methods for getting logfile and pidfile locations 
+ 
+ 
+Skynet Manager/Worker Refactor
+  The workers used to publish their worker statuses to the skynet_worker_queue which lived in the same Q space as the skynet_message_queue.  skynet managers would then query that queue for their workers' statuses.   This was a very inefficient use of central resources.    The rewrite split the message_queue_adapter into a Skynet::MessageQueueAdapter and a Skynet::WorkerQueueAdapter, such that the message queue and worker queue could use different adapters.  I think made the default worker_queue adapter be the TupleSpace adapter.   With this adapter, each box running a manager and workers will end up running its own TupleSpace server.  The workers will put their statuses on that LOCAL q, which the managers pick up.  
+ The other difference is that the manager no longer leaves worker_queue entries on the Q. Instead it just takes them off the Q as soon as it sees them and caches the information about its workers locally.  It also saves that information to a file in case the manager dies or is stopped.
+As a consequence of decentralizing worker stats, you now have to ask all your managers for their individual stats along with the main message queue stats.  Added a stats_for_hosts method to Skynet::Manager which aggregates stats accross many managers.
+
 
 == 0.9.2 2008-01-22
 Highlights: 
