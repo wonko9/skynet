@@ -10,6 +10,8 @@ Skynet::Manager and Skynet Script Runner
 
  - You now have to specify your PIDFILE and LOGFILE dirs and files differently. This will break all old skynet runners. Sorry.
  - Skynet runner handles default config variables better
+ - Fix serious bug in Skynet::Partitioners::RecombineAndSplit where it wouldn't handle empty results well.
+ - Fixed Skynet::Partitioners::ArrayDataSplitByFirstEntry to handle strings as keys better
  - Added Skynet::Job.results_by_job_id to retrieve results from asyncronous jobs
  - Added printlog logging method which always prints to the log as [LOG]
  - Deprecated Skynet.new to Skynet.start 
