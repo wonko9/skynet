@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+
+# SkynetTupleSpace server is one of the message queues you can use with Skynet.   Make sure you set:
+#   Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER] = "Skynet::MessageQueueAdapter::TupleSpace"
+#
+# Usage: skynet_tuplespace_server (start|stop|run) [options]
+#     -t, --ontop TRUE                 Dont Daemonize
+#     -p, --port PORT                  Port to listen on. default 7647
+#     -o, --log LOGFILE                Logfile to log to
+#     -l, --loglevel LOGLEVEL          Log level defaults to DEBUG
+#     -d, --piddir PIDDIR              Directory to put pidfile
+#     -u, --drburi Drb URI             What DRbURI to use
+
+require 'rubygems'
+require 'daemons'
+require 'pp'
+
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
+
+options = { 
+  :port     => 7647,
+  :logfile  => Skynet::Config.pidfile_location,
+  :loglevel => "ERROR",
+  :piddir   => Skynet::CONFIG[:SKYNET_PID_DIR]
+}
+
+OptionParser.new do |opt|
+  opt.banner = "Usage: skynet_tuplespace_server (start|stop|run) [options]"  
+  opt.on('-t', '--ontop TRUE', 'Dont Daemonize') do |v| 
+    options[:ontop] = true if v.upcase == "TRUE" or v == "1"
+  end
+  opt.on('-p', '--port PORT', 'Port to listen on. default 7647') do |v| 
+    options[:port] = v.to_i
+  end
+  opt.on('-o', '--logfile LOGFILE', 'Logfile to log to') do |v|
+    options[:logfile] = v
+  end
+  opt.on('-l', '--loglevel LOGLEVEL', 'Log level defaults to DEBUG') do |v|
+    options[:loglevel] = v
+  end
+  opt.on('-d', '--piddir PIDDIR', 'Directory to put pidfile') do |v|
+    options[:piddir] = File.expand_path(v)
+  end
+  opt.on('-u', '--drburi Drb URI', 'What DRbURI to use') do |v|
+    if v =~ %r{druby://}
+      options[:drburi] = v
+    else
+      options[:drburi] = "druby://#{v}"
+    end
+    options[:drburi] =~ /druby:\/\/.+?:(\d*)/
+    options[:port] = $1.to_i
+  end
+
+  opt.parse!(ARGV)
+end
+
+Daemons.run_proc("skynet_tuplespace_server#{options[:port]}",
+{
+  :dir_mode  => :normal,
+  :dir       => options[:piddir],
+  :backtrace => true,
+  # :monitor => true,
+  :ontop     => options[:ontop] || false
+}) do
+  server = Skynet::Server.new(options)
+end

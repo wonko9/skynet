@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+# skynet_install is used to install skynet binaries into your application.
+# The value of using your own skynet binaries is that they can ensure your code
+# is available to all skynet workers.
+# This is also how you can run skynet from within rails. (using --rails)
+#
+# USAGE: skynet_install [--rails] directory (can be '.' for current)"
+# 
+#   Options:
+#       -v, --version                    Show the skynet_install version number and quit.
+#           --include-migration          Include mysql migration if you want to use mysql as your message queue
+#       -r, --rails                      Install into rails app
+#                                        Default: false
+#   General Options:
+#       -h, --help                       Show this help message and quit.
+#       -p, --pretend                    Run but do not make any changes.
+#       -f, --force                      Overwrite files that already exist.
+#       -s, --skip                       Skip files that already exist.
+#       -q, --quiet                      Suppress normal output.
+#       -t, --backtrace                  Debugging: show backtrace on errors.
+#       -c, --svn                        Modify files with subversion. (Note: svn must be in path)
+# 
+
+require 'rubygems'
+require 'rubigen'
+
+if %w(-v --version).include? ARGV.first
+  require 'skynet_install/version'
+  puts "#{File.basename($0)} #{SkynetInstall::VERSION::STRING}"
+  exit(0)
+end
+
+require 'rubigen/scripts/generate'
+RubiGen::Base.use_application_sources! :skynet_install
+RubiGen::Scripts::Generate.new.run(ARGV, :generator => 'skynet_install')

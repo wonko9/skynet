@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+<% if in_rails -%>
+# Load your rails app
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
+<% end -%>
+require 'rubygems'
+require 'skynet'         
+
+Skynet::CONFIG[:LAUNCHER_PATH]    = File.expand_path(__FILE__)
+Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::ERROR
+<% if not in_rails -%>
+Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+<% end -%>
+
+<% if mysql -%>
+<% if not in_rails -%>
+# Use the mysql message queue adapter
+Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER] = "Skynet::MessageQueueAdapter::Mysql"
+Skynet::CONFIG[:MYSQL_HOST]            = "localhost"
+Skynet::CONFIG[:MYSQL_USERNAME]        = "root"
+Skynet::CONFIG[:MYSQL_PASSWORD]        = ""
+Skynet::CONFIG[:MYSQL_DATABASE]        = "skynet"
+<% end -%>
+<% end -%>
+
+begin
+  mq = Skynet::MessageQueue.new
+rescue Skynet::ConnectionError
+  if Skynet::MessageQueue.adapter == :tuplespace
+    pid = fork do
+      exec("skynet_tuplespace_server start")
+    end
+    sleep Skynet::CONFIG[:TS_SERVER_START_DELAY]
+  end
+end
+
+
+Skynet.start

@@ -1,0 +1,7 @@
+# Logfile created on Sun Dec 16 13:44:46 -0800 2007 by logger.rb/1.5.2.9
+STARTING SKYNET SERVER ON PORT: 7647 Logging to /Users/apisoni/geni/dev/skynet/log/skynet_tuplespace_server.log
+STARTING SKYNET SERVER ON PORT: 7647 Logging to /Users/apisoni/geni/dev/skynet/log/skynet_tuplespace_server.log
+Couldn't start Skynet Server #<Errno::EADDRINUSE: Address already in use - bind(2)>
+Couldn't start Skynet Server #<SystemExit: exit>
+STARTING SKYNET SERVER ON PORT: 7647 Logging to /Users/apisoni/geni/dev/skynet/log/skynet_tuplespace_server.log
+Couldn't start Skynet Server #<SystemExit: exit>

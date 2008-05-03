@@ -1,0 +1,7 @@
+I've included some extras to help you deploy and monitor skynet.
+
+init.d/skynet  # sample init.d script to start/stop/restart skynet
+
+nagios/check_skynet.sh  # A script we use to have nagios (a monitoring tool) check our skynet Q.
+
+rails/*  # I've included the controller and view we use to monitor our skynet Q

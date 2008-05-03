@@ -1,0 +1,59 @@
+h1. skynet
+
+<a href="http://rubyforge.org/projects/skynet/">Skynet RubyForge Home</a><br />
+<a href="doc/index.html">Documentation</a>
+
+h2. See Skynet at RailsConf 08
+
+h4. Sat Mar 31, 2008 4:25pm - 5:15pm PDT @ Portland Ballroom 255
+
+<a href="http://en.oreilly.com/rails2008/public/schedule/detail/2022" target="_blank">More Info</a>
+
+<a href="http://en.oreilly.com/rails2008/public/schedule/detail/2022" target="_blank">
+<img src="http://conferences.oreillynet.com/banners/rails/speaker/728x90.jpg" width="728" height="90"  border="0"  alt="RailsConf 2008" title="RailsConf 2008"  />
+</a>
+
+h2. What is Skynet
+
+Skynet is an open source Ruby implementation of Google's Map/Reduce framework, created at Geni.com. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.
+
+Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed system with no single point of failure. It uses a "peer recovery" system where workers watch out for each other. If a worker dies or fails for any reason, another worker will notice and pick up that task. Skynet also has no special 'master' servers, only workers which can act as a master for any task at any time. Even these master tasks can fail and will be picked up by other workers.
+
+h2. Installing
+
+Skynet can be installed via RubyGems:
+
+<pre syntax="ruby">sudo gem install skynet</pre>
+
+h2. More Info
+
+For more info check out the <a href="doc/index.html">README</a>
+
+h2. Contact
+
+Comments are welcome. Send an email to "Adam Pisoni" apisoni at geni.com
+
+h2. LICENSE:
+
+(The MIT License)
+
+Copyright (c) 2007 Adam Pisoni, Geni.com
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
