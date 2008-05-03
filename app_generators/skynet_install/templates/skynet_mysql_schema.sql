@@ -7,7 +7,7 @@ CREATE TABLE skynet_message_queues (
   tasktype varchar(255) default NULL,
   task_id bigint(20) unsigned default NULL,
   job_id bigint(20) unsigned default NULL,
-  raw_payload text,
+  raw_payload longtext,
   payload_type varchar(255) default NULL,
   name varchar(255) default NULL,
   expiry int(11) default NULL,

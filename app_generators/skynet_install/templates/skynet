@@ -5,24 +5,20 @@
 require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
 require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
 <% end -%>
-
 require 'rubygems'
 require 'skynet'         
 
-Skynet::CONFIG[:LAUNCHER_PATH]      = File.expand_path(__FILE__)
-Skynet::CONFIG[:SKYNET_LOG_LEVEL]   = Logger::ERROR
-<% if in_rails -%>
-Skynet::CONFIG[:SKYNET_PIDS_FILE]   = File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.pid")
-Skynet::CONFIG[:SKYNET_LOG_FILE]    = File.expand_path("#{RAILS_ROOT}/log/skynet_#{RAILS_ENV}.log")
-<% else -%>
-Skynet::CONFIG[:SKYNET_PIDS_FILE]   = File.expand_path(File.dirname(__FILE__) + "/../log/skynet.pid")
-Skynet::CONFIG[:SKYNET_LOG_FILE]    = File.expand_path(File.dirname(__FILE__) + "/../log/skynet.log")
+Skynet::CONFIG[:LAUNCHER_PATH]    = File.expand_path(__FILE__)
+Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::ERROR
+<% if not in_rails -%>
+Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
 <% end -%>
 
 <% if mysql -%>
+<% if not in_rails -%>
 # Use the mysql message queue adapter
 Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER] = "Skynet::MessageQueueAdapter::Mysql"
-<% if not in_rails -%>
 Skynet::CONFIG[:MYSQL_HOST]            = "localhost"
 Skynet::CONFIG[:MYSQL_USERNAME]        = "root"
 Skynet::CONFIG[:MYSQL_PASSWORD]        = ""

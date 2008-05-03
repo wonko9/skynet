@@ -7,12 +7,18 @@ app_generators/skynet_install/USAGE
 app_generators/skynet_install/skynet_install_generator.rb
 app_generators/skynet_install/templates/migration.rb
 app_generators/skynet_install/templates/skynet
+app_generators/skynet_install/templates/skynet_initializer.rb
 app_generators/skynet_install/templates/skynet_mysql_schema.sql
 bin/skynet
 bin/skynet_install
 bin/skynet_tuplespace_server
 config/hoe.rb
 config/requirements.rb
+extras/README
+extras/init.d/skynet
+extras/nagios/check_skynet.sh
+extras/rails/controllers/skynet_controller.rb
+extras/rails/views/skynet/index.rhtml
 lib/skynet.rb
 lib/skynet/mapreduce_helper.rb
 lib/skynet/mapreduce_test.rb
@@ -36,7 +42,10 @@ lib/skynet/skynet_ruby_extensions.rb
 lib/skynet/skynet_task.rb
 lib/skynet/skynet_tuplespace_server.rb
 lib/skynet/skynet_worker.rb
+lib/skynet/skynet_worker_queue.rb
 lib/skynet/version.rb
+lib/skynet/worker_queue_adapters/mysql.rb
+lib/skynet/worker_queue_adapters/tuple_space.rb
 log/debug.log
 log/skynet.log
 log/skynet_tuplespace_server.log
@@ -45,7 +54,6 @@ script/destroy
 script/generate
 script/txt2html
 setup.rb
-skynet.log
 tasks/deployment.rake
 tasks/environment.rake
 tasks/website.rake

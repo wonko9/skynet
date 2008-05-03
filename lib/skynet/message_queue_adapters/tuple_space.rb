@@ -10,17 +10,17 @@ end
 class Skynet
   class Error < StandardError
   end
-  
+
   class RequestExpiredError < Skynet::Error
 	end
-	
+
 	class InvalidMessage < Skynet::Error
   end
 
   class MessageQueueAdapter
-  	
+
     class TupleSpace < Skynet::MessageQueueAdapter
-      
+
       include SkynetDebugger
 
       USE_FALLBACK_TASKS = true
@@ -34,6 +34,18 @@ class Skynet
 
       def self.adapter
         :tuplespace
+      end
+
+      def self.start_or_connect(options={})
+        begin
+          mq = new
+        rescue Skynet::ConnectionError
+          pid = fork do
+            exec("skynet_tuplespace_server start")
+          end
+          sleep 5
+          mq = new
+        end
       end
 
       def initialize(ts=nil)
@@ -70,36 +82,6 @@ class Skynet
         timeout ||= message.expiry
         write(message.error_message(error),timeout)
         take_fallback_message(message)
-      end
-
-
-      def write_worker_status(task, timeout=nil)
-        begin
-          take_worker_status(task,0.00001)
-        rescue Skynet::RequestExpiredError
-        end   
-        write(Skynet::WorkerStatusMessage.new(task), timeout)
-      end
-
-      def take_worker_status(task, timeout=nil)
-        Skynet::WorkerStatusMessage.new(take(Skynet::WorkerStatusMessage.worker_status_template(task), timeout))
-      end
-
-      def read_all_worker_statuses(hostname=nil)
-        ws = Skynet::WorkerStatusMessage.all_workers_template(hostname)
-        workers = read_all(ws).collect{ |w| Skynet::WorkerStatusMessage.new(w) }#.sort{ |a,b| a.process_id <=> b.process_id }
-      end
-
-      def clear_worker_status(hostname=nil)
-        cnt = 0
-        begin
-          loop do
-            take(Skynet::WorkerStatusMessage.new([:status, :worker, hostname, nil, nil]),0.01)
-            cnt += 1
-          end
-        rescue Skynet::RequestExpiredError
-        end
-        cnt
       end
 
       def list_tasks(iteration=nil,queue_id=0)
@@ -165,20 +147,20 @@ class Skynet
         rescue DRb::DRbConnError, Errno::ECONNREFUSED => e
           error "ERROR #{e.inspect}", caller
         end
-    
+
         tasks.size.times do |ii|
           take(Skynet::Message.outstanding_tasks_template,0.00001)
         end
-    
+
         results = read_all(Skynet::Message.outstanding_results_template)
         results.size.times do |ii|
           take(Skynet::Message.outstanding_results_template,0.00001)
         end
-    
+
         task_tuples = read_all(Skynet::Message.outstanding_tasks_template)
         result_tuples = read_all(Skynet::Message.outstanding_results_template)
         return task_tuples + result_tuples
-      end  
+      end
 
       def stats
         t1 = Time.now
@@ -188,7 +170,7 @@ class Skynet
         p_tasks = tasks.partition {|task| task[9] == 0}
         {:taken_tasks => p_tasks[1].size, :untaken_tasks => p_tasks[0].size, :results => list_results.size, :time => t2.to_f}
       end
-      
+
       private
 
       attr_accessor :ts
@@ -208,7 +190,7 @@ class Skynet
       def read_all(template)
         ts_command(:read_all,template)
       end
-      
+
       ###### FALLBACK METHODS
       def write_fallback_task(message)
         return unless USE_FALLBACK_TASKS
@@ -243,14 +225,14 @@ class Skynet
         else
           raise InvalidMessage.new("You must provide a valid Skynet::Message object when calling #{command}.  You passed #{message.inspect}.")
         end
-    
+
         begin
           if command==:read_all
             return ts.send(command,tuple)
           else
             return ts.send(command,tuple,timeout)
           end
-    
+
         rescue Rinda::RequestExpiredError
           raise Skynet::RequestExpiredError.new
         rescue DRb::DRbConnError => e
@@ -276,7 +258,7 @@ class Skynet
   ####################################
 
       ### XXX ACCEPT MULTIPLE TUPLE SPACES and a flag whether to use replication or failover.
-    
+
       def self.get_tuple_space
         return @@ts if is_valid_tuplespace?(@@ts)
         loop do
@@ -289,7 +271,7 @@ class Skynet
               @@ts = connect_to_tuple_space(host,port)
             else
               drburi = Skynet::CONFIG[:TS_DRBURIS].first
-              drburi = "druby://#{drburi}" unless drburi =~ %r{druby://}              
+              drburi = "druby://#{drburi}" unless drburi =~ %r{druby://}
               @@ts = get_tuple_space_from_drburi(drburi)
               log.info "#{self} CONNECTED TO #{drburi}"
             end
@@ -303,12 +285,12 @@ class Skynet
               raise Skynet::ConnectionError.new("Can't find ring finger @ #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")
             end
           rescue Exception => e
-            raise Skynet::ConnectionError.new("Error getting tuplespace @ #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")          
+            raise Skynet::ConnectionError.new("Error getting tuplespace @ #{Skynet::CONFIG[:TS_SERVER_HOSTS][@@curhostidx]}. #{e.class} #{e.message}")
           end
         end
         return @@ts
       end
-    
+
       def self.connect_to_tuple_space(host,port)
         log.info "#{self} trying to connect to #{host}:#{port}"
         if Skynet::CONFIG[:TS_USE_RINGSERVER]
@@ -323,7 +305,7 @@ class Skynet
         log.info "#{self} CONNECTED TO #{host}:#{port}"
         ts
       end
-      
+
       def self.get_tuple_space_from_drburi(drburi)
         DRbObject.new(nil, drburi)
       end

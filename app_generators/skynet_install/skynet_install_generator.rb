@@ -26,8 +26,12 @@ class SkynetInstallGenerator < RubiGen::Base
       
       # Create stubs
       m.template     "skynet",         "script/skynet", :collision => :ask, :chmod => 0775, :shebang => options[:shebang]
+      if @in_rails
+        m.template  "skynet_initializer.rb", "config/initializers/skynet.rb", :collision => :ask, :chmod => 0655
+        m.directory 'config/initializers'
+      end
       if @mysql
-        m.template   "skynet_schema.sql", "db/skynet_schema.sql", :collision => :ask, :chmod => 0655
+        m.template   "skynet_mysql_schema.sql", "db/skynet_mysql_schema.sql", :collision => :ask, :chmod => 0655
         m.directory 'db/migrate'
         m.migration_template "migration.rb", "db/migrate", 
           :collision => :ask, 
@@ -58,13 +62,16 @@ EOS
       opts.on("--mysql", 
              "Include mysql migration if you want to use mysql as your message queue.  
              Installs:
-             ./db/skynet_schema.sql
+             ./db/skynet_mysql_schema.sql
              ./db/migrate/db/migrate/###_create_skynet_tables.rb
              ") do |mysql|
                options[:mysql] = true if mysql
              end
       opts.on("-r", "--rails",
-              "Install into rails app",
+              "Install into rails app.
+              Installs:
+              ./config/initializers/skynet.rb
+              (If using rails 1, make sure to add require 'skynet' to your environment.rb)",
               "Default: false") do |rails| 
                 options[:rails] = true if rails
               end

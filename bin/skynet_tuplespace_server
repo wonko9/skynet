@@ -15,12 +15,12 @@ require 'rubygems'
 require 'daemons'
 require 'pp'
 
-require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'         
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
 options = { 
   :port     => 7647,
-  :logfile  => Skynet::CONFIG[:SKYNET_LOG_FILE],
-  :loglevel => "DEBUG",
+  :logfile  => Skynet::Config.pidfile_location,
+  :loglevel => "ERROR",
   :piddir   => Skynet::CONFIG[:SKYNET_PID_DIR]
 }
 
@@ -32,7 +32,7 @@ OptionParser.new do |opt|
   opt.on('-p', '--port PORT', 'Port to listen on. default 7647') do |v| 
     options[:port] = v.to_i
   end
-  opt.on('-o', '--log LOGFILE', 'Logfile to log to') do |v|
+  opt.on('-o', '--logfile LOGFILE', 'Logfile to log to') do |v|
     options[:logfile] = v
   end
   opt.on('-l', '--loglevel LOGLEVEL', 'Log level defaults to DEBUG') do |v|

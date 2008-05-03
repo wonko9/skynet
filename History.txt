@@ -1,4 +1,5 @@
 == 0.9.3 2008-04-10
+ - Support starting Skynet with ./script/skynet start and stop to daemonize
  - Close file handles on exec.
      Skynet::Worker and Skynet::Manager now call Skynet.fork_and_exec instead of their own versions.
      Skynet.fork_and_exec prevents file descriptor exhaustion by calling Skynet.close_file_handles.

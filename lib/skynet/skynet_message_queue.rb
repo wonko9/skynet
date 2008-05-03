@@ -12,25 +12,46 @@ class Skynet
   class RequestExpiredError < Skynet::Error
   end
 
-  # This class is the interface to the Skynet Message Queue.   
+  # This class is the interface to the Skynet Message Queue.
   class MessageQueue
 
     include SkynetDebugger
 
-    require 'forwardable'    
-    extend Forwardable    
-        
+    require 'forwardable'
+    extend Forwardable
+
     def self.adapter
-      Object.module_eval(Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER], __FILE__, __LINE__).adapter
+      adapter_class.constantize.adapter
     end
 
-    def initialize(message_queue_proxy_class=Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER])
-      if message_queue_proxy_class.is_a?(String)
-        @message_queue_proxy_class = Object.module_eval(message_queue_proxy_class, __FILE__, __LINE__)
-      else
-        @message_queue_proxy_class = message_queue_proxy_class
+    def self.adapter_class
+      Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER]
+    end
+    
+    def self.start_or_connect(adapter_class = self.adapter_class)
+      begin
+        mq = new
+      rescue Skynet::ConnectionError
+        if self.adapter == :tuplespace
+          pid = fork do
+            exec("skynet_tuplespace_server start")
+          end
+          sleep 5
+        end
+        new
       end
+    end
+    
+    def initialize(message_queue_proxy_class=Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER])
       mq
+    end
+
+    def self.message_queue_proxy_class
+      adapter_class.constantize
+    end
+
+    def message_queue_proxy_class
+      @message_queue_proxy_class ||= self.class.message_queue_proxy_class
     end
 
     # Is this version still active in the queue?
@@ -42,12 +63,12 @@ class Skynet
     def get_worker_version
       mq.get_worker_version
     end
-    
+
     # Sets the current worker version (causing workers to restart)
     def set_worker_version(version)
       mq.set_worker_version(version)
     end
-    
+
     # Increments the current worker version (causing workers to restart)
     def increment_worker_version
       newver = self.get_worker_version + 1
@@ -56,16 +77,14 @@ class Skynet
     end
 
     def mq
-      @mq ||= @message_queue_proxy_class.new
+      @mq ||= message_queue_proxy_class.new
     end
-               
-    def_delegators :mq, :take_next_task, :write_message, :take_result, :write_error, :write_result,
-                   :list_tasks, :list_results, :stats,
-                   :clear_outstanding_tasks, :clear_outstanding_results,
-                   :take_worker_status, :write_worker_status, :read_all_worker_statuses, :clear_worker_status
-                   
 
-          
+    def_delegators :mq, :take_next_task, :write_message, :take_result, :write_error, :write_result,
+                   :list_tasks, :list_results, :clear_outstanding_tasks, :clear_outstanding_results, :stats
+
+
+
    def message_fields
      Skynet::Message.fields
    end

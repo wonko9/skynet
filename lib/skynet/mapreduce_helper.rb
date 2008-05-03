@@ -22,7 +22,7 @@ module MapreduceHelper
 #       SomeUrlSlurper.gather_results(url)  # returns an array of urls of sites that link to the given url
 #     end
 #   
-#     def self.reduce(linked_from_url)
+#     def self.reduce_each(linked_from_url)
 #       SomeUrlSluper.find_text("mysite", linked_from_url)   # finds all the times "mysite" appears in the given url, which we know links to the url given in the map_data
 #     end
 #   end
