@@ -3,11 +3,13 @@ Skynet::Manager and Skynet Script Runner
  - Rewrote how Skynet workers and skynet manager talks on each machine.  See below for more info 
  
  - Support starting Skynet with ./script/skynet start and stop to daemonize
+ - Gracefully handles trying to start skynet more than once
  - Close file handles on exec.
      Skynet::Worker and Skynet::Manager now call Skynet.fork_and_exec instead of their own versions.
      Skynet.fork_and_exec prevents file descriptor exhaustion by calling Skynet.close_file_handles.
      Skynet::Manager detatches from console by calling Skynet.close_console
 
+ - Dramatically improved Skynet shutdown time
  - You now have to specify your PIDFILE and LOGFILE dirs and files differently. This will break all old skynet runners. Sorry.
  - Skynet runner handles default config variables better
  - Fix serious bug in Skynet::Partitioners::RecombineAndSplit where it wouldn't handle empty results well.

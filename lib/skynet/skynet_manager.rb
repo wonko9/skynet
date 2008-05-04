@@ -171,26 +171,23 @@ class Skynet
           signal_workers("INT")
           @masters_dead = true
           sleep 1
-          return check_number_of_workers
+          # return check_number_of_workers
         else
           sleep 4
           return check_number_of_workers
         end
-      else
-        warn "Shutting down.  #{worker_pids.size} workers still running." if worker_pids.size > 0
       end
+      update_worker_queue
       if worker_pids.size < 1
         info "No more workers running."
+      else
+        warn "Shutting down.  #{worker_pids.size} workers still running." if worker_pids.size > 0        
       end
     end
 
     def worker_alive?(worker_pid)
-      Process.kill(0,worker_pid)
-      return true
-    rescue Errno::ESRCH => e
-      return false
+      Skynet.process_alive?(worker_pid)
     end
-
 
     def add_workers(*args)
       add_worker(*args)
@@ -265,7 +262,7 @@ class Skynet
     def signal_workers(signal,worker_type=nil)
       active_workers.each do |worker|
         next if worker_type and not @workers_by_type[worker_type].include?(worker.process_id)
-        warn "SHUTTING DOWN #{worker.process_id} MR: #{worker.map_or_reduce}"
+        warn "SHUTTING DOWN #{worker.process_id} MR: #{worker.map_or_reduce} SIG: #{signal}"
         Process.kill(signal,worker.process_id)
         # mark_worker_as_stopped(worker.process_id)
         @signaled_workers << worker.process_id
@@ -362,7 +359,14 @@ class Skynet
     def load_worker_queue_from_file
       if File.exists?(Skynet.config.manager_statfile_location)
         File.open(Skynet.config.manager_statfile_location,"r") do |f|
-          @worker_queue = YAML.load(f.read)
+          begin
+            @worker_queue = YAML.load(f.read)
+            raise Error.new("Bad Manager File returned type #{@worker_queue.class}") unless @worker_queue.is_a?(Hash)
+          rescue Exception => e
+            error "Error loading manager stats file: #{f}", e
+            @worker_queue = {}
+            save_worker_queue_to_file
+          end
         end
       end
     end
@@ -582,9 +586,17 @@ class Skynet
 
         debug "CONTINUING TO START : There IS an available MessageQueue", options
 
-        # create main pid file
-
         begin
+          if oldpid = read_pid_file
+            if Skynet.process_alive?(oldpid)
+              error "Another Skynet Manager is running pid: #{oldpid}"
+              exit
+            else
+              error "Deleting stale pidfile #{Skynet::Config.pidfile_location}"
+              File.unlink(Skynet::Config.pidfile_location) if File.exist?(Skynet::Config.pidfile_location)
+            end
+          end
+          
           printlog "STARTING THE MANAGER!!!!!!!!!!!"
           @manager = Skynet::Manager.new(options)
           DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
@@ -605,7 +617,7 @@ class Skynet
       end
     end
     
-    def self.run_manager(manager)    
+    def self.run_manager(manager)
       write_pid_file
       info "WORKER MANAGER URI: #{DRb.uri}"
       manager.run

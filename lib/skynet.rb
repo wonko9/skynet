@@ -88,4 +88,11 @@ class Skynet
     STDERR.reopen STDOUT 
   end
 
+  def self.process_alive?(worker_pid)
+    Process.kill(0,worker_pid)
+    return true
+  rescue Errno::ESRCH => e
+    return false
+  end  
+
 end

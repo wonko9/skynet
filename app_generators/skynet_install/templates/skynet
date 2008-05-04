@@ -2,7 +2,6 @@
 
 <% if in_rails -%>
 # Load your rails app
-require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
 require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
 <% end -%>
 require 'rubygems'
@@ -13,6 +12,8 @@ Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::ERROR
 <% if not in_rails -%>
 Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
 Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+<% else -%>
+## See config/initializers/skynet.rb for more settings
 <% end -%>
 
 <% if mysql -%>

@@ -102,11 +102,13 @@ class Skynet
     def notify_task_begun(task)
       task[:processed] = @processed
       task[:started_at] = Time.now.to_i
+      @in_process = true      
       wq.write_worker_status(@worker_info.merge(task))
     end
 
     def notify_task_complete
       @processed += 1
+      @in_process = false
 
       wq.write_worker_status(
         @worker_info.merge({
@@ -145,6 +147,9 @@ class Skynet
         exit
       else
         @die = true
+        if not @in_process
+          exit
+        end
       end
     end
 
@@ -154,9 +159,12 @@ class Skynet
       @curver    = nil
 
       # setup signal handlers for manager
-      Signal.trap("HUP")  { @respawn = true }
+      Signal.trap("HUP")  do
+        @respawn = true
+        raise Skynet::Worker::RespawnWorker.new if not @in_process
+      end
       Signal.trap("TERM") { interrupt       }
-      Signal.trap("INT")  { @die = true     }
+      Signal.trap("INT")  { interrupt       }
 
       raise Skynet::Worker::RespawnWorker.new if new_version_respawn?
 
@@ -229,6 +237,7 @@ class Skynet
 
         rescue Skynet::Task::TimeoutError => e
           error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
+          @in_process = false
           next
 
         rescue Skynet::Worker::RespawnWorker => e
@@ -277,6 +286,7 @@ class Skynet
             # mq.write_error(message,"ERROR in WORKER [#{$$}] #{e.inspect} #{e.backtrace.join("\n")}")
           end
           # mq.write_error("ERROR in WORKER [#{$$}] #{e.inspect} #{e.backtrace.join("\n")}")
+          @in_process = false
           next
         end
       end
