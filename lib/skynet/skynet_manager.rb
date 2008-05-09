@@ -588,11 +588,16 @@ class Skynet
 
         begin
           if oldpid = read_pid_file
+            errmsg = nil
             if Skynet.process_alive?(oldpid)
-              error "Another Skynet Manager is running pid: #{oldpid}"
+              errmsg = "Another Skynet Manager is running at pid: #{oldpid}"
+              warn errmsg
+              stderr errmsg
               exit
             else
-              error "Deleting stale pidfile #{Skynet::Config.pidfile_location}"
+              errmsg =  "Deleting stale pidfile #{Skynet::Config.pidfile_location}"
+              warn errmsg
+              stderr errmsg
               File.unlink(Skynet::Config.pidfile_location) if File.exist?(Skynet::Config.pidfile_location)
             end
           end

@@ -73,6 +73,14 @@ module SkynetDebugger
     self.class.debug_header
   end
   
+  def stderr(*args)
+    self.class.stderr
+  end
+
+  def stdout(*args)
+    self.class.stdout
+  end
+  
   module ClassMethods
     
     def debug_class_desc
@@ -115,6 +123,14 @@ module SkynetDebugger
 
     def printlog(msg, *args)
       log.unknown "[LOG] #{debug_header} #{msg} #{args_pp(*args)}"
+    end
+
+    def stderr(msg, *args)
+      $stderr.puts "#{debug_header} #{msg} #{args_pp(*args)}"
+    end
+
+    def stdout(msg, *args)
+      $stdout.puts "#{debug_header} #{msg} #{args_pp(*args)}"
     end
   
   end
