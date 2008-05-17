@@ -350,13 +350,22 @@ class Skynet
     end
 
     def update_worker_queue
-      mq.take_all_worker_statuses(hostname,0.00001).each do |status|
-        status.started_at = status.started_at.to_i
-        @worker_queue[status.worker_id] = status
+      @worker_queue_retries ||= 0
+      begin
+        mq.take_all_worker_statuses(hostname,0.00001).each do |status|
+          status.started_at = status.started_at.to_i
+          @worker_queue[status.worker_id] = status
+        end
+        @worker_pids = nil
+        save_worker_queue_to_file
+        @active_workers = nil
+      rescue Skynet::ConnectionError => e
+        exit if @worker_queue_retries > 3
+        @worker_queue_retries += 1
+        warn "Skynet Worker Queue Tuplespace Server appears down.  Trying to restart"
+        self.class.start_worker_queue
+        sleep 4
       end
-      @worker_pids = nil
-      save_worker_queue_to_file
-      @active_workers = nil
       @worker_queue
     end
 
@@ -681,6 +690,7 @@ class Skynet
       Process.kill("TERM", pid)
       180.times { Process.kill(0, pid); sleep(1) }
       $stdout.puts("using kill -9 #{pid}")
+      Process.kill("KILL", pid)
     rescue Errno::ESRCH => e
       printlog "Skynet Stopped"
     ensure
