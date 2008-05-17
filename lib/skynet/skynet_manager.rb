@@ -173,7 +173,7 @@ class Skynet
           sleep 1
           # return check_number_of_workers
         else
-          sleep 4
+          sleep 2
           return check_number_of_workers
         end
       end
@@ -341,7 +341,7 @@ class Skynet
     def terminate
       info(:terminate)
       signal_workers("KILL")
-      sleep 2      
+      sleep 1
       exit
     end
 
@@ -678,10 +678,10 @@ class Skynet
       printlog "Stopping Skynet"
       Process.kill("TERM", pid)
       180.times { Process.kill(0, pid); sleep(1) }
+      Process.kill("TERM", pid)
+      180.times { Process.kill(0, pid); sleep(1) }
       $stdout.puts("using kill -9 #{pid}")
-      Process.kill(9, pid)
     rescue Errno::ESRCH => e
-      $stdout.puts "process #{pid} has stopped"
       printlog "Skynet Stopped"
     ensure
       File.unlink(Skynet::Config.pidfile_location) if File.exist?(Skynet::Config.pidfile_location)

@@ -273,7 +273,7 @@ class Skynet
           fatal e.message
           break
         rescue Interrupt, SystemExit => e
-          printlog "Exiting..."
+          info "Exiting..."
           notify_worker_stop
           break
         rescue Exception => e
