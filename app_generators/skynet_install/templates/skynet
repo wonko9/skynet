@@ -31,8 +31,9 @@ begin
   mq = Skynet::MessageQueue.new
 rescue Skynet::ConnectionError
   if Skynet::MessageQueue.adapter == :tuplespace
+    cmd = "skynet_tuplespace_server --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet::CONFIG[:SKYNET_PID_DIR]} start"
     pid = fork do
-      exec("skynet_tuplespace_server start")
+      exec(cmd)
     end
     sleep Skynet::CONFIG[:TS_SERVER_START_DELAY]
   end

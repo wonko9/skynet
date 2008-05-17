@@ -18,10 +18,11 @@ require 'pp'
 require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
 options = { 
-  :port     => 7647,
-  :logfile  => Skynet::Config.pidfile_location,
-  :loglevel => "ERROR",
-  :piddir   => Skynet::CONFIG[:SKYNET_PID_DIR]
+  :port           => 7647,
+  :logfile        => Skynet::Config.pidfile_location,
+  :loglevel       => "DEBUG",
+  :piddir         => Skynet::CONFIG[:SKYNET_PID_DIR],
+  :use_ringserver => Skynet::CONFIG[:TS_USE_RINGSERVER],
 }
 
 OptionParser.new do |opt|
@@ -33,7 +34,7 @@ OptionParser.new do |opt|
     options[:port] = v.to_i
   end
   opt.on('-o', '--logfile LOGFILE', 'Logfile to log to') do |v|
-    options[:logfile] = v
+    options[:logfile] = File.expand_path(v)
   end
   opt.on('-l', '--loglevel LOGLEVEL', 'Log level defaults to DEBUG') do |v|
     options[:loglevel] = v
@@ -62,5 +63,5 @@ Daemons.run_proc("skynet_tuplespace_server#{options[:port]}",
   # :monitor => true,
   :ontop     => options[:ontop] || false
 }) do
-  server = Skynet::Server.new(options)
+  server = Skynet::TuplespaceServer.start(options)
 end

@@ -14,7 +14,8 @@ class Skynet
     :MESSAGE_QUEUE_ADAPTER                => ("Skynet::MessageQueueAdapter::TupleSpace" || "Skynet::MessageQueueAdapter::Mysql"),
     :WORKER_QUEUE_ADAPTER                 => ("Skynet::WorkerQueueAdapter::TupleSpace" || "Skynet::WorkerQueueAdapter::Mysql"),
     :TS_USE_RINGSERVER                    => true,
-    :TS_DRBURIS                           => ["druby://localhost:47647"],   # If you do not use RINGSERVER, you must specifiy the DRBURI
+    :TS_DRBURI                            => "druby://localhost:47647",   # If you do not use RINGSERVER, you must specifiy the DRBURI
+    :TS_WQUEUE_URI                        => "druby://localhost:47669",
     :TS_SERVER_HOSTS                      => ["localhost:7647"],
     :TS_SERVER_START_DELAY                => 10,
     # :MYSQL_QUEUE_DATABASE                 => "skynet_queue",
@@ -113,7 +114,7 @@ class Skynet
   #   :SKYNET_LOG_LEVEL                     => Logger::ERROR,
   #   :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
   #   :MESSAGE_QUEUE_ADAPTER                => "Skynet::MessageQueueAdapter::TupleSpace",
-  #   :TS_DRBURIS                           => ["druby://localhost:47647"]
+  #   :TS_DRBURI                            => "druby://localhost:47647"
   #   :TS_USE_RINGSERVER                    => true,
   #   :TS_SERVER_HOSTS                      => ["localhost:7647"],
   #   :TS_SERVER_START_DELAY                => 10,
@@ -149,7 +150,7 @@ class Skynet
   # The mysql MQ takes running a migration that comes with skynet_install
   #
   # The following only apply to the TupleSpace adapter
-  #   :TS_DRBURIS                           => ["druby://localhost:47647"]
+  #   :TS_DRBURI                            => "druby://localhost:47647"
   #   :TS_USE_RINGSERVER                    => true,
   #   :TS_SERVER_HOSTS                      => ["localhost:7647"],
   #

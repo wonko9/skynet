@@ -168,7 +168,7 @@ class Skynet
         end
 
         if not active_workers.detect { |w| w.map_or_reduce == "master" }
-          signal_workers("INT")
+          signal_workers("TERM")
           @masters_dead = true
           sleep 1
           # return check_number_of_workers
@@ -181,7 +181,7 @@ class Skynet
       if worker_pids.size < 1
         info "No more workers running."
       else
-        warn "Shutting down.  #{worker_pids.size} workers still running." if worker_pids.size > 0        
+        warn "Shutting down.  #{worker_pids.size} workers still running." if worker_pids.size > 0
       end
     end
 
@@ -225,7 +225,7 @@ class Skynet
         sleep 0.01
         wpid
       end
-      info "DISTRO", worker_types
+      info "Worker Distribution", worker_types
       check_started_workers
     end
 
@@ -250,7 +250,7 @@ class Skynet
     def mark_worker_as_stopped(wpid)
       worker = @worker_queue.values.detect {|status| status.process_id == wpid}
       if worker and not worker_alive?(wpid)
-        @worker_queue.delete_if{|status| status.process_id == wpid}
+        @worker_queue.delete_if {|worker_id, status| status.process_id == wpid }
         worker_pids.delete(worker.process_id)
         worker.started_at = Time.now.to_f
         worker.process_id = nil
@@ -259,11 +259,22 @@ class Skynet
       end
     end
 
-    def signal_workers(signal,worker_type=nil)
+    def signal_workers(signal,worker_type=[])
+      worker_types = [worker_type].flatten
       active_workers.each do |worker|
-        next if worker_type and not @workers_by_type[worker_type].include?(worker.process_id)
+        worker_types.each do |worker_type|
+          if worker_type == :idle
+            next if worker_type and worker.task_id
+          else
+            next if worker_type and not @workers_by_type[worker_type].include?(worker.process_id)
+          end
+        end
         warn "SHUTTING DOWN #{worker.process_id} MR: #{worker.map_or_reduce} SIG: #{signal}"
-        Process.kill(signal,worker.process_id)
+        begin
+          Process.kill(signal,worker.process_id)
+        rescue Errno::ESRCH
+          warn "Tried to kill a process that didn't exist #{worker.process_id}"
+        end
         # mark_worker_as_stopped(worker.process_id)
         @signaled_workers << worker.process_id
       end
@@ -324,13 +335,13 @@ class Skynet
     def shutdown
       info(:shutdown)
       @shutdown = true
-      signal_workers("INT",:master)
-      signal_workers("INT",:any)
+      signal_workers("TERM",[:idle,:master,:any])
     end
 
     def terminate
       info(:terminate)
-      signal_workers("TERM")
+      signal_workers("KILL")
+      sleep 2      
       exit
     end
 
@@ -348,7 +359,7 @@ class Skynet
       @active_workers = nil
       @worker_queue
     end
-    
+
 
     def save_worker_queue_to_file
       File.open(Skynet.config.manager_statfile_location,"w") do |f|
@@ -376,19 +387,19 @@ class Skynet
       update_worker_queue
       stats
     end
-    
+
     def self.stats_for_hosts(manager_hosts=nil)
       manager_hosts = Skynet::CONFIG[:MANAGER_HOSTS] || ["localhost"]
       stats = {
-        :servers           => {}, 
-        :processed         => 0, 
+        :servers           => {},
+        :processed         => 0,
         :number_of_workers => 0,
         :active_workers    => 0,
         :idle_workers      => 0,
         :hosts             => 0,
         :masters           => 0,
         :taskworkers       => 0,
-        :time              => Time.now.to_f            
+        :time              => Time.now.to_f
       }
       servers = {}
       manager_hosts.each do |manager_host|
@@ -398,9 +409,9 @@ class Skynet
         manager_stats.each do |key,value|
           next unless value.is_a?(Fixnum)
           stats[key] ||= 0
-          stats[key] += value            
+          stats[key] += value
         end
-      end   
+      end
       stats[:servers] = servers
       stats[:hosts]   = manager_hosts
       stats
@@ -485,7 +496,7 @@ class Skynet
 
         OR to daemonize
 
-        > skynet [options] start 
+        > skynet [options] start
         > skynet stop
 
         You can also run:
@@ -601,16 +612,23 @@ class Skynet
               File.unlink(Skynet::Config.pidfile_location) if File.exist?(Skynet::Config.pidfile_location)
             end
           end
-          
-          printlog "STARTING THE MANAGER!!!!!!!!!!!"
+
+          printlog "STARTING THE MANAGER!!!!!!!!!!! @ #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}"
           @manager = Skynet::Manager.new(options)
-          DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
+          if Skynet::WorkerQueue.adapter == :tuplespace
+            @wqpid = start_worker_queue
+            sleep 1
+          end
           @manager.start_workers
           if options["daemonize"]
             Skynet.safefork do
+              s = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
+              printlog "MANAGER STARTED AT #{s.uri}"
               sess_id = Process.setsid
               Skynet.close_console
+              at_exit {Process.kill("TERM", @wqpid)} if @wqpid
               run_manager(@manager)
+              exit!
             end
           else
             run_manager(@manager)
@@ -621,14 +639,37 @@ class Skynet
         end
       end
     end
-    
+
+    def self.start_worker_queue
+      queue_proc = Proc.new do
+        @ts = Rinda::TupleSpace.new
+        begin
+          Signal.trap("TERM") { exit }
+          Signal.trap("INT") { exit }
+          s = DRb.start_service(Skynet::CONFIG[:TS_WQUEUE_URI], @ts)
+          info "Starting worker queue tuplespace @ #{Skynet::CONFIG[:TS_WQUEUE_URI]} ACTUAL @ #{s.uri}"
+          DRb.thread.join
+        rescue SystemExit, Interrupt
+        rescue Exception => e
+          error "Error in worker queue process", e
+        end
+        info "Shutting down worker queue"
+      end
+      begin
+        f = fork {queue_proc.call}
+        return f
+      rescue Exception => e
+        fatal "Error starting worker queue TS ", e
+      end
+    end
+
     def self.run_manager(manager)
       write_pid_file
       info "WORKER MANAGER URI: #{DRb.uri}"
       manager.run
       DRb.thread.join
     end
-    
+
     # stop the daemon, nicely at first, and then forcefully if necessary
     def self.stop(options = {})
       pid = read_pid_file
@@ -645,16 +686,16 @@ class Skynet
     ensure
       File.unlink(Skynet::Config.pidfile_location) if File.exist?(Skynet::Config.pidfile_location)
     end
-    
+
     def self.read_pid_file
       pidfile = Skynet::Config.pidfile_location
       File.read(pidfile).to_i if File.exist?(pidfile)
     end
 
-    def self.write_pid_file                    
+    def self.write_pid_file
       pidfile = Skynet::Config.pidfile_location
       open(pidfile, "w") {|f| f << Process.pid << "\n"}
-      at_exit { File.unlink(pidfile) if read_pid_file == Process.pid }      
+      at_exit { File.unlink(pidfile) if read_pid_file == Process.pid }
     end
 
   end

@@ -29,6 +29,7 @@ class Skynet
       @worker_type  = worker_type.to_sym
       @queue_id     = options[:queue_id] || 0
       @processed    = 0
+      @in_process   = false
       @mq           = Skynet::MessageQueue.new
       @wq           = Skynet::WorkerQueue.new
 
@@ -148,6 +149,7 @@ class Skynet
       else
         @die = true
         if not @in_process
+          notify_worker_stop
           exit
         end
       end

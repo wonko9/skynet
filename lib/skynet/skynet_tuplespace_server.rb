@@ -49,12 +49,12 @@ class Skynet
   class Job
   end
 
-  class Server
+  class TuplespaceServer
 
-    def initialize(options)
-      log = Logger.new(options[:logfile], 'weekly')
+    def self.start(options)
+      log = Logger.new(options[:logfile])
       log.level = Object.module_eval("#{"Logger::" + options[:loglevel].upcase}", __FILE__, __LINE__)
-      log.info "STARTING SKYNET SERVER ON PORT: #{options[:port]} Logging to #{options[:logfile]}"
+      log.info "STARTING TUPLESPACE SERVER ON PORT: #{options[:port]} Logging to #{options[:logfile]}"
 
       # Create a TupleSpace to hold named services, and start running
       begin
@@ -64,13 +64,16 @@ class Skynet
         else
           DRb.start_service
         end
-        tuple = [:name,:TupleSpace, ts, 'Tuple Space']
-        renewer = Rinda::SimpleRenewer.new
-        ring_ts = Rinda::TupleSpace.new
-        ring_ts.write(tuple, renewer)
+        if options[:use_ringserver] and options[:port] 
+          tuple = [:name,:TupleSpace, ts, 'Tuple Space']
+          renewer = Rinda::SimpleRenewer.new
+          ring_ts = Rinda::TupleSpace.new
+          ring_ts.write(tuple, renewer)
 
-        server = Rinda::RingServer.new(ring_ts, options[:port])
+          server = Rinda::RingServer.new(ring_ts, options[:port])
+        end
         DRb.thread.join
+      rescue SystemExit, Interrupt
       rescue Exception, RuntimeError => e
         log.fatal "Couldn't start Skynet Server #{e.inspect}"
       end

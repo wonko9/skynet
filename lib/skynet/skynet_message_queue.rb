@@ -77,7 +77,11 @@ class Skynet
     end
 
     def mq
-      @mq ||= message_queue_proxy_class.new
+      @mq ||= message_queue_proxy_class.new(
+        :use_ringserver   => Skynet::CONFIG[:TS_USE_RINGSERVER],
+        :ringserver_hosts => Skynet::CONFIG[:TS_SERVER_HOSTS],
+        :drburi           => Skynet::CONFIG[:TS_DRBURI]
+      )
     end
 
     def_delegators :mq, :take_next_task, :write_message, :take_result, :write_error, :write_result,

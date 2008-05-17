@@ -37,7 +37,7 @@ class Skynet
       new
     end
 
-    def initialize     
+    def initialize(options={})
       if Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
         SkynetMessageQueue.table_name = Skynet::CONFIG[:MYSQL_MESSAGE_QUEUE_TABLE]
       end
