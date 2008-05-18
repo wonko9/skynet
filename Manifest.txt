@@ -46,15 +46,10 @@ lib/skynet/skynet_worker_queue.rb
 lib/skynet/version.rb
 lib/skynet/worker_queue_adapters/mysql.rb
 lib/skynet/worker_queue_adapters/tuple_space.rb
-log/debug.log
-log/skynet.log
-log/skynet_tuplespace_server.log
-log/skynet_worker.pid
 script/destroy
 script/generate
 script/txt2html
 setup.rb
-skynet.log
 tasks/deployment.rake
 tasks/environment.rake
 tasks/website.rake
@@ -69,8 +64,6 @@ test/test_skynet_manager.rb
 test/test_skynet_message.rb
 test/test_skynet_task.rb
 test/test_tuplespace_message_queue.rb
-tmp/ts_log.log
-tmtags
 website/doc/classes/ActiveRecord.html
 website/doc/classes/ActiveRecord/Base.html
 website/doc/classes/ActiveRecord/Base.src/M000307.html
@@ -487,5 +480,6 @@ website/doc/rdoc-style.css
 website/index.html
 website/index.txt
 website/javascripts/rounded_corners_lite.inc.js
+website/skynet_logo.jpg
 website/stylesheets/screen.css
 website/template.rhtml

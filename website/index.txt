@@ -1,4 +1,8 @@
-h1. skynet
+h1. space
+
+!skynet_logo.jpg!
+
+h2. A Ruby MapReduce Framework
 
 <a href="http://rubyforge.org/projects/skynet/">Skynet RubyForge Home</a><br />
 <a href="doc/index.html">Documentation</a>
