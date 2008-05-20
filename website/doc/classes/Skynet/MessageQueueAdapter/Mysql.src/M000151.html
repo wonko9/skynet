@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>take_worker_status (Skynet::MessageQueueAdapter::Mysql)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/mysql.rb, line 305</span>
+      <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">take_worker_status</span>(<span class="ruby-identifier">task</span>, <span class="ruby-identifier">timeout</span>=<span class="ruby-keyword kw">nil</span>)                 
+        <span class="ruby-identifier">conditions</span> = <span class="ruby-identifier">template_to_conditions</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">WorkerStatusMessage</span>.<span class="ruby-identifier">worker_status_template</span>(<span class="ruby-identifier">task</span>), <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">WorkerStatusMessage</span>.<span class="ruby-identifier">fields</span>)
+        <span class="ruby-identifier">worker_status</span> = <span class="ruby-keyword kw">nil</span>       
+        <span class="ruby-constant">SkynetWorkerQueue</span>.<span class="ruby-identifier">transaction</span> <span class="ruby-keyword kw">do</span> 
+          <span class="ruby-identifier">worker_row</span> = <span class="ruby-constant">SkynetWorkerQueue</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">:first</span>, <span class="ruby-identifier">:conditions</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">conditions</span>)
+          <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">worker_row</span>
+          <span class="ruby-identifier">worker_status</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">WorkerStatusMessage</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">worker_row</span>.<span class="ruby-identifier">clone</span>.<span class="ruby-identifier">attributes</span>)
+          <span class="ruby-identifier">worker_row</span>.<span class="ruby-identifier">destroy</span>                                              
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">worker_status</span>
+      <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

@@ -1,0 +1,66 @@
+ ========================
+ = Skynet Rails Example =
+ ========================
+ 
+Below you'll find a few example skynet uses within a rails application.
+Rails itself is not included in the app so you will need Rails 2 installed locally.
+You will also need to have mysql running locally.  If you have special permissions, please edit config/database.yml.
+
+SETUP
+-------------------------------------
+> rake db:create
+> rake db:migrate
+> rake db:initialize_defaults
+
+
+EXAMPLE 1: Complex Migrations
+-------------------------------------
+Lets say we were storing the user's favorites in a single comma separated field in the users table, but want
+to normalize it into a user_favorites table.  This is something that would be difficult to do in straight SQL.
+We have a method in our User model to migrate a single user.  All we have to do is run it on every user.
+
+I added a rake task to run the skynet migration
+> rake db:migrate_favorites
+
+You can also choose to run the command (or other commands) yourself in the skynet console
+                                                                                         
+> ruby script/skynet console
+console> User.distributed_find(:all).each(:migrate_favorites)
+console> u = User.find(:first)
+console> u.user_favorites.size
+
+If you want to re-run the example, remember to run rake db:initialize_defaults again.
+
+
+
+Example 2: Sending Email Asyncronously
+-------------------------------------
+> ruby script/skynet console
+console> u = User.find(:first)
+console> u.send_welcome_email 
+# pauses 5 seconds while the user goes to another site and never comes back We don't want that!
+# try again
+console> u.send_later(:send_welcome_email)
+# returns immediately, but sends the email after 5 seconds anyway
+
+This sample application was created by creating in the following way
+
+1. Create new rails app
+ > rails -d mysql rails_mysql_example
+
+2. Install Skynet with rails and mysql support
+ > skynet_install --rails --mysql
+
+3. Run skynet migrations
+ > rake db:migrate
+ 
+4. Create other migrations models
+ > ./script/generate model user name:string password:string favorites:string email:string
+ > ./script/generate model user_favorite user_id:integer favorite:string
+
+------------------------------------------------------
+If you'd like get a peak at what Skynet is doing, edit ./script/skynet and set
+
+Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::INFO # or Logger::INFO
+
+and tail ./log/skynet_development.log

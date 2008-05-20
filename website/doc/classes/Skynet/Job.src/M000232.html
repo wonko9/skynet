@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>reduce_local? (Skynet::Job)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_job.rb, line 567</span>
+          <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">reduce_local?</span>(<span class="ruby-identifier">reduce_tasks</span>)
+      <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">true</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">solo?</span> <span class="ruby-keyword kw">or</span> <span class="ruby-identifier">single?</span>
+      <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">true</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">keep_reduce_tasks</span> <span class="ruby-operator">==</span> <span class="ruby-keyword kw">true</span>
+      <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">true</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">keep_reduce_tasks</span> <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">reduce_tasks</span>.<span class="ruby-identifier">data</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Array</span>) <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">reduce_tasks</span>.<span class="ruby-identifier">data</span>.<span class="ruby-identifier">size</span> <span class="ruby-operator">&lt;=</span> <span class="ruby-identifier">keep_reduce_tasks</span>
+      <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">false</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

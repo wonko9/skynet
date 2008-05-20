@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>stats (Skynet::MessageQueueAdapter::Mysql)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/mysql.rb, line 382</span>
+      <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">stats</span>
+        <span class="ruby-identifier">stats</span> = {
+          <span class="ruby-identifier">:servers</span>              =<span class="ruby-operator">&gt;</span> {}, 
+          <span class="ruby-identifier">:results</span>              =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, 
+          <span class="ruby-identifier">:taken_tasks</span>          =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, 
+          <span class="ruby-identifier">:untaken_tasks</span>        =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:taken_master_tasks</span>   =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:taken_task_tasks</span>     =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, 
+          <span class="ruby-identifier">:untaken_master_tasks</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:untaken_task_tasks</span>   =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, 
+          <span class="ruby-identifier">:failed_tasks</span>         =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:processed</span>            =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, 
+          <span class="ruby-identifier">:number_of_workers</span>    =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:active_workers</span>       =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:idle_workers</span>         =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:hosts</span>                =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:masters</span>              =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:taskworkers</span>          =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          <span class="ruby-identifier">:time</span>                 =<span class="ruby-operator">&gt;</span> <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>.<span class="ruby-identifier">to_f</span>
+         }
+
+        <span class="ruby-identifier">stat_rows</span> = <span class="ruby-constant">SkynetWorkerQueue</span>.<span class="ruby-identifier">connection</span>.<span class="ruby-identifier">select_all</span>(<span class="ruby-node">%{
+          SELECT tasktype, payload_type, iteration, count(id) as number_of_tasks
+          FROM #{message_queue_table}
+          GROUP BY tasktype, payload_type, iteration          
+         }</span>)       
+         <span class="ruby-comment cmt"># pp stat_rows</span>
+         <span class="ruby-identifier">stat_rows</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">row</span><span class="ruby-operator">|</span>
+           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;tasktype&quot;</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;result&quot;</span> <span class="ruby-keyword kw">or</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;payload_type&quot;</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;result&quot;</span>
+             <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:results</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_tasks&quot;</span>].<span class="ruby-identifier">to_i</span>
+           <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;tasktype&quot;</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;task&quot;</span>    
+             <span class="ruby-identifier">type_of_tasks</span> = <span class="ruby-keyword kw">nil</span>
+             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;payload_type&quot;</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;master&quot;</span>
+               <span class="ruby-identifier">type_of_tasks</span> = <span class="ruby-identifier">:master_tasks</span>
+             <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;payload_type&quot;</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;task&quot;</span>
+               <span class="ruby-identifier">type_of_tasks</span> = <span class="ruby-identifier">:task_tasks</span>
+             <span class="ruby-keyword kw">end</span>
+             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;iteration&quot;</span>].<span class="ruby-identifier">to_i</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>
+               <span class="ruby-identifier">stats</span>[<span class="ruby-node">&quot;taken_#{type_of_tasks}&quot;</span>.<span class="ruby-identifier">to_sym</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_tasks&quot;</span>].<span class="ruby-identifier">to_i</span> 
+               <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:taken_tasks</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_tasks&quot;</span>].<span class="ruby-identifier">to_i</span>
+             <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;iteration&quot;</span>].<span class="ruby-identifier">to_i</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span>
+               <span class="ruby-identifier">stats</span>[<span class="ruby-node">&quot;untaken_#{type_of_tasks}&quot;</span>.<span class="ruby-identifier">to_sym</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_tasks&quot;</span>].<span class="ruby-identifier">to_i</span> 
+               <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:untaken_tasks</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_tasks&quot;</span>].<span class="ruby-identifier">to_i</span>
+             <span class="ruby-keyword kw">else</span>
+               <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:failed_tasks</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_tasks&quot;</span>].<span class="ruby-identifier">to_i</span> 
+             <span class="ruby-keyword kw">end</span>
+           <span class="ruby-keyword kw">end</span>
+         <span class="ruby-keyword kw">end</span>
+        
+        <span class="ruby-identifier">servers</span> = {}
+        
+        <span class="ruby-identifier">stat_sql</span> = <span class="ruby-value str">&quot;select hostname, map_or_reduce, count(id) number_of_workers, sum(processed) as processed,\nmax(started_at) as most_recent_task_time, iteration\nFROM skynet_worker_queues\nWHERE skynet_worker_queues.tasksubtype = 'worker'\n&quot;</span>
+        
+        <span class="ruby-identifier">stat_rows</span> = <span class="ruby-constant">SkynetWorkerQueue</span>.<span class="ruby-identifier">connection</span>.<span class="ruby-identifier">select_all</span>(<span class="ruby-node">&quot;#{stat_sql} GROUP BY hostname, map_or_reduce&quot;</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">row</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]] <span class="ruby-operator">||=</span> {            
+            <span class="ruby-identifier">:processed</span>             =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+            <span class="ruby-identifier">:hostname</span>              =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>],
+            <span class="ruby-identifier">:number_of_workers</span>     =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+            <span class="ruby-identifier">:active_workers</span>        =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+            <span class="ruby-identifier">:idle_workers</span>          =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+          }
+
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">:processed</span>]          <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;processed&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">:number_of_workers</span>]  <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">:active_workers</span>]     <span class="ruby-operator">+=</span> <span class="ruby-value">0</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">:idle_workers</span>]       <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:processed</span>]                             <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;processed&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:number_of_workers</span>]                     <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:idle_workers</span>]                          <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+        <span class="ruby-keyword kw">end</span>   
+
+        <span class="ruby-constant">SkynetWorkerQueue</span>.<span class="ruby-identifier">connection</span>.<span class="ruby-identifier">select_all</span>(<span class="ruby-node">%{
+          #{stat_sql} AND skynet_worker_queues.iteration IS NOT NULL
+          GROUP BY hostname, map_or_reduce
+        }</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">row</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">map_or_reduce</span> = <span class="ruby-keyword kw">nil</span>
+          <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;map_or_reduce&quot;</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;master&quot;</span>
+            <span class="ruby-identifier">map_or_reduce</span> = <span class="ruby-identifier">:masters</span>
+          <span class="ruby-keyword kw">else</span>
+            <span class="ruby-identifier">map_or_reduce</span> = <span class="ruby-identifier">:taskworkers</span>
+          <span class="ruby-keyword kw">end</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">:active_workers</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">:idle_workers</span>]   <span class="ruby-operator">-=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">map_or_reduce</span>]   <span class="ruby-operator">||=</span> <span class="ruby-value">0</span>
+          <span class="ruby-identifier">servers</span>[<span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;hostname&quot;</span>]][<span class="ruby-identifier">map_or_reduce</span>]   <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">map_or_reduce</span>]                      <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:active_workers</span>]                    <span class="ruby-operator">+=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+          <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:idle_workers</span>]                      <span class="ruby-operator">-=</span> <span class="ruby-identifier">row</span>[<span class="ruby-value str">&quot;number_of_workers&quot;</span>].<span class="ruby-identifier">to_i</span>
+        <span class="ruby-keyword kw">end</span>                                                                                                   
+        
+        <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:servers</span>] = <span class="ruby-identifier">servers</span>
+        <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:hosts</span>]   = <span class="ruby-identifier">servers</span>.<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">size</span>
+        <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:time</span>]    = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>.<span class="ruby-identifier">to_f</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">stats</span>[<span class="ruby-identifier">:time</span>]
+        <span class="ruby-identifier">stats</span>
+      <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

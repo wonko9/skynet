@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>init_with_ary (Rinda::Tuple)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_tuplespace_server.rb, line 22</span>
+  <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">init_with_ary</span>(<span class="ruby-identifier">ary</span>)
+    <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">ary</span>.<span class="ruby-identifier">instance_of?</span>(<span class="ruby-constant">DRb</span><span class="ruby-operator">::</span><span class="ruby-constant">DRbUnknown</span>)
+      <span class="ruby-keyword kw">begin</span>
+        <span class="ruby-constant">Marshal</span>.<span class="ruby-identifier">load</span>(<span class="ruby-identifier">ary</span>.<span class="ruby-identifier">buf</span>)
+      <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Exception</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+        <span class="ruby-identifier">raise</span> <span class="ruby-constant">Rinda</span><span class="ruby-operator">::</span><span class="ruby-constant">RindaError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;DRb couldn't marshall tuple of type #{ary.name}, it was turned into a DRb::DRbUnknown object.\nMarshal exception #{e.inspect}\nOriginal object:\n\t#{ary.buf}.\n\nStacktrace:\n&quot;</span>)
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">else</span>
+      <span class="ruby-ivar">@tuple</span> = <span class="ruby-constant">Array</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">ary</span>.<span class="ruby-identifier">size</span>)
+      <span class="ruby-ivar">@tuple</span>.<span class="ruby-identifier">size</span>.<span class="ruby-identifier">times</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">i</span><span class="ruby-operator">|</span>
+        <span class="ruby-ivar">@tuple</span>[<span class="ruby-identifier">i</span>] = <span class="ruby-identifier">ary</span>[<span class="ruby-identifier">i</span>]
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span>
+  <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

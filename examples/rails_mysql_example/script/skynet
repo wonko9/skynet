@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+# Load your rails app
+require File.expand_path(File.dirname(__FILE__)) + '/../config/environment'
+
+require 'rubygems'
+require 'skynet'         
+
+## See config/initializers/skynet.rb for more settings
+
+Skynet::CONFIG[:LAUNCHER_PATH]    = File.expand_path(__FILE__)
+# Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::INFO
+
+begin
+  mq = Skynet::MessageQueue.new
+rescue Skynet::ConnectionError
+  if Skynet::MessageQueue.adapter == :tuplespace
+    pid = fork do
+      cmd = "skynet_tuplespace_server --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet::CONFIG[:SKYNET_PID_DIR]} start"
+    end
+    sleep Skynet::CONFIG[:TS_SERVER_START_DELAY]
+  end
+end
+
+
+Skynet.start

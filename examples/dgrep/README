@@ -1,0 +1,50 @@
+
+EXAMPLE 1: Distributed Grep
+------------------------------
+You have a list of files and want to see how many times each word shows up in those files.
+All of the map_reduce code is in lib/mapreduce_test.rb
+
+To 
+1. Run Skynet
+ > ./script/skynet start
+
+2. Watch the logs in another terminal
+ > tail -f log/skynet.log
+ 
+3. Run dgrep providing it with some words and a directory
+ > ./script/dgrep data file ./data
+
+Thats it!!
+
+EXAMPLE 2: Distributed Grep with distributed reducing
+------------------------------
+Same example as above, but this time we want to aggregate our results across multiple partitioners. This would
+be useful if you had a large reduce data set, or complex calculations in order to reduce.   All the code is already
+in dgrep.pl.  Specifically, notice I've included a self.reduce_partition method (which just forwards to a pre-packaged
+partitioner).  This partitioner not only breaks up the data returned from the mappers, but also makes sure each reducer 
+gets all the same keys.
+
+1. Run dgrep passing --reducers=2  This tells Skynet to try and use up to 2 reducers (instead of the default of 1)
+> ./script/dgrep --reducers=2 data file ./data
+
+This sample application was created by creating in the following way
+
+1. Create new app
+ > mkdir simple_example
+ > mkdir data lib
+
+2. Install Skynet
+ > skynet_install
+
+3. Add Data Files to /data
+These are any text files named testfileN.txt and so on
+
+4. Create dgrep.rb and drep script (found in lib/ and script/)
+
+------------------------------------
+If you'd like get a peak at what Skynet is doing, edit ./script/skynet and set
+
+Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::INFO # or Logger::INFO
+
+and tail ./log/skynet.log
+

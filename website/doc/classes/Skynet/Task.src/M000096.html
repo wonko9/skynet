@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>run (Skynet::Task)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_task.rb, line 79</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">run</span>(<span class="ruby-identifier">iteration</span>=<span class="ruby-keyword kw">nil</span>)
+      <span class="ruby-identifier">info</span> <span class="ruby-node">&quot;running task #{name} TIMEOUT: #{result_timeout} task_id:#{task_id} MorR:#{map_or_reduce} PROCESS CLASS: #{@process.class}&quot;</span>
+      <span class="ruby-keyword kw">begin</span>
+        <span class="ruby-constant">Timeout</span><span class="ruby-operator">::</span><span class="ruby-identifier">timeout</span>(<span class="ruby-ivar">@result_timeout</span>) <span class="ruby-keyword kw">do</span>
+          <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@process</span>.<span class="ruby-identifier">class</span> <span class="ruby-operator">==</span> <span class="ruby-constant">Proc</span>
+            <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot; - #{@map_or_reduce} using Proc&quot;</span>
+            <span class="ruby-ivar">@process</span>.<span class="ruby-identifier">call</span> <span class="ruby-ivar">@data</span>
+          <span class="ruby-keyword kw">elsif</span> <span class="ruby-ivar">@map_or_reduce</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">:master</span>
+            <span class="ruby-identifier">debug</span> <span class="ruby-value str">&quot; - as master&quot;</span>
+            <span class="ruby-identifier">job</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Job</span>.<span class="ruby-identifier">new</span>(<span class="ruby-ivar">@process</span>)
+            <span class="ruby-identifier">job</span>.<span class="ruby-identifier">run</span>
+          <span class="ruby-keyword kw">elsif</span> <span class="ruby-ivar">@process</span>.<span class="ruby-identifier">class</span> <span class="ruby-operator">==</span> <span class="ruby-constant">String</span>
+            <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot; - #{@map_or_reduce} using class #{@process}&quot;</span>
+            <span class="ruby-ivar">@process</span>.<span class="ruby-identifier">constantize</span>.<span class="ruby-identifier">send</span>(<span class="ruby-ivar">@map_or_reduce</span>,<span class="ruby-ivar">@data</span>)
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Timeout</span><span class="ruby-operator">::</span><span class="ruby-constant">Error</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+        <span class="ruby-comment cmt"># ==========</span>
+        <span class="ruby-comment cmt"># = XXX NEWSFEED HACK</span>
+        <span class="ruby-comment cmt"># = I'm printing the data hash, but that hash has all this shit added to it after runing through newsfeed.</span>
+        <span class="ruby-comment cmt"># = It's actually nice to be able to see what was added, but sometimes its too much data.</span>
+        <span class="ruby-comment cmt"># = Though the handy part will be adding instrumentation to the event_hash and seeing it onyl during a timeout.</span>
+        <span class="ruby-comment cmt"># ==========</span>
+        
+        <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@data</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Array</span>) <span class="ruby-keyword kw">and</span> <span class="ruby-ivar">@data</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Hash</span>)          
+          <span class="ruby-ivar">@data</span>.<span class="ruby-identifier">each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">h</span><span class="ruby-operator">|</span><span class="ruby-identifier">h</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">:event_object</span>)}                      
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">raise</span> <span class="ruby-constant">TimeoutError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;TASK TIMED OUT! #{name} IT:[#{iteration}] timeout:#{@result_timeout} #{e.inspect} DATA: #{@data.inspect} #{e.backtrace.join(&quot;\n&quot;)}&quot;</span>)
+
+      <span class="ruby-comment cmt"># ==========</span>
+      <span class="ruby-comment cmt"># = XXX This rescue block is probably not necessary.  Just for debugging for now. =</span>
+      <span class="ruby-comment cmt"># ==========</span>
+      <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Exception</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+        <span class="ruby-identifier">error</span> <span class="ruby-node">&quot;Error running task #{e.inspect} TASK:&quot;</span>, <span class="ruby-keyword kw">self</span>, <span class="ruby-identifier">e</span>.<span class="ruby-identifier">backtrace</span>.<span class="ruby-identifier">join</span>(<span class="ruby-value str">&quot;\n&quot;</span>)
+        <span class="ruby-identifier">raise</span> <span class="ruby-identifier">e</span>
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

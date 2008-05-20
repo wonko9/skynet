@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>write_fallback_message (Skynet::MessageQueueAdapter::Mysql)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/mysql.rb, line 117</span>
+      <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">write_fallback_message</span>(<span class="ruby-identifier">message_row</span>, <span class="ruby-identifier">message</span>)
+        <span class="ruby-identifier">tran_id</span>  = <span class="ruby-identifier">get_unique_id</span>(<span class="ruby-value">1</span>)
+        <span class="ruby-identifier">ftm</span> = <span class="ruby-identifier">message</span>.<span class="ruby-identifier">fallback_task_message</span>            
+        <span class="ruby-identifier">update_sql</span> = <span class="ruby-node">%{
+          update #{message_queue_table} 
+          SET iteration = #{ftm.iteration }, 
+          expire_time = #{ftm.expire_time}, 
+          updated_on = '#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}',
+          tran_id = #{tran_id}                   
+          WHERE id = #{message_row.id} AND iteration = #{message.iteration}
+          AND tran_id #{(message_row.tran_id ? &quot; =#{message_row.tran_id}&quot; : ' IS NULL')}
+        }</span>            
+        <span class="ruby-identifier">rows</span> = <span class="ruby-identifier">update</span>(<span class="ruby-identifier">update_sql</span>) <span class="ruby-operator">||</span> <span class="ruby-value">0</span>
+        <span class="ruby-identifier">message_row</span>.<span class="ruby-identifier">tran_id</span> = <span class="ruby-identifier">tran_id</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">rows</span> <span class="ruby-operator">==</span> <span class="ruby-value">1</span>
+        <span class="ruby-identifier">rows</span>        
+      <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

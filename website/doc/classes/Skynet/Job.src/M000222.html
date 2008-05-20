@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>master_task (Skynet::Job)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_job.rb, line 464</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">master_task</span>
+      <span class="ruby-ivar">@master_task</span> <span class="ruby-operator">||=</span> <span class="ruby-keyword kw">begin</span>    
+        <span class="ruby-identifier">raise</span> <span class="ruby-constant">Exception</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;No map provided&quot;</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-ivar">@map</span>
+
+        <span class="ruby-comment cmt"># Make sure to set single to false in our own Job object.  </span>
+        <span class="ruby-comment cmt"># We're just passing along whether they set us to single.</span>
+        <span class="ruby-comment cmt"># If we were single, we'd never send off the master to be run externally.</span>
+        <span class="ruby-ivar">@single</span> = <span class="ruby-keyword kw">false</span>
+        
+        <span class="ruby-identifier">task</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Task</span>.<span class="ruby-identifier">master_task</span>(<span class="ruby-keyword kw">self</span>)
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

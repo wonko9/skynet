@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>map (ActiveRecord::Mapreduce)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_active_record_extensions.rb, line 221</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">map</span>(<span class="ruby-identifier">datas</span>)
+      <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">datas</span> <span class="ruby-keyword kw">and</span> <span class="ruby-keyword kw">not</span> <span class="ruby-identifier">datas</span>.<span class="ruby-identifier">empty?</span>
+      <span class="ruby-identifier">datas</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">data</span><span class="ruby-operator">|</span>    
+        <span class="ruby-keyword kw">next</span> <span class="ruby-keyword kw">if</span> (<span class="ruby-keyword kw">not</span> <span class="ruby-identifier">data</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Array</span>))
+        <span class="ruby-keyword kw">next</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">data</span>.<span class="ruby-identifier">empty?</span>
+        <span class="ruby-identifier">model_class</span> = <span class="ruby-identifier">data</span>[<span class="ruby-value">3</span>].<span class="ruby-identifier">constantize</span>
+        <span class="ruby-identifier">table_name</span> = <span class="ruby-identifier">model_class</span>.<span class="ruby-identifier">table_name</span>
+        <span class="ruby-identifier">conditions</span> = <span class="ruby-node">&quot;#{table_name}.#{model_class.primary_key} &gt;= #{data[0]}&quot;</span>
+        <span class="ruby-identifier">conditions</span> <span class="ruby-operator">+=</span> <span class="ruby-node">&quot; AND #{table_name}.#{model_class.primary_key} &lt;= #{data[1]}&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">1</span>] <span class="ruby-operator">&gt;</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">0</span>]
+        <span class="ruby-identifier">conditions</span> = <span class="ruby-node">&quot;(#{conditions})&quot;</span>
+        <span class="ruby-comment cmt"># conditions = &quot;ID BETWEEN #{data[0]} and #{data[1]}&quot;</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">not</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>]
+          <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>] = {<span class="ruby-identifier">:conditions</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">conditions</span>}
+        <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>].<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Hash</span>) <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>].<span class="ruby-identifier">empty?</span>
+          <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>] = {<span class="ruby-identifier">:conditions</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">conditions</span>}
+        <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>].<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Hash</span>) <span class="ruby-keyword kw">and</span> (<span class="ruby-keyword kw">not</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>][<span class="ruby-identifier">:conditions</span>] <span class="ruby-keyword kw">or</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>][<span class="ruby-identifier">:conditions</span>].<span class="ruby-identifier">empty?</span>)
+          <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>][<span class="ruby-identifier">:conditions</span>] = <span class="ruby-identifier">conditions</span>
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>][<span class="ruby-identifier">:conditions</span>] <span class="ruby-operator">+=</span> <span class="ruby-node">&quot; AND #{conditions}&quot;</span>
+        <span class="ruby-keyword kw">end</span>                             
+        <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>][<span class="ruby-identifier">:select</span>] = <span class="ruby-node">&quot;#{table_name}.*&quot;</span>
+        
+        <span class="ruby-comment cmt"># log.error &quot;GETTING #{data.pretty_print_inspect}&quot;</span>
+        <span class="ruby-identifier">models</span> = <span class="ruby-identifier">model_class</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">:all</span>, <span class="ruby-identifier">data</span>[<span class="ruby-value">2</span>])
+        <span class="ruby-comment cmt"># log.error &quot;GOT MODELS: #{models.size}&quot;</span>
+        <span class="ruby-identifier">models</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">ar_object</span><span class="ruby-operator">|</span>
+          <span class="ruby-keyword kw">begin</span>
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">4</span>].<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">String</span>)
+              <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">ar_object</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">data</span>[<span class="ruby-value">4</span>].<span class="ruby-identifier">to_sym</span>)
+                <span class="ruby-comment cmt"># log.error &quot;CALLING #{data[4]} on #{ar_object.class}:#{ar_object.id}&quot;</span>
+                <span class="ruby-identifier">ar_object</span>.<span class="ruby-identifier">send</span>(<span class="ruby-identifier">data</span>[<span class="ruby-value">4</span>].<span class="ruby-identifier">to_sym</span>)
+              <span class="ruby-keyword kw">else</span>
+                <span class="ruby-keyword kw">begin</span>
+                  <span class="ruby-identifier">data</span>[<span class="ruby-value">4</span>].<span class="ruby-identifier">constantize</span>.<span class="ruby-identifier">each</span>(<span class="ruby-identifier">ar_object</span>)
+                <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">NameError</span>
+                  <span class="ruby-identifier">raise</span> <span class="ruby-constant">NameError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;#{data[4]} is not a class or an instance method in #{model_class}&quot;</span>)
+                <span class="ruby-keyword kw">end</span>
+              <span class="ruby-keyword kw">end</span>
+            <span class="ruby-keyword kw">else</span>
+              <span class="ruby-identifier">data</span>[<span class="ruby-value">4</span>].<span class="ruby-identifier">call</span>(<span class="ruby-identifier">ar_object</span>)
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Exception</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">data</span>[<span class="ruby-value">4</span>].<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">String</span>)
+              <span class="ruby-identifier">log</span>.<span class="ruby-identifier">error</span>(<span class="ruby-node">&quot;Error in #{data[4]} #{e.inspect} #{e.backtrace.join(&quot;\n&quot;)}&quot;</span>)              
+            <span class="ruby-keyword kw">else</span>
+              <span class="ruby-identifier">log</span>.<span class="ruby-identifier">error</span>(<span class="ruby-node">&quot;Error in #{self} with given block #{e.inspect} #{e.backtrace.join(&quot;\n&quot;)}&quot;</span>)
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>    
+      <span class="ruby-keyword kw">nil</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

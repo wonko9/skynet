@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+# USAGE:
+#
+# You can provide one or more words. The last argument is the directory.
+#
+# Eg:
+#
+# ruby ./dgrep word1 word2 word3 directory
+#
+# You can also choose to distribute the reduce step by passing --reducers=2  (or any other number. 1 is the default)
+
+require 'rubygems'
+require 'skynet'         
+require 'rdoc/usage'
+require File.dirname(__FILE__) + "/../lib/dgrep"
+
+RDoc::usage if ARGV.empty? or ARGV.include?("--help")
+
+reducers = 1
+if reduce_arg = ARGV.detect {|i| i =~ /--reducers/ }
+  reducers = reduce_arg.split('=').last.to_i
+  ARGV.delete_if {|i| i =~ /--reducers/ }  
+end
+
+directory = File.expand_path(ARGV.pop)
+words = ARGV
+
+files = Dir.entries(directory).collect{ |file| File.expand_path("#{directory}/#{file}") }
+words = ARGV
+
+puts "Looking at all the files in #{directory} for the word or words '#{words.join(',')}'"
+map_data = files.collect{|file| [file,words]}
+results = []
+results = map_data.mapreduce(Dgrep, :reducers => reducers)
+puts "RESULTS:"
+results.each do |word,cnt|
+  puts "#{cnt} #{word}"
+end

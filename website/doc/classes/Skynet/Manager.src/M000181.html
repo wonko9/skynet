@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>add_worker (Skynet::Manager)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_manager.rb, line 222</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_worker</span>(<span class="ruby-identifier">workers</span>=<span class="ruby-value">1</span>)
+      <span class="ruby-identifier">num_task_only_workers</span> = (<span class="ruby-identifier">workers</span> <span class="ruby-operator">*</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">CONFIG</span>[<span class="ruby-identifier">:PERCENTAGE_OF_TASK_ONLY_WORKERS</span>]).<span class="ruby-identifier">to_i</span>
+      <span class="ruby-identifier">num_master_only_workers</span> = (<span class="ruby-identifier">workers</span> <span class="ruby-operator">*</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">CONFIG</span>[<span class="ruby-identifier">:PERCENTAGE_OF_MASTER_ONLY_WORKERS</span>]).<span class="ruby-identifier">to_i</span>
+      <span class="ruby-identifier">warn</span> <span class="ruby-node">&quot;Adding #{workers} WORKERS. Task Workers: #{num_task_only_workers}, Master Workers: #{num_master_only_workers} Master &amp; Task Workers: #{workers - num_task_only_workers - num_master_only_workers}&quot;</span>
+      
+      <span class="ruby-ivar">@all_workers_started</span> = <span class="ruby-keyword kw">false</span>
+      <span class="ruby-identifier">worker_types</span> = {<span class="ruby-identifier">:task</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, <span class="ruby-identifier">:master</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>, <span class="ruby-identifier">:any</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>}
+      (<span class="ruby-value">1</span><span class="ruby-operator">..</span><span class="ruby-identifier">workers</span>).<span class="ruby-identifier">collect</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">ii</span><span class="ruby-operator">|</span>
+        <span class="ruby-identifier">worker_type</span> = <span class="ruby-identifier">:any</span>
+        <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">ii</span> <span class="ruby-operator">&lt;=</span> <span class="ruby-identifier">num_master_only_workers</span>) 
+          <span class="ruby-identifier">worker_type</span> = <span class="ruby-identifier">:master</span>                          
+          <span class="ruby-identifier">worker_types</span>[<span class="ruby-identifier">:master</span>] <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+        <span class="ruby-keyword kw">elsif</span> (<span class="ruby-identifier">ii</span> <span class="ruby-operator">&gt;</span> <span class="ruby-identifier">num_master_only_workers</span> <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">ii</span> <span class="ruby-operator">&lt;=</span> <span class="ruby-identifier">num_master_only_workers</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">num_task_only_workers</span>)
+          <span class="ruby-identifier">worker_type</span> = <span class="ruby-identifier">:task</span>
+          <span class="ruby-identifier">worker_types</span>[<span class="ruby-identifier">:task</span>] <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">worker_types</span>[<span class="ruby-identifier">:any</span>] <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+        <span class="ruby-keyword kw">end</span>                          
+        <span class="ruby-identifier">cmd</span> = <span class="ruby-node">&quot;#{@script_path} --worker_type=#{worker_type}&quot;</span>
+        <span class="ruby-identifier">cmd</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-node">&quot; --queue_id=#{queue_id}&quot;</span>
+        <span class="ruby-identifier">cmd</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-node">&quot; -r #{required_libs.join(' -r ')}&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">required_libs</span> <span class="ruby-keyword kw">and</span> <span class="ruby-keyword kw">not</span> <span class="ruby-identifier">required_libs</span>.<span class="ruby-identifier">empty?</span>
+        <span class="ruby-identifier">wpid</span> = <span class="ruby-constant">Skynet</span>.<span class="ruby-identifier">fork_and_exec</span>(<span class="ruby-identifier">cmd</span>)
+        <span class="ruby-constant">Skynet</span>.<span class="ruby-identifier">close_console</span>
+        <span class="ruby-ivar">@workers_by_type</span>[<span class="ruby-identifier">worker_type</span>] <span class="ruby-operator">||=</span> []
+        <span class="ruby-ivar">@workers_by_type</span>[<span class="ruby-identifier">worker_type</span>] <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">wpid</span>
+        <span class="ruby-identifier">warn</span> <span class="ruby-node">&quot;Adding Worker ##{ii} PID: #{wpid} QUEUE: #{queue_id}, WORKER_TYPE?:#{worker_type}&quot;</span>
+        <span class="ruby-ivar">@mutex</span>.<span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+          <span class="ruby-ivar">@number_of_workers</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-ivar">@workers_running</span>[<span class="ruby-identifier">wpid</span>] = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>
+        <span class="ruby-identifier">sleep</span> <span class="ruby-value">0</span><span class="ruby-value">.01</span>
+        <span class="ruby-identifier">wpid</span>
+      <span class="ruby-keyword kw">end</span>                  
+      <span class="ruby-identifier">info</span> <span class="ruby-value str">&quot;DISTRO&quot;</span>, <span class="ruby-identifier">worker_types</span>
+      <span class="ruby-identifier">check_started_workers</span> 
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

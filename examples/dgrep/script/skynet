@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+
+require 'rubygems'
+require 'skynet'         
+
+# Require all files in lib
+Dir["#{File.dirname(__FILE__)}" + "/../lib/**/*.rb"].each do |file|
+  require file
+end
+
+
+Skynet::CONFIG[:LAUNCHER_PATH]    = File.expand_path(__FILE__)
+# Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::ERROR
+Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+
+
+begin
+  mq = Skynet::MessageQueue.new
+rescue Skynet::ConnectionError
+  if Skynet::MessageQueue.adapter == :tuplespace
+    cmd = "skynet_tuplespace_server --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet::CONFIG[:SKYNET_PID_DIR]} start"
+    pid = fork do
+      exec(cmd)
+    end
+    sleep Skynet::CONFIG[:TS_SERVER_START_DELAY]
+  end
+end
+
+
+Skynet.start

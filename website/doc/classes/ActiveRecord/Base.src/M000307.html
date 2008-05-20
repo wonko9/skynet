@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>send_later (ActiveRecord::Base)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_active_record_extensions.rb, line 2</span>
+  <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">send_later</span>(<span class="ruby-identifier">method</span>,<span class="ruby-identifier">opts</span>=<span class="ruby-keyword kw">nil</span>,<span class="ruby-identifier">save</span>=<span class="ruby-keyword kw">nil</span>)
+    <span class="ruby-identifier">raise</span> <span class="ruby-constant">NoMethodError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;Method: #{method} doesn't exist in #{self.class}&quot;</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">method</span>)
+    <span class="ruby-identifier">data</span> = { 
+      <span class="ruby-identifier">:model_class</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">to_s</span>, 
+      <span class="ruby-identifier">:model_id</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">id</span>, 
+      <span class="ruby-identifier">:method</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">method</span>,       
+    }
+    <span class="ruby-identifier">data</span>[<span class="ruby-identifier">:save</span>] = <span class="ruby-value">1</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">save</span>
+    <span class="ruby-identifier">data</span>[<span class="ruby-identifier">:opts</span>] = <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">to_yaml</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">opts</span>
+    
+    <span class="ruby-identifier">jobopts</span> = {
+      <span class="ruby-identifier">:single</span>                =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">true</span>,
+      <span class="ruby-identifier">:mappers</span>               =<span class="ruby-operator">&gt;</span> <span class="ruby-value">1</span>,
+      <span class="ruby-identifier">:map_data</span>              =<span class="ruby-operator">&gt;</span> [<span class="ruby-identifier">data</span>],
+      <span class="ruby-identifier">:name</span>                  =<span class="ruby-operator">&gt;</span> <span class="ruby-node">&quot;send_later #{self.class}##{method}&quot;</span>,
+      <span class="ruby-identifier">:map_name</span>              =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;&quot;</span>,
+      <span class="ruby-identifier">:map_timeout</span>           =<span class="ruby-operator">&gt;</span> <span class="ruby-value">60</span>,
+      <span class="ruby-identifier">:reduce_timeout</span>        =<span class="ruby-operator">&gt;</span> <span class="ruby-value">60</span>,
+      <span class="ruby-identifier">:master_timeout</span>        =<span class="ruby-operator">&gt;</span> <span class="ruby-value">60</span>,
+      <span class="ruby-identifier">:master_result_timeout</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">1</span>.<span class="ruby-identifier">minute</span>,
+      <span class="ruby-identifier">:map_reduce_class</span>      =<span class="ruby-operator">&gt;</span>  <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">ActiveRecordAsync</span>,
+      <span class="ruby-identifier">:master_retry</span>          =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>,
+      <span class="ruby-identifier">:map_retry</span>             =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>
+    }   
+    <span class="ruby-identifier">job</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">AsyncJob</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">jobopts</span>)
+    <span class="ruby-identifier">job</span>.<span class="ruby-identifier">run</span>
+  <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

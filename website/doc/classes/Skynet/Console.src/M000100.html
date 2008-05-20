@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>start (Skynet::Console)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_console.rb, line 3</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">start</span>(<span class="ruby-identifier">libs</span>=[])
+      <span class="ruby-identifier">require</span> <span class="ruby-value str">'rubygems'</span>
+      <span class="ruby-identifier">require</span> <span class="ruby-value str">'optparse'</span>
+      <span class="ruby-identifier">require</span> <span class="ruby-value str">'skynet'</span>
+      <span class="ruby-identifier">require</span> <span class="ruby-value str">&quot;skynet_console_helper&quot;</span>
+      <span class="ruby-identifier">require</span> <span class="ruby-value str">&quot;irb/completion&quot;</span>
+      <span class="ruby-identifier">require</span> <span class="ruby-value str">&quot;irb&quot;</span>
+
+      <span class="ruby-identifier">irb</span> = <span class="ruby-constant">RUBY_PLATFORM</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/(:?mswin|mingw)/</span> <span class="ruby-operator">?</span> <span class="ruby-value str">'irb.bat'</span> <span class="ruby-operator">:</span> <span class="ruby-value str">'irb'</span>
+
+      <span class="ruby-identifier">options</span> = { 
+        <span class="ruby-identifier">:irb</span>           =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">irb</span>, 
+        <span class="ruby-identifier">:required_libs</span> =<span class="ruby-operator">&gt;</span> [] 
+      }
+      
+      <span class="ruby-constant">OptionParser</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">opt</span><span class="ruby-operator">|</span>
+        <span class="ruby-identifier">opt</span>.<span class="ruby-identifier">banner</span> = <span class="ruby-value str">&quot;Usage: skynet console [options]&quot;</span>
+        <span class="ruby-identifier">opt</span>.<span class="ruby-identifier">on</span>(<span class="ruby-node">&quot;--irb=[#{irb}]&quot;</span>, <span class="ruby-value str">'Invoke a different irb.'</span>) { <span class="ruby-operator">|</span><span class="ruby-identifier">v</span><span class="ruby-operator">|</span> <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:irb</span>] = <span class="ruby-identifier">v</span> }
+        <span class="ruby-identifier">opt</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'-r'</span>, <span class="ruby-value str">'--required LIBRARY'</span>, <span class="ruby-value str">'Require the specified libraries. To include multiple libraries, include multiple -r options. ie. -r skynet -r fileutils'</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">v</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:required_libs</span>] <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">expand_path</span>(<span class="ruby-identifier">v</span>)
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">opt</span>.<span class="ruby-identifier">parse!</span>(<span class="ruby-constant">ARGV</span>)
+      <span class="ruby-keyword kw">end</span>
+                         
+      <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:required_libs</span>] <span class="ruby-operator">+</span> <span class="ruby-identifier">libs</span>
+      <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:required_libs</span>].<span class="ruby-identifier">uniq</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">lib</span><span class="ruby-operator">|</span>
+        <span class="ruby-identifier">require</span> <span class="ruby-identifier">lib</span>
+      <span class="ruby-keyword kw">end</span>
+      
+      <span class="ruby-constant">IRB</span>.<span class="ruby-identifier">setup</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">CONFIG</span>[<span class="ruby-identifier">:LAUNCHER_PATH</span>])
+      <span class="ruby-constant">IRB</span>.<span class="ruby-identifier">conf</span>[<span class="ruby-identifier">:PROMPT</span>][<span class="ruby-identifier">:SKYNET</span>]  = <span class="ruby-constant">IRB</span>.<span class="ruby-identifier">conf</span>[<span class="ruby-identifier">:PROMPT</span>][<span class="ruby-identifier">:SIMPLE</span>].<span class="ruby-identifier">dup</span>
+      <span class="ruby-constant">IRB</span>.<span class="ruby-identifier">conf</span>[<span class="ruby-identifier">:PROMPT</span>][<span class="ruby-identifier">:SKYNET</span>][<span class="ruby-identifier">:PROMPT_I</span>] = <span class="ruby-value str">&quot;skynet&gt;&gt;&quot;</span>
+      
+      <span class="ruby-constant">IRB</span>.<span class="ruby-identifier">conf</span>[<span class="ruby-identifier">:PROMPT_MODE</span>]  = <span class="ruby-identifier">:SKYNET</span>
+      <span class="ruby-identifier">irb</span> = <span class="ruby-constant">IRB</span><span class="ruby-operator">::</span><span class="ruby-constant">Irb</span>.<span class="ruby-identifier">new</span>()
+      <span class="ruby-constant">IRB</span>.<span class="ruby-identifier">conf</span>[<span class="ruby-identifier">:MAIN_CONTEXT</span>] = <span class="ruby-identifier">irb</span>.<span class="ruby-identifier">context</span>      
+      <span class="ruby-identifier">irb</span>.<span class="ruby-identifier">context</span>.<span class="ruby-identifier">workspace</span>.<span class="ruby-identifier">main</span>.<span class="ruby-identifier">extend</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">ConsoleHelper</span>
+
+      <span class="ruby-identifier">trap</span>(<span class="ruby-value str">&quot;SIGINT&quot;</span>) <span class="ruby-keyword kw">do</span>
+        <span class="ruby-identifier">irb</span>.<span class="ruby-identifier">signal_handle</span>
+      <span class="ruby-keyword kw">end</span>
+
+      <span class="ruby-identifier">catch</span>(<span class="ruby-identifier">:IRB_EXIT</span>) <span class="ruby-keyword kw">do</span>
+        <span class="ruby-identifier">irb</span>.<span class="ruby-identifier">eval_input</span>
+      <span class="ruby-keyword kw">end</span>      
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

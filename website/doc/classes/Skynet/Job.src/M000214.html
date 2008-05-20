@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>map_enqueue (Skynet::Job)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_job.rb, line 324</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">map_enqueue</span>      
+      <span class="ruby-identifier">task_ids</span>             = []
+      <span class="ruby-identifier">map_tasks</span>            = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">map_tasks</span>
+      <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">use_local_queue</span> = <span class="ruby-identifier">map_local?</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">map_tasks</span>        
+        <span class="ruby-identifier">number_of_tasks</span> = <span class="ruby-value">0</span>
+        <span class="ruby-identifier">map_tasks</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">task</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">number_of_tasks</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+          <span class="ruby-identifier">enqueue_messages</span>(<span class="ruby-identifier">tasks_to_messages</span>(<span class="ruby-identifier">task</span>))
+        <span class="ruby-keyword kw">end</span>            
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">number_of_tasks</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>run (Skynet::Job)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_job.rb, line 275</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">run</span>(<span class="ruby-identifier">options</span> = {})
+      <span class="ruby-constant">FIELDS</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">field</span><span class="ruby-operator">|</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">options</span>.<span class="ruby-identifier">has_key?</span>(<span class="ruby-identifier">field</span>)
+          <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">send</span>(<span class="ruby-node">&quot;#{field}=&quot;</span>.<span class="ruby-identifier">to_sym</span>,<span class="ruby-identifier">options</span>[<span class="ruby-identifier">field</span>])
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-identifier">raise</span> <span class="ruby-constant">Error</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;You can not run a local master in async mode.&quot;</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">async</span> <span class="ruby-keyword kw">and</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">local_master</span>
+      
+      <span class="ruby-identifier">info</span> <span class="ruby-node">&quot;RUN 1 BEGIN #{name}, job_id:#{job_id} vers: #{version} async:#{async}, local_master: #{local_master}, master?: #{master?}&quot;</span>
+      
+      <span class="ruby-comment cmt"># run the master task if we're running async or local_master</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">master?</span>
+        <span class="ruby-identifier">master_enqueue</span>
+        <span class="ruby-comment cmt"># ====================================================================================</span>
+        <span class="ruby-comment cmt"># = FIXME  If async Return a handle to an object that can used to retrieve the results later.</span>
+        <span class="ruby-comment cmt"># ====================================================================================</span>
+        <span class="ruby-identifier">async?</span> <span class="ruby-value">? </span><span class="ruby-identifier">job_id</span> <span class="ruby-operator">:</span> <span class="ruby-identifier">master_results</span>
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-identifier">number_of_tasks_queued</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">map_enqueue</span>
+        <span class="ruby-identifier">map_results</span>            = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">map_results</span>(<span class="ruby-identifier">number_of_tasks_queued</span>)
+        <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">map_results</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">map_results</span> <span class="ruby-keyword kw">and</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">reduce</span>
+
+        <span class="ruby-identifier">partitioned_data</span>       = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">partition_data</span>(<span class="ruby-identifier">map_results</span>)
+        <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">partitioned_data</span>
+        <span class="ruby-identifier">number_of_tasks_queued</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">reduce_enqueue</span>(<span class="ruby-identifier">partitioned_data</span>)
+        
+        <span class="ruby-ivar">@results</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">reduce_results</span>(<span class="ruby-identifier">number_of_tasks_queued</span>)
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

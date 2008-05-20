@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>clear_outstanding_tasks (Skynet::MessageQueueAdapter::TupleSpace)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/tuple_space.rb, line 162</span>
+      <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">clear_outstanding_tasks</span>
+        <span class="ruby-keyword kw">begin</span>
+          <span class="ruby-identifier">tasks</span> = <span class="ruby-identifier">read_all</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">outstanding_tasks_template</span>)
+        <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">DRb</span><span class="ruby-operator">::</span><span class="ruby-constant">DRbConnError</span>, <span class="ruby-constant">Errno</span><span class="ruby-operator">::</span><span class="ruby-constant">ECONNREFUSED</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+          <span class="ruby-identifier">error</span> <span class="ruby-node">&quot;ERROR #{e.inspect}&quot;</span>, <span class="ruby-identifier">caller</span>
+        <span class="ruby-keyword kw">end</span>
+    
+        <span class="ruby-identifier">tasks</span>.<span class="ruby-identifier">size</span>.<span class="ruby-identifier">times</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">ii</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">take</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">outstanding_tasks_template</span>,<span class="ruby-value">0</span><span class="ruby-value">.00001</span>)
+        <span class="ruby-keyword kw">end</span>
+    
+        <span class="ruby-identifier">results</span> = <span class="ruby-identifier">read_all</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">outstanding_results_template</span>)
+        <span class="ruby-identifier">results</span>.<span class="ruby-identifier">size</span>.<span class="ruby-identifier">times</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">ii</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">take</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">outstanding_results_template</span>,<span class="ruby-value">0</span><span class="ruby-value">.00001</span>)
+        <span class="ruby-keyword kw">end</span>
+    
+        <span class="ruby-identifier">task_tuples</span> = <span class="ruby-identifier">read_all</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">outstanding_tasks_template</span>)
+        <span class="ruby-identifier">result_tuples</span> = <span class="ruby-identifier">read_all</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">outstanding_results_template</span>)
+        <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">task_tuples</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">result_tuples</span>
+      <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>
