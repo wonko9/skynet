@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>File: index.txt</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <link rel="stylesheet" href="../.././rdoc-style.css" type="text/css" media="screen" />
+  <script type="text/javascript">
+  // <![CDATA[
+
+  function popupCode( url ) {
+    window.open(url, "Code", "resizable=yes,scrollbars=yes,toolbar=no,status=no,height=150,width=400")
+  }
+
+  function toggleCode( id ) {
+    if ( document.getElementById )
+      elem = document.getElementById( id );
+    else if ( document.all )
+      elem = eval( "document.all." + id );
+    else
+      return false;
+
+    elemStyle = elem.style;
+    
+    if ( elemStyle.display != "block" ) {
+      elemStyle.display = "block"
+    } else {
+      elemStyle.display = "none"
+    }
+
+    return true;
+  }
+  
+  // Make codeblocks hidden by default
+  document.writeln( "<style type=\"text/css\">div.method-source-code { display: none }</style>" )
+  
+  // ]]>
+  </script>
+
+</head>
+<body>
+
+
+
+  <div id="fileHeader">
+    <h1>index.txt</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>website/index.txt
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun May 18 12:58:19 -0700 2008</td>
+    </tr>
+    </table>
+  </div>
+  <!-- banner header -->
+
+  <div id="bodyContent">
+
+
+
+  <div id="contextContent">
+
+    <div id="description">
+      <p>
+h1. space
+</p>
+<p>
+!skynet_logo.jpg!
+</p>
+<p>
+h2. A Ruby MapReduce Framework
+</p>
+<p>
+&lt;a href=&quot;<a
+href="http://rubyforge.org/projects/skynet/">Skynet">rubyforge.org/projects/skynet/">Skynet</a>
+RubyForge Home&lt;/a&gt;&lt;br /&gt; &lt;a
+href=&quot;doc/index.html&quot;&gt;Documentation&lt;/a&gt;
+</p>
+<p>
+h2. See Skynet at RailsConf 08
+</p>
+<p>
+h4. Sat Mar 31, 2008 4:25pm - 5:15pm PDT @ Portland Ballroom 255
+</p>
+<p>
+&lt;a href=&quot;<a
+href="http://en.oreilly.com/rails2008/public/schedule/detail/2022">en.oreilly.com/rails2008/public/schedule/detail/2022</a>&quot;
+target=&quot;_blank&quot;&gt;More Info&lt;/a&gt;
+</p>
+<p>
+&lt;a href=&quot;<a
+href="http://en.oreilly.com/rails2008/public/schedule/detail/2022">en.oreilly.com/rails2008/public/schedule/detail/2022</a>&quot;
+target=&quot;_blank&quot;&gt; &lt;img src=&quot;<img
+src="http://conferences.oreillynet.com/banners/rails/speaker/728x90.jpg"
+/>&quot; width=&quot;728&quot; height=&quot;90&quot; border=&quot;0&quot;
+alt=&quot;RailsConf 2008&quot; title=&quot;RailsConf 2008&quot; /&gt;
+&lt;/a&gt;
+</p>
+<p>
+h2. What is Skynet
+</p>
+<p>
+Skynet is an open source Ruby implementation of Google&#8216;s Map/Reduce
+framework, created at Geni.com. With Skynet, one can easily convert a
+time-consuming serial task, such as a computationally expensive Rails
+migration, into a distributed program running on many computers.
+</p>
+<p>
+Skynet is an adaptive, self-upgrading, fault-tolerant, and fully
+distributed system with no single point of failure. It uses a &quot;peer
+recovery&quot; system where workers watch out for each other. If a worker
+dies or fails for any reason, another worker will notice and pick up that
+task. Skynet also has no special &#8216;master&#8217; servers, only workers
+which can act as a master for any task at any time. Even these master tasks
+can fail and will be picked up by other workers.
+</p>
+<p>
+h2. Installing
+</p>
+<p>
+Skynet can be installed via RubyGems:
+</p>
+<p>
+&lt;pre syntax=&quot;ruby&quot;&gt;sudo gem install skynet&lt;/pre&gt;
+</p>
+<p>
+h2. More Info
+</p>
+<p>
+For more info check out the &lt;a
+href=&quot;doc/index.html&quot;&gt;README&lt;/a&gt;
+</p>
+<p>
+h2. Contact
+</p>
+<p>
+Comments are welcome. Send an email to &quot;Adam Pisoni&quot; apisoni at
+geni.com
+</p>
+<p>
+h2. LICENSE:
+</p>
+<p>
+(The MIT License)
+</p>
+<p>
+Copyright (c) 2007 Adam Pisoni, Geni.com
+</p>
+<p>
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+&quot;Software&quot;), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
+</p>
+<p>
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+</p>
+<p>
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+</p>
+
+    </div>
+
+
+   </div>
+
+
+  </div>
+
+
+    <!-- if includes -->
+
+    <div id="section">
+
+
+
+
+
+      
+
+
+    <!-- if method_list -->
+
+
+  </div>
+
+
+<div id="validator-badges">
+  <p><small><a href="http://validator.w3.org/check/referer">[Validate]</a></small></p>
+</div>
+
+</body>
+</html>

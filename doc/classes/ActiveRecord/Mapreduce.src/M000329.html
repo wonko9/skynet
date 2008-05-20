@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>chunk_query (ActiveRecord::Mapreduce)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_active_record_extensions.rb, line 136</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">chunk_query</span>(<span class="ruby-identifier">opts</span>={})
+
+      <span class="ruby-identifier">conditions</span> = <span class="ruby-node">&quot;#{table_name}.#{primary_key} &gt; #{opts[:id]} AND ((@t1:=(@t1+1) % #{batch_size})=0)&quot;</span>
+      <span class="ruby-identifier">opts</span> = <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">clone</span>                                                               
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:conditions</span>].<span class="ruby-identifier">nil?</span> <span class="ruby-keyword kw">or</span> <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:conditions</span>].<span class="ruby-identifier">empty?</span>
+        <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:conditions</span>] = <span class="ruby-identifier">conditions</span>
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:conditions</span>] <span class="ruby-operator">+=</span> <span class="ruby-value str">&quot; AND &quot;</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:conditions</span>].<span class="ruby-identifier">empty?</span>
+        <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:conditions</span>] <span class="ruby-operator">+=</span> <span class="ruby-identifier">conditions</span>
+      <span class="ruby-keyword kw">end</span>                
+      <span class="ruby-identifier">limit</span> = <span class="ruby-identifier">opts</span>[<span class="ruby-identifier">:limit</span>] <span class="ruby-operator">?</span> <span class="ruby-node">&quot;LIMIT #{opts[:limit]}&quot;</span> <span class="ruby-operator">:</span> <span class="ruby-keyword kw">nil</span>
+      <span class="ruby-comment cmt"># select @t2:=(@t2+1), @t3:=@t4, @t4:=id from profiles where ( ((@t1:=(@t1+1) % 1000)=0) or (((@t1+1) % 1000)=0) )  order by id LIMIT 100;</span>
+
+      <span class="ruby-comment cmt"># BEST</span>
+      <span class="ruby-comment cmt"># select @t1:=0, @t2:=0, @t3:=0, @t4:=0;</span>
+        <span class="ruby-comment cmt"># select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=id as last from profiles where ((@t1:=(@t1+1) % 1000)=0) order by id LIMIT 100;</span>
+        <span class="ruby-comment cmt"># select (@t2:=(@t2+1) % 2) as evenodd, ((@t3:=@t4)+1) as first, @t4:=id as last from profiles where ((@t1:=(@t1+1) % 1000)=0) order by id LIMIT 100;</span>
+
+      <span class="ruby-identifier">execute</span>(<span class="ruby-value str">'select @t1:=0, @t2:=-1, @t3:=0, @t4:=0'</span>)
+      <span class="ruby-identifier">sql</span> = <span class="ruby-node">&quot;select @t2:=(@t2+1) as cnt, ((@t3:=@t4)+1) as first, @t4:=#{table_name}.#{primary_key} as last from #{table_name} #{opts[:joins]} where #{opts[:conditions]} ORDER BY #{table_name}.#{primary_key} #{limit}&quot;</span>
+      <span class="ruby-comment cmt"># log.error &quot;SQL #{sql}&quot;</span>
+      <span class="ruby-identifier">select_all</span>(<span class="ruby-identifier">sql</span>)
+
+      <span class="ruby-comment cmt"># mc.connection.select_values(mc.send(:construct_finder_sql, :select =&gt; &quot;#{mc.table_name}.id&quot;, :joins =&gt; opts[:joins], :conditions =&gt; conditions, :limit =&gt; opts[:limit], :order =&gt; :id))</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

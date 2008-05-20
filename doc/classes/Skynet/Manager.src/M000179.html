@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>worker_shutdown (Skynet::Manager)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_manager.rb, line 157</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">worker_shutdown</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">not</span> <span class="ruby-ivar">@masters_dead</span>
+        <span class="ruby-identifier">workers_to_kill</span> = <span class="ruby-identifier">active_workers</span>.<span class="ruby-identifier">select</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">w</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">w</span>.<span class="ruby-identifier">map_or_reduce</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;master&quot;</span> <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">active_workers</span>.<span class="ruby-identifier">detect</span>{<span class="ruby-operator">|</span><span class="ruby-identifier">status</span><span class="ruby-operator">|</span> <span class="ruby-identifier">status</span>.<span class="ruby-identifier">process_id</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">w</span>.<span class="ruby-identifier">process_id</span> <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">worker_alive?</span>(<span class="ruby-identifier">w</span>.<span class="ruby-identifier">process_id</span>)}
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">warn</span> <span class="ruby-node">&quot;Shutting down masters.  #{worker_pids.size} workers still running.&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">worker_pids</span>.<span class="ruby-identifier">size</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>
+
+        <span class="ruby-identifier">worker_pids_to_kill</span> = <span class="ruby-identifier">workers_to_kill</span>.<span class="ruby-identifier">collect</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">w</span><span class="ruby-operator">|</span> <span class="ruby-identifier">w</span>.<span class="ruby-identifier">process_id</span> }
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">worker_pids_to_kill</span> <span class="ruby-keyword kw">and</span> <span class="ruby-keyword kw">not</span> <span class="ruby-identifier">worker_pids_to_kill</span>.<span class="ruby-identifier">empty?</span>
+          <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;FOUND MORE RUNNING MASTERS WE HAVEN'T KILLED:&quot;</span>, <span class="ruby-identifier">worker_pids_to_kill</span>
+          <span class="ruby-identifier">remove_worker</span>(<span class="ruby-identifier">worker_pids_to_kill</span>)
+        <span class="ruby-keyword kw">end</span>
+
+        <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">not</span> <span class="ruby-identifier">active_workers</span>.<span class="ruby-identifier">detect</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">w</span><span class="ruby-operator">|</span> <span class="ruby-identifier">w</span>.<span class="ruby-identifier">map_or_reduce</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;master&quot;</span> }
+          <span class="ruby-identifier">signal_workers</span>(<span class="ruby-value str">&quot;TERM&quot;</span>)
+          <span class="ruby-ivar">@masters_dead</span> = <span class="ruby-keyword kw">true</span>
+          <span class="ruby-identifier">sleep</span> <span class="ruby-value">1</span>
+          <span class="ruby-comment cmt"># return check_number_of_workers</span>
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">sleep</span> <span class="ruby-value">2</span>
+          <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">check_number_of_workers</span>
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-identifier">update_worker_queue</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">worker_pids</span>.<span class="ruby-identifier">size</span> <span class="ruby-operator">&lt;</span> <span class="ruby-value">1</span>
+        <span class="ruby-identifier">info</span> <span class="ruby-value str">&quot;No more workers running.&quot;</span>
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-identifier">warn</span> <span class="ruby-node">&quot;Shutting down.  #{worker_pids.size} workers still running.&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">worker_pids</span>.<span class="ruby-identifier">size</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

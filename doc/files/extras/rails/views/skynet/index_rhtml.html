@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>File: index.rhtml</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <link rel="stylesheet" href="../../../../.././rdoc-style.css" type="text/css" media="screen" />
+  <script type="text/javascript">
+  // <![CDATA[
+
+  function popupCode( url ) {
+    window.open(url, "Code", "resizable=yes,scrollbars=yes,toolbar=no,status=no,height=150,width=400")
+  }
+
+  function toggleCode( id ) {
+    if ( document.getElementById )
+      elem = document.getElementById( id );
+    else if ( document.all )
+      elem = eval( "document.all." + id );
+    else
+      return false;
+
+    elemStyle = elem.style;
+    
+    if ( elemStyle.display != "block" ) {
+      elemStyle.display = "block"
+    } else {
+      elemStyle.display = "none"
+    }
+
+    return true;
+  }
+  
+  // Make codeblocks hidden by default
+  document.writeln( "<style type=\"text/css\">div.method-source-code { display: none }</style>" )
+  
+  // ]]>
+  </script>
+
+</head>
+<body>
+
+
+
+  <div id="fileHeader">
+    <h1>index.rhtml</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>extras/rails/views/skynet/index.rhtml
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat May 03 13:14:44 -0700 2008</td>
+    </tr>
+    </table>
+  </div>
+  <!-- banner header -->
+
+  <div id="bodyContent">
+
+
+
+  <div id="contextContent">
+
+    <div id="description">
+      <p>
+&lt;div class=&quot;hd&quot;&gt;
+</p>
+<pre>
+  &lt;h1&gt;SKYNET STATUS&lt;/h1&gt;
+  &lt;span&gt;Last updated: &lt;%= @last_updated || 'N/A' %&gt;&lt;/span&gt;
+  &lt;br /&gt;
+  &lt;br /&gt;
+</pre>
+<p>
+&lt;/div&gt;
+</p>
+<p>
+&lt;% if @stats %&gt;
+</p>
+<p>
+&lt;h2&gt;Overall Stats&lt;/h2&gt; &lt;table
+class=&quot;admin_table&quot;&gt;
+</p>
+<pre>
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Hosts&lt;/th&gt;
+      &lt;th&gt;Workers&lt;/th&gt;
+      &lt;th&gt;Active Workers&lt;BR&gt;(Masters / Tasks / Either)&lt;/th&gt;
+      &lt;th&gt;Idle Workers&lt;BR&gt;(Masters / Tasks / Either)&lt;/th&gt;
+      &lt;th&gt;Untaken Tasks&lt;BR&gt;(Master / Task)&lt;/th&gt;
+      &lt;th&gt;Taken Tasks&lt;BR&gt;(Master / Task)&lt;/th&gt;
+      &lt;th&gt;Results&lt;/th&gt;
+      &lt;th&gt;Processed &lt;br /&gt;(by active workers)&lt;/th&gt;
+      &lt;th&gt;Process Time&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= @stats[:hosts] %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= @stats[:number_of_workers] %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;b&gt;&lt;%= @stats[:active_workers] %&gt;&lt;/b&gt; (&lt;%= @stats[:active_masters] %&gt; / &lt;%= @stats[:active_taskworkers] %&gt; / &lt;%= @stats[:active_master_or_task_workers] %&gt;)&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;b&gt;&lt;%= @stats[:idle_workers] %&gt;&lt;/b&gt; (&lt;%= @stats[:idle_masters] %&gt; / &lt;%= @stats[:idle_taskworkers] %&gt; / &lt;%= @stats[:idle_master_or_task_workers] %&gt;)&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= @stats[:untaken_tasks] %&gt; (&lt;b&gt;&lt;%= @stats[:untaken_master_tasks] %&gt;&lt;/b&gt; / &lt;%= @stats[:untaken_task_tasks] %&gt;)&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;b&gt;&lt;%= @stats[:taken_tasks] %&gt;&lt;/b&gt; (&lt;%= @stats[:taken_master_tasks] %&gt; / &lt;%= @stats[:taken_task_tasks] %&gt;)&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= @stats[:results] %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= @stats[:processed] %&gt; (&lt;%= @stats[:processed_by_active_workers] %&gt;)&lt;/td&gt;
+      &lt;td&gt;&lt;%= @stats[:time] %&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+</pre>
+<p>
+&lt;/table&gt;
+</p>
+<p>
+&lt;BR&gt; &lt;h2&gt;Servers&lt;/h2&gt; &lt;table
+class=&quot;admin_table&quot;&gt;
+</p>
+<pre>
+  &lt;colgroup&gt;
+    &lt;col span=&quot;1&quot; width=&quot;3%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;10%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+  &lt;/colgroup&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th class=&quot;numeric&quot;&gt;#&lt;/th&gt;
+      &lt;th&gt;Hostname&lt;/th&gt;
+      &lt;th&gt;Number of Workers&lt;/th&gt;
+      &lt;th&gt;Active Workers&lt;BR&gt;Masters / Tasks / Either&lt;/th&gt;
+      &lt;th&gt;Idle Workers&lt;BR&gt;Masters / Tasks / Either&lt;/th&gt;
+      &lt;th&gt;Processed &lt;br /&gt;(by active workers)&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+
+    &lt;% if @stats[:servers] %&gt;
+    &lt;tbody&gt;
+      &lt;% @stats[:servers].keys.sort.each do |hostname| %&gt;
+        &lt;% server = @stats[:servers][hostname] %&gt;
+        &lt;%   i = 1 %&gt;
+        &lt;tr&gt;
+          &lt;td class=&quot;numeric&quot;&gt;&lt;%= i %&gt;&lt;/td&gt;
+          &lt;td&gt;&lt;%= server[:hostname] %&gt;&lt;/td&gt;
+          &lt;td class=&quot;numeric&quot;&gt;&lt;%= server[:number_of_workers] %&gt;&lt;/td&gt;
+          &lt;td class=&quot;numeric&quot;&gt;&lt;%= server[:active_workers] %&gt;  (&lt;%= server[:active_masters] %&gt; / &lt;%= server[:active_taskworkers] %&gt; / &lt;%= server[:active_master_or_task_workers] %&gt;) &lt;/td&gt;
+          &lt;td class=&quot;numeric&quot;&gt;&lt;%= server[:idle_workers] %&gt;  (&lt;%= server[:idle_masters] %&gt; / &lt;%= server[:idle_taskworkers] %&gt; / &lt;%= server[:idle_master_or_task_workers] %&gt;) &lt;/td&gt;
+          &lt;td class=&quot;numeric&quot;&gt;&lt;%= server[:processed] %&gt; (&lt;%= server[:processed_by_active_workers] %&gt;)&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;%     i += 1 %&gt;
+      &lt;% end %&gt;
+    &lt;/tbody&gt;
+    &lt;% end %&gt;
+
+  &lt;/table&gt;
+
+  &lt;% end %&gt;
+</pre>
+<p>
+&lt;!&#8212; &lt;table class=&quot;admin_table&quot;&gt;
+</p>
+<pre>
+  &lt;colgroup&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;8%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;10%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;10%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+    &lt;col span=&quot;1&quot; width=&quot;5%&quot; /&gt;
+  &lt;/colgroup&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th class=&quot;numeric&quot;&gt;#&lt;/th&gt;
+      &lt;th&gt;Worker ID&lt;/th&gt;
+      &lt;th&gt;Hostname&lt;/th&gt;
+      &lt;th&gt;PID&lt;/th&gt;
+      &lt;th&gt;Job ID&lt;/th&gt;
+      &lt;th&gt;Task ID&lt;/th&gt;
+      &lt;th&gt;Version&lt;/th&gt;
+      &lt;th&gt;Processed&lt;/th&gt;
+      &lt;th&gt;M/R&lt;/th&gt;
+      &lt;th&gt;Name&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+
+  &lt;% if false and @servers %&gt;
+  &lt;tbody&gt;
+    &lt;% @servers.each do |server| %&gt;
+    &lt;tr&gt;
+      &lt;td colspan=&quot;10&quot;&gt;&lt;%= server[:manager] %&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;%   i = 1 %&gt;
+    &lt;%   server[:workers].each do |w| %&gt;
+    &lt;tr&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= i %&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;%= w.worker_id %&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;%= w.hostname %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= w.process_id %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= w.job_id %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= w.task_id %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= w.version %&gt;&lt;/td&gt;
+      &lt;td class=&quot;numeric&quot;&gt;&lt;%= w.processed %&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;%= w.map_or_reduce || '-' %&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;%= w.name %&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;%     i += 1 %&gt;
+    &lt;%   end %&gt;
+    &lt;% end %&gt;
+  &lt;/tbody&gt;
+  &lt;% end %&gt;
+</pre>
+<p>
+&lt;/table&gt; &#8212;&gt;
+</p>
+
+    </div>
+
+
+   </div>
+
+
+  </div>
+
+
+    <!-- if includes -->
+
+    <div id="section">
+
+
+
+
+
+      
+
+
+    <!-- if method_list -->
+
+
+  </div>
+
+
+<div id="validator-badges">
+  <p><small><a href="http://validator.w3.org/check/referer">[Validate]</a></small></p>
+</div>
+
+</body>
+</html>

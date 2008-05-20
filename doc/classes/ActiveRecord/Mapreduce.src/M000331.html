@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>each (ActiveRecord::Mapreduce)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_active_record_extensions.rb, line 184</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">each</span>(<span class="ruby-identifier">klass_or_method</span>=<span class="ruby-keyword kw">nil</span>,<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)    
+      <span class="ruby-identifier">klass_or_method</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">model_class</span>
+      <span class="ruby-identifier">log</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Logger</span>.<span class="ruby-identifier">get</span>
+
+      <span class="ruby-identifier">batches</span> = []                    
+      <span class="ruby-identifier">each_range</span>(<span class="ruby-identifier">find_args</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">ids</span>,<span class="ruby-identifier">ii</span><span class="ruby-operator">|</span>
+        <span class="ruby-identifier">batch_item</span> = [
+            <span class="ruby-identifier">ids</span>[<span class="ruby-value str">'first'</span>].<span class="ruby-identifier">to_i</span>, 
+            <span class="ruby-identifier">ids</span>[<span class="ruby-value str">'last'</span>].<span class="ruby-identifier">to_i</span>, 
+            <span class="ruby-identifier">find_args</span>.<span class="ruby-identifier">clone</span>,
+            <span class="ruby-identifier">model_class</span>
+        ]
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>          
+          <span class="ruby-identifier">batch_item</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">block</span>
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">batch_item</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-node">&quot;#{klass_or_method}&quot;</span> 
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-identifier">batches</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">batch_item</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">batches</span>.<span class="ruby-identifier">size</span> <span class="ruby-operator">&gt;=</span> <span class="ruby-constant">MAX_BATCHES_PER_JOB</span>
+          <span class="ruby-identifier">log</span>.<span class="ruby-identifier">error</span> <span class="ruby-node">&quot;MAX BATCH SIZE EXCEEDED RUNNING: #{batches.size}&quot;</span>
+          <span class="ruby-identifier">run_job_for_batch</span>(<span class="ruby-identifier">batches</span>)
+          <span class="ruby-identifier">batches</span> = []    
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-identifier">run_job_for_batch</span>(<span class="ruby-identifier">batches</span>)      
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

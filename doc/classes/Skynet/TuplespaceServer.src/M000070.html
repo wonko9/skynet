@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>start (Skynet::TuplespaceServer)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_tuplespace_server.rb, line 54</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">start</span>(<span class="ruby-identifier">options</span>)
+      <span class="ruby-identifier">log</span> = <span class="ruby-constant">Logger</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">options</span>[<span class="ruby-identifier">:logfile</span>])
+      <span class="ruby-identifier">log</span>.<span class="ruby-identifier">level</span> = <span class="ruby-constant">Object</span>.<span class="ruby-identifier">module_eval</span>(<span class="ruby-node">&quot;#{&quot;Logger::&quot; + options[:loglevel].upcase}&quot;</span>, <span class="ruby-keyword kw">__FILE__</span>, <span class="ruby-keyword kw">__LINE__</span>)
+      <span class="ruby-identifier">log</span>.<span class="ruby-identifier">info</span> <span class="ruby-node">&quot;STARTING TUPLESPACE SERVER ON PORT: #{options[:port]} Logging to #{options[:logfile]}&quot;</span>
+
+      <span class="ruby-comment cmt"># Create a TupleSpace to hold named services, and start running</span>
+      <span class="ruby-keyword kw">begin</span>
+        <span class="ruby-identifier">ts</span> = <span class="ruby-constant">Rinda</span><span class="ruby-operator">::</span><span class="ruby-constant">TupleSpace</span>.<span class="ruby-identifier">new</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:drburi</span>]
+          <span class="ruby-constant">DRb</span>.<span class="ruby-identifier">start_service</span>(<span class="ruby-identifier">options</span>[<span class="ruby-identifier">:drburi</span>], <span class="ruby-identifier">ts</span>)          
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-constant">DRb</span>.<span class="ruby-identifier">start_service</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:use_ringserver</span>] <span class="ruby-keyword kw">and</span> <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:port</span>] 
+          <span class="ruby-identifier">tuple</span> = [<span class="ruby-identifier">:name</span>,<span class="ruby-identifier">:TupleSpace</span>, <span class="ruby-identifier">ts</span>, <span class="ruby-value str">'Tuple Space'</span>]
+          <span class="ruby-identifier">renewer</span> = <span class="ruby-constant">Rinda</span><span class="ruby-operator">::</span><span class="ruby-constant">SimpleRenewer</span>.<span class="ruby-identifier">new</span>
+          <span class="ruby-identifier">ring_ts</span> = <span class="ruby-constant">Rinda</span><span class="ruby-operator">::</span><span class="ruby-constant">TupleSpace</span>.<span class="ruby-identifier">new</span>
+          <span class="ruby-identifier">ring_ts</span>.<span class="ruby-identifier">write</span>(<span class="ruby-identifier">tuple</span>, <span class="ruby-identifier">renewer</span>)
+
+          <span class="ruby-identifier">server</span> = <span class="ruby-constant">Rinda</span><span class="ruby-operator">::</span><span class="ruby-constant">RingServer</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">ring_ts</span>, <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:port</span>])
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-constant">DRb</span>.<span class="ruby-identifier">thread</span>.<span class="ruby-identifier">join</span>
+      <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">SystemExit</span>, <span class="ruby-constant">Interrupt</span>
+      <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Exception</span>, <span class="ruby-constant">RuntimeError</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+        <span class="ruby-identifier">log</span>.<span class="ruby-identifier">fatal</span> <span class="ruby-node">&quot;Couldn't start Skynet Server #{e.inspect}&quot;</span>
+      <span class="ruby-keyword kw">end</span>
+
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

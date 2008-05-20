@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>take_next_task (Skynet::MessageQueueAdapter::Mysql)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/mysql.rb, line 136</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">take_next_task</span>(<span class="ruby-identifier">curver</span>,<span class="ruby-identifier">timeout</span>=<span class="ruby-value">0</span><span class="ruby-value">.5</span>,<span class="ruby-identifier">payload_type</span>=<span class="ruby-keyword kw">nil</span>,<span class="ruby-identifier">queue_id</span>=<span class="ruby-value">0</span>)
+      <span class="ruby-identifier">timeout</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">CONFIG</span>[<span class="ruby-identifier">:MYSQL_NEXT_TASK_TIMEOUT</span>] <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">timeout</span> <span class="ruby-operator">&lt;</span> <span class="ruby-value">1</span>
+      <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;TASK NEXT TASK!!!!!!! timeout: #{timeout} queue_id:#{queue_id}&quot;</span>     
+
+      <span class="ruby-identifier">start</span>    = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>    
+      <span class="ruby-identifier">template</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">next_task_template</span>(<span class="ruby-identifier">curver</span>, <span class="ruby-identifier">payload_type</span>)        
+      <span class="ruby-identifier">message</span>  = <span class="ruby-keyword kw">nil</span>
+      
+      <span class="ruby-identifier">loop</span> <span class="ruby-keyword kw">do</span>
+        <span class="ruby-identifier">rows</span>     = <span class="ruby-value">0</span>
+        <span class="ruby-identifier">message</span>  = <span class="ruby-keyword kw">nil</span>
+        <span class="ruby-identifier">template</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">next_task_template</span>(<span class="ruby-identifier">curver</span>, <span class="ruby-identifier">payload_type</span>)
+        <span class="ruby-keyword kw">begin</span>              
+          <span class="ruby-identifier">message_row</span> = <span class="ruby-identifier">find_next_message</span>(<span class="ruby-identifier">template</span>, <span class="ruby-identifier">payload_type</span>)
+          <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">message_row</span>
+            <span class="ruby-identifier">message</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">message_row</span>.<span class="ruby-identifier">attributes</span>)
+            <span class="ruby-identifier">rows</span> = <span class="ruby-identifier">write_fallback_message</span>(<span class="ruby-identifier">message_row</span>, <span class="ruby-identifier">message</span>)
+
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">rows</span> <span class="ruby-operator">&lt;</span> <span class="ruby-value">1</span>
+              <span class="ruby-identifier">old_temp</span> = <span class="ruby-identifier">temperature</span>(<span class="ruby-identifier">payload_type</span>)
+              <span class="ruby-identifier">set_temperature</span>(<span class="ruby-identifier">payload_type</span>, <span class="ruby-identifier">template_to_conditions</span>(<span class="ruby-identifier">template</span>), <span class="ruby-identifier">queue_id</span>)
+              <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;MISSCOLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}&quot;</span>
+            <span class="ruby-keyword kw">else</span>
+              <span class="ruby-keyword kw">break</span>
+            <span class="ruby-keyword kw">end</span>
+          <span class="ruby-keyword kw">else</span> <span class="ruby-comment cmt"># no messages on queue with this temp</span>
+            <span class="ruby-identifier">old_temp</span> = <span class="ruby-identifier">temperature</span>(<span class="ruby-identifier">payload_type</span>)                                                              
+            <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">old_temp</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">1</span>
+              <span class="ruby-identifier">set_temperature</span>(<span class="ruby-identifier">payload_type</span>, <span class="ruby-identifier">template_to_conditions</span>(<span class="ruby-identifier">template</span>), <span class="ruby-identifier">queue_id</span>)
+            <span class="ruby-keyword kw">end</span>
+            <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;MISS PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}&quot;</span>
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span><span class="ruby-operator">::</span><span class="ruby-constant">BadMessage</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+          <span class="ruby-identifier">message_row</span>.<span class="ruby-identifier">destroy</span>
+          <span class="ruby-keyword kw">next</span>
+        <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">StatementInvalid</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+          <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">message</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/Deadlock/</span>                                 
+            <span class="ruby-identifier">old_temp</span> = <span class="ruby-identifier">temperature</span>(<span class="ruby-identifier">payload_type</span>)
+            <span class="ruby-identifier">set_temperature</span>(<span class="ruby-identifier">payload_type</span>, <span class="ruby-identifier">template_to_conditions</span>(<span class="ruby-identifier">template</span>), <span class="ruby-identifier">queue_id</span>)
+            <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;COLLISION PTYPE #{payload_type} OLDTEMP: #{old_temp} NEWTEMP: #{temperature(payload_type)}&quot;</span>
+          <span class="ruby-keyword kw">else</span>
+            <span class="ruby-identifier">raise</span> <span class="ruby-identifier">e</span>
+          <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">if</span> <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>.<span class="ruby-identifier">to_f</span> <span class="ruby-operator">&gt;</span> <span class="ruby-identifier">start</span>.<span class="ruby-identifier">to_f</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">timeout</span>
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;MISSTIMEOUT PTYPE #{payload_type} #{temperature(payload_type)}&quot;</span>
+          <span class="ruby-identifier">raise</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">RequestExpiredError</span>.<span class="ruby-identifier">new</span>
+        <span class="ruby-keyword kw">else</span>    
+          <span class="ruby-identifier">sleepy</span> = <span class="ruby-identifier">rand</span>(<span class="ruby-identifier">timeout</span> <span class="ruby-operator">*</span> <span class="ruby-value">0</span><span class="ruby-value">.5</span> )
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;EMPTY QUEUE #{temperature(payload_type)} SLEEPING: #{timeout} / #{sleepy}&quot;</span>
+          <span class="ruby-identifier">sleep</span> <span class="ruby-identifier">sleepy</span>
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">end</span>
+
+      <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">message</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

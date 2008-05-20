@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>stop (Skynet::Manager)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_manager.rb, line 683</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">stop</span>(<span class="ruby-identifier">options</span> = {})
+      <span class="ruby-identifier">pid</span> = <span class="ruby-identifier">read_pid_file</span>
+      <span class="ruby-identifier">raise</span> <span class="ruby-value str">&quot;The Skynet Manager is not running&quot;</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">pid</span>
+      <span class="ruby-identifier">$stdout</span>.<span class="ruby-identifier">puts</span> <span class="ruby-value str">&quot;Stopping Skynet&quot;</span>
+      <span class="ruby-identifier">printlog</span> <span class="ruby-value str">&quot;Stopping Skynet&quot;</span>
+      <span class="ruby-constant">Process</span>.<span class="ruby-identifier">kill</span>(<span class="ruby-value str">&quot;TERM&quot;</span>, <span class="ruby-identifier">pid</span>)
+      <span class="ruby-value">180</span>.<span class="ruby-identifier">times</span> { <span class="ruby-constant">Process</span>.<span class="ruby-identifier">kill</span>(<span class="ruby-value">0</span>, <span class="ruby-identifier">pid</span>); <span class="ruby-identifier">sleep</span>(<span class="ruby-value">1</span>) }
+      <span class="ruby-constant">Process</span>.<span class="ruby-identifier">kill</span>(<span class="ruby-value str">&quot;TERM&quot;</span>, <span class="ruby-identifier">pid</span>)
+      <span class="ruby-value">180</span>.<span class="ruby-identifier">times</span> { <span class="ruby-constant">Process</span>.<span class="ruby-identifier">kill</span>(<span class="ruby-value">0</span>, <span class="ruby-identifier">pid</span>); <span class="ruby-identifier">sleep</span>(<span class="ruby-value">1</span>) }
+      <span class="ruby-identifier">$stdout</span>.<span class="ruby-identifier">puts</span>(<span class="ruby-node">&quot;using kill -9 #{pid}&quot;</span>)
+      <span class="ruby-constant">Process</span>.<span class="ruby-identifier">kill</span>(<span class="ruby-value str">&quot;KILL&quot;</span>, <span class="ruby-identifier">pid</span>)
+    <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Errno</span><span class="ruby-operator">::</span><span class="ruby-constant">ESRCH</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+      <span class="ruby-identifier">printlog</span> <span class="ruby-value str">&quot;Skynet Stopped&quot;</span>
+    <span class="ruby-keyword kw">ensure</span>
+      <span class="ruby-constant">File</span>.<span class="ruby-identifier">unlink</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Config</span>.<span class="ruby-identifier">pidfile_location</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">exist?</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Config</span>.<span class="ruby-identifier">pidfile_location</span>)
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

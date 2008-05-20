@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>update_message_with_result (Skynet::MessageQueueAdapter::Mysql)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/mysql.rb, line 205</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">update_message_with_result</span>(<span class="ruby-identifier">message</span>,<span class="ruby-identifier">timeout</span>=<span class="ruby-keyword kw">nil</span>)
+      <span class="ruby-identifier">timeout</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">message</span>.<span class="ruby-identifier">expiry</span>
+      <span class="ruby-identifier">timeout_sql</span> = (<span class="ruby-identifier">timeout</span> <span class="ruby-value">? </span><span class="ruby-node">&quot;, timeout = #{timeout}, expire_time = #{Time.now.to_f + timeout}&quot;</span> <span class="ruby-operator">:</span> <span class="ruby-value str">''</span>)
+      <span class="ruby-identifier">rows</span> = <span class="ruby-value">0</span>      
+      <span class="ruby-identifier">raw_payload_sql</span> = <span class="ruby-value str">&quot; raw_payload = &quot;</span>
+      <span class="ruby-identifier">raw_payload_sql</span> <span class="ruby-operator">&lt;&lt;</span> (<span class="ruby-identifier">message</span>.<span class="ruby-identifier">raw_payload</span> <span class="ruby-value">? </span><span class="ruby-node">&quot;'#{::Mysql.escape_string(message.raw_payload)}'&quot;</span> <span class="ruby-operator">:</span> <span class="ruby-value str">'NULL'</span>)
+      <span class="ruby-identifier">update_sql</span> = <span class="ruby-node">%{
+        update #{message_queue_table} 
+        set tasktype = &quot;#{message.tasktype}&quot;, 
+        #{raw_payload_sql},
+        payload_type = &quot;#{message.payload_type}&quot;,
+        updated_on = &quot;#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}&quot;,
+        tran_id = NULL
+        #{timeout_sql}
+        where task_id = #{message.task_id}
+        }</span>                     
+      <span class="ruby-identifier">rows</span> = <span class="ruby-identifier">update</span>(<span class="ruby-identifier">update_sql</span>)                  
+       
+      <span class="ruby-identifier">raise</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">RequestExpiredError</span>.<span class="ruby-identifier">new</span>() <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">rows</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span>         
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>take_result (Skynet::MessageQueueAdapter::Mysql)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/message_queue_adapters/mysql.rb, line 226</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">take_result</span>(<span class="ruby-identifier">job_id</span>,<span class="ruby-identifier">timeout</span>=<span class="ruby-value">1</span>)
+      <span class="ruby-identifier">start</span> = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>
+      <span class="ruby-identifier">result</span> = <span class="ruby-keyword kw">nil</span>                
+      <span class="ruby-identifier">sleep_time</span> = <span class="ruby-value">10</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">timeout</span> <span class="ruby-operator">&lt;</span> <span class="ruby-value">1</span>
+        <span class="ruby-identifier">sleep_time</span> = <span class="ruby-value">1</span>
+      <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">timeout</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">10</span>
+        <span class="ruby-identifier">sleep_time</span> = <span class="ruby-value">10</span>
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-identifier">sleep_time</span> = <span class="ruby-identifier">timeout</span> <span class="ruby-operator">*</span> <span class="ruby-value">0</span><span class="ruby-value">.25</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-identifier">message_row</span> = <span class="ruby-keyword kw">nil</span>
+      
+      <span class="ruby-identifier">loop</span> <span class="ruby-keyword kw">do</span>
+        <span class="ruby-comment cmt"># message_row = take(Skynet::Message.result_template(job_id), start, timeout,sleep_time)</span>
+        <span class="ruby-identifier">conditions</span> = <span class="ruby-identifier">template_to_conditions</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">result_template</span>(<span class="ruby-identifier">job_id</span>))
+        <span class="ruby-comment cmt"># sleep_time ||= timeout</span>
+
+        <span class="ruby-identifier">message_row</span> = <span class="ruby-constant">SkynetMessageQueue</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">:first</span>,<span class="ruby-identifier">:conditions</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">conditions</span>)
+        
+        <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">message_row</span>
+
+        <span class="ruby-keyword kw">if</span> <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>.<span class="ruby-identifier">to_f</span> <span class="ruby-operator">&gt;</span> <span class="ruby-identifier">start</span>.<span class="ruby-identifier">to_f</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">timeout</span>
+          <span class="ruby-identifier">raise</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">RequestExpiredError</span>.<span class="ruby-identifier">new</span>
+        <span class="ruby-keyword kw">else</span>          
+          <span class="ruby-identifier">sleepy</span> = <span class="ruby-identifier">rand</span>(<span class="ruby-identifier">sleep_time</span>)
+          <span class="ruby-comment cmt"># error &quot;RESULT EMPTY SLEEPING: #{sleepy}&quot;          </span>
+          <span class="ruby-identifier">sleep</span> <span class="ruby-identifier">sleepy</span>
+          <span class="ruby-keyword kw">next</span>
+        <span class="ruby-keyword kw">end</span>          
+        <span class="ruby-keyword kw">next</span>
+      <span class="ruby-keyword kw">end</span>                      
+
+      <span class="ruby-identifier">result</span> = <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Message</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">message_row</span>.<span class="ruby-identifier">clone</span>.<span class="ruby-identifier">attributes</span>)
+      <span class="ruby-identifier">message_row</span>.<span class="ruby-identifier">destroy</span>
+      <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">result</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">result</span>        
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>update_worker_queue (Skynet::Manager)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_manager.rb, line 352</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">update_worker_queue</span>
+      <span class="ruby-ivar">@worker_queue_retries</span> <span class="ruby-operator">||=</span> <span class="ruby-value">0</span>
+      <span class="ruby-keyword kw">begin</span>
+        <span class="ruby-identifier">mq</span>.<span class="ruby-identifier">take_all_worker_statuses</span>(<span class="ruby-identifier">hostname</span>,<span class="ruby-value">0</span><span class="ruby-value">.00001</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">status</span><span class="ruby-operator">|</span>
+          <span class="ruby-identifier">status</span>.<span class="ruby-identifier">started_at</span> = <span class="ruby-identifier">status</span>.<span class="ruby-identifier">started_at</span>.<span class="ruby-identifier">to_i</span>
+          <span class="ruby-ivar">@worker_queue</span>[<span class="ruby-identifier">status</span>.<span class="ruby-identifier">worker_id</span>] = <span class="ruby-identifier">status</span>
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-ivar">@worker_pids</span> = <span class="ruby-keyword kw">nil</span>
+        <span class="ruby-identifier">save_worker_queue_to_file</span>
+        <span class="ruby-ivar">@active_workers</span> = <span class="ruby-keyword kw">nil</span>
+      <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">ConnectionError</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+        <span class="ruby-identifier">exit</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@worker_queue_retries</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">3</span>
+        <span class="ruby-ivar">@worker_queue_retries</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+        <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;Skynet Worker Queue Tuplespace Server appears down.  Trying to restart&quot;</span>
+        <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">start_worker_queue</span>
+        <span class="ruby-identifier">sleep</span> <span class="ruby-value">4</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-ivar">@worker_queue</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>map_tasks (Skynet::Job)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File lib/skynet/skynet_job.rb, line 485</span>
+    <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">map_tasks</span>
+      <span class="ruby-ivar">@map_tasks</span> <span class="ruby-operator">||=</span> <span class="ruby-keyword kw">begin</span>
+        <span class="ruby-identifier">map_tasks</span> = []
+        <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.1 #{display_info} data size before partition: #{@map_data.size}&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@map_data</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:size</span>)
+        <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.1 #{display_info} data before partition:&quot;</span>, <span class="ruby-ivar">@map_data</span>
+
+        <span class="ruby-identifier">task_options</span> = {
+          <span class="ruby-identifier">:process</span>        =<span class="ruby-operator">&gt;</span> <span class="ruby-ivar">@map</span>,
+          <span class="ruby-identifier">:name</span>           =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">map_name</span>,
+          <span class="ruby-identifier">:map_or_reduce</span>  =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">:map</span>,
+          <span class="ruby-identifier">:result_timeout</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">map_timeout</span>,
+          <span class="ruby-identifier">:retry</span>          =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">map_retry</span> <span class="ruby-operator">||</span> <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">CONFIG</span>[<span class="ruby-identifier">:DEFAULT_MAP_RETRY</span>]
+        }
+
+        <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@map_data</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Array</span>)
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.2 DATA IS Array #{display_info}&quot;</span>
+          <span class="ruby-identifier">num_mappers</span> = <span class="ruby-ivar">@map_data</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">&lt;</span> <span class="ruby-ivar">@mappers</span> <span class="ruby-operator">?</span> <span class="ruby-ivar">@map_data</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">:</span> <span class="ruby-ivar">@mappers</span>
+
+          <span class="ruby-identifier">map_data</span> = <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@map_partitioner</span>
+            <span class="ruby-ivar">@map_partitioner</span>.<span class="ruby-identifier">call</span>(<span class="ruby-ivar">@map_data</span>,<span class="ruby-identifier">num_mappers</span>)
+          <span class="ruby-keyword kw">else</span>
+            <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Partitioners</span><span class="ruby-operator">::</span><span class="ruby-constant">SimplePartitionData</span>.<span class="ruby-identifier">reduce_partition</span>(<span class="ruby-ivar">@map_data</span>, <span class="ruby-identifier">num_mappers</span>)
+          <span class="ruby-keyword kw">end</span>
+        
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.3 #{display_info} data size after partition: #{map_data.size}&quot;</span>
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.3 #{display_info} map data after partition:&quot;</span>, <span class="ruby-identifier">map_data</span>
+        <span class="ruby-keyword kw">elsif</span> <span class="ruby-ivar">@map_data</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Enumerable</span>)
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.2 DATA IS ENUMERABLE #{display_info} map_data_class: #{@map_data.class}&quot;</span>
+          <span class="ruby-identifier">map_data</span> = <span class="ruby-ivar">@map_data</span>
+        <span class="ruby-keyword kw">else</span>
+          <span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;RUN MAP 2.2 DATA IS NOT ARRAY OR ENUMERABLE #{display_info} map_data_class: #{@map_data.class}&quot;</span>
+          <span class="ruby-identifier">map_data</span> = [ <span class="ruby-ivar">@map_data</span> ]
+        <span class="ruby-keyword kw">end</span>
+        <span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">TaskIterator</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">task_options</span>, <span class="ruby-identifier">map_data</span>)
+      <span class="ruby-keyword kw">end</span>
+    <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>

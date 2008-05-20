@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>index (Admin::SkynetController)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File extras/rails/controllers/skynet_controller.rb, line 3</span>
+  <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">index</span>
+    <span class="ruby-keyword kw">begin</span>
+      <span class="ruby-identifier">setup</span>
+      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">params</span>[<span class="ruby-identifier">:skynet_message_queue</span>]
+        <span class="ruby-constant">Skynet</span>.<span class="ruby-identifier">configure</span>(<span class="ruby-identifier">:MYSQL_MESSAGE_QUEUE_TABLE</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">params</span>[<span class="ruby-identifier">:skynet_message_queue</span>]) <span class="ruby-keyword kw">do</span>
+          <span class="ruby-ivar">@stats</span> = <span class="ruby-ivar">@mq</span>.<span class="ruby-identifier">stats</span>
+        <span class="ruby-keyword kw">end</span>
+      <span class="ruby-keyword kw">else</span>
+        <span class="ruby-ivar">@stats</span> = <span class="ruby-ivar">@mq</span>.<span class="ruby-identifier">stats</span>
+      <span class="ruby-keyword kw">end</span>
+      <span class="ruby-ivar">@stats</span>.<span class="ruby-identifier">merge!</span>(<span class="ruby-constant">Skynet</span><span class="ruby-operator">::</span><span class="ruby-constant">Manager</span>.<span class="ruby-identifier">stats_for_hosts</span>)
+      <span class="ruby-ivar">@stats</span>[<span class="ruby-identifier">:hosts</span>] = <span class="ruby-ivar">@stats</span>[<span class="ruby-identifier">:servers</span>].<span class="ruby-identifier">size</span>
+    <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Exception</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+      <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">error</span> <span class="ruby-node">&quot;ERROR #{e.inspect} #{e.backtrace.join(&quot;\n&quot;)}&quot;</span>      
+    <span class="ruby-keyword kw">end</span>
+  <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>
