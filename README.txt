@@ -20,6 +20,8 @@ bin/skynet[link:files/bin/skynet.html] - Starting Skynet
 
 bin/skynet_install[link:files/bin/skynet_install.html] - Installing Skynet into a local project
 
+There are also some good examples in the examples/ directory included with Skynet.
+
 == Map/Reduce
 
 First of all, Skynet is merely a distributed computing system that allows you to follow the map/reduce steps.  You don't have to use it as a map/reduce framework.  You can use it as a simple distributed system, or even a simple asynchronous processing system.
