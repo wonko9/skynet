@@ -42,6 +42,13 @@ OptionParser.new do |opt|
   opt.on('-d', '--piddir PIDDIR', 'Directory to put pidfile') do |v|
     options[:piddir] = File.expand_path(v)
   end
+  opt.on('--use_ringserver TRUE', 'Use ringserver?') do |v|
+    if v.upcase == "true" or v == "1"
+      options[:use_ringserver] = true
+    else
+      options[:use_ringserver] = false
+    end      
+  end
   opt.on('-u', '--drburi Drb URI', 'What DRbURI to use') do |v|
     if v =~ %r{druby://}
       options[:drburi] = v

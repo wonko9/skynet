@@ -264,7 +264,7 @@ class Skynet
         ringserver_hosts = options[:ringserver_hosts]
         drburi           = options[:drburi]
         
-        return @@ts if is_valid_tuplespace?(@@ts)
+        return @@ts if valid_tuplespace?(@@ts)
         loop do
           begin
             DRb.start_service
@@ -276,6 +276,7 @@ class Skynet
             else
               drburi = "druby://#{drburi}" unless drburi =~ %r{druby://}
               @@ts = get_tuple_space_from_drburi(drburi)
+              raise DRb::DRbConnError.new unless valid_tuplespace?(@@ts)
               info "#{self} CONNECTED TO #{drburi}"
             end
             return @@ts
@@ -313,7 +314,7 @@ class Skynet
         DRbObject.new(nil, drburi)
       end
 
-      def self.is_valid_tuplespace?(ts)
+      def self.valid_tuplespace?(ts)
         return false unless ts
         begin
           ts.read_all([:valid])
