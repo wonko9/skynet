@@ -390,7 +390,7 @@ class Skynet
     end
 
     def self.stats_for_hosts(manager_hosts=nil)
-      manager_hosts = Skynet::CONFIG[:MANAGER_HOSTS] || ["localhost"]
+      manager_hosts ||= Skynet::CONFIG[:MANAGER_HOSTS] || ["localhost"]
       stats = {
         :servers           => {},
         :processed         => 0,
@@ -404,7 +404,7 @@ class Skynet
       }
       servers = {}
       manager_hosts.each do |manager_host|
-        manager = DRbObject.new(nil,"druby://#{manager_host}:40000")
+        manager = DRbObject.new(nil,"druby://#{manager_host}:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}")
         manager_stats = manager.stats
         servers[manager_host] = manager_stats
         manager_stats.each do |key,value|
@@ -476,8 +476,12 @@ class Skynet
       true
     end
 
+    def self.local_manager_uri
+      "druby://localhost:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
+    end
+    
     def self.get
-      DRbObject.new(nil,Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+      DRbObject.new(nil,local_manager_uri)
     end
 
     def self.start(options={})
@@ -506,22 +510,22 @@ class Skynet
         opt.on('', '--restart-all-workers', 'Restart All Workers') do |v|
           puts "Restarting ALL workers on ALL machines."
           begin
-            manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+            manager = self.get
             manager.restart_all_workers
             exit
           rescue DRb::DRbConnError => e
-            puts "No manager running at #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}  ERROR: #{e.inspect}"
+            puts "No manager running at #{local_manager_uri}  ERROR: #{e.inspect}"
             exit
           end
         end
         opt.on('', '--restart-workers', 'Restart Workers') do |v|
           puts "Restarting workers on this machine."
           begin
-            manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+            manager = self.get
             manager.restart_workers
             exit
           rescue DRb::DRbConnError => e
-            puts "No manager running at #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}  ERROR: #{e.inspect}"
+            puts "No manager running at #{local_manager_uri}  ERROR: #{e.inspect}"
             exit
           end
         end
@@ -571,7 +575,7 @@ class Skynet
       # Handle add or remove workers
       if options[:add_workers] or options[:remove_workers]
         begin
-          manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+          manager = self.get
           if options[:add_workers]
             pids = manager.add_worker(options[:add_workers])
             warn "ADDING #{options[:add_workers]} workers PIDS: #{pids.inspect}"
@@ -580,7 +584,7 @@ class Skynet
             warn "REMOVING #{options[:remove_workers]} workers PIDS: #{pids.inspect}"
           end
         rescue DRb::DRbConnError => e
-          warn "Couldnt add or remove workers. There are probably no workers running. At least I couldn't find a skynet_manager around at #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]} #{e.inspect}"
+          warn "Couldnt add or remove workers. There are probably no workers running. At least I couldn't find a skynet_manager around at #{local_manager_uri} #{e.inspect}"
         rescue Exception => e
           warn "Couldnt add or remove workers #{e.inspect} #{e.backtrace.join("\n")}"
         end
@@ -614,7 +618,7 @@ class Skynet
             end
           end
 
-          printlog "STARTING THE MANAGER!!!!!!!!!!! @ #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}"
+          printlog "STARTING THE MANAGER!!!!!!!!!!! port: #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
           if options["daemonize"]
             Skynet.safefork do
               sess_id = Process.setsid
@@ -636,9 +640,9 @@ class Skynet
 
     def self.run_manager(options)
       @manager = Skynet::Manager.new(options)
-      @drb_manager = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
+      @drb_manager = DRb.start_service("druby://:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}", @manager)
       @manager.start_workers
-      printlog "MANAGER STARTED AT #{@drb_manager.uri}"
+      info "MANAGER STARTED ON PORT: #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
       @manager.run
     end
 

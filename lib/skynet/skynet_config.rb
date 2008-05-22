@@ -10,7 +10,7 @@ class Skynet
     :SKYNET_LOG_FILE                      => "skynet.log",
     :SKYNET_MANAGER_STATS_FILE            => "skynet_manager_stats.txt",
     :SKYNET_LOG_LEVEL                     => Logger::ERROR,
-    :SKYNET_LOCAL_MANAGER_URL             => "druby://localhost:40000",
+    :SKYNET_LOCAL_MANAGER_PORT            => "40000",
     :MESSAGE_QUEUE_ADAPTER                => ("Skynet::MessageQueueAdapter::TupleSpace" || "Skynet::MessageQueueAdapter::Mysql"),
     :TS_USE_RINGSERVER                    => true,
     :TS_DRBURI                            => "druby://localhost:47647",   # If you do not use RINGSERVER, you must specifiy the DRBURI

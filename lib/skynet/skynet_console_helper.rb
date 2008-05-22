@@ -26,7 +26,7 @@ module Skynet::ConsoleHelper
     end
 
     def manager
-      @manager ||= DRbObject.new(nil,Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
+      @manager ||= Skynet::Manager.get
     end
 
     def add_lib(lib)
