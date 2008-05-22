@@ -617,17 +617,13 @@ class Skynet
           printlog "STARTING THE MANAGER!!!!!!!!!!! @ #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}"
           if options["daemonize"]
             Skynet.safefork do
-              @manager = Skynet::Manager.new(options)
-              @drb_manager = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
-              @manager.start_workers
-              printlog "MANAGER STARTED AT #{@drb_manager.uri}"
               sess_id = Process.setsid
               Skynet.close_console
-              run_manager(@manager)
+              run_manager(options)
               exit!
             end
           else
-            run_manager(@manager)
+            run_manager(options)
           end
         rescue SystemExit, Interrupt
         rescue Exception => e
@@ -636,9 +632,13 @@ class Skynet
       end
     end
 
-    def self.run_manager(manager)
+    def self.run_manager(options)
+      @manager = Skynet::Manager.new(options)
+      @drb_manager = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
+      @manager.start_workers
+      printlog "MANAGER STARTED AT #{@drb_manager.uri}"
       write_pid_file
-      manager.run
+      @manager.run
     end
 
     # stop the daemon, nicely at first, and then forcefully if necessary
