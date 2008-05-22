@@ -45,12 +45,18 @@ class Skynet
         last_save_time = Time.now
         loop do
           task = @wqts.deq
-          status = Skynet::WorkerStatusMessage.new(task)
-          status.started_at = status.started_at.to_i
-          @worker_queue[status.worker_id] = status
-          if last_save_time < Time.now - 60
-            save_worker_queue_to_file
-            last_save_time = Time.now
+          begin
+            status = Skynet::WorkerStatusMessage.new(task)
+            status.started_at = status.started_at.to_i
+            @mutex.synchronize do          
+              @worker_queue[status.worker_id] = status
+            end
+            if last_save_time < Time.now - 60
+              save_worker_queue_to_file
+              last_save_time = Time.now
+            end
+          rescue Exception => e
+            error "Error in worker queue thread #{e.inspect} #{e.backtrace.join("\n")}"
           end
         end
       end      
@@ -632,7 +638,6 @@ class Skynet
 
     def self.run_manager(manager)
       write_pid_file
-      info "WORKER MANAGER URI: #{DRb.uri}"
       manager.run
     end
 

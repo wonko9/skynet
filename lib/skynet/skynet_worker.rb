@@ -137,8 +137,18 @@ class Skynet
       )
     end           
     
+    def manager_send(method,*args)
+      begin
+        manager.send(method,*args)
+      rescue DRb::DRbConnError, Errno::ECONNREFUSED  => e
+        error "Worker could not connect to manager to call #{method} on manager #{e.inspect}"
+      rescue Exception  => e
+        error "Worker could not connect call #{method} on manager #{e.inspect} args:", args
+      end
+    end
+
     def write_worker_status(status)
-      manager.worker_notify(status)
+      manager_send(:worker_notify,status)
     end                              
     
     def manager
@@ -257,8 +267,7 @@ class Skynet
         rescue Skynet::RequestExpiredError => e
           if new_version_respawn?
             notify_worker_stop
-            manager = DRbObject.new(nil, Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL])
-            manager.restart_worker($$) if manager
+            manager_send(:restart_worker,$$)
           end
           sleep 1
           next
