@@ -618,11 +618,13 @@ class Skynet
           if options["daemonize"]
             Skynet.safefork do
               sess_id = Process.setsid
+              write_pid_file
               Skynet.close_console
               run_manager(options)
               exit!
             end
           else
+            write_pid_file
             run_manager(options)
           end
         rescue SystemExit, Interrupt
@@ -637,7 +639,6 @@ class Skynet
       @drb_manager = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
       @manager.start_workers
       printlog "MANAGER STARTED AT #{@drb_manager.uri}"
-      write_pid_file
       @manager.run
     end
 
@@ -666,6 +667,7 @@ class Skynet
 
     def self.write_pid_file
       pidfile = Skynet::Config.pidfile_location
+      info "Writing PIDFILE to #{pidfile}"
       open(pidfile, "w") {|f| f << Process.pid << "\n"}
       at_exit { File.unlink(pidfile) if read_pid_file == Process.pid }
     end
