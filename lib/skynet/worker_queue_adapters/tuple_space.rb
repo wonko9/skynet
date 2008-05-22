@@ -3,7 +3,7 @@ class Skynet
   class WorkerQueueAdapter
 
     class TupleSpace < Skynet::MessageQueueAdapter::TupleSpace
-
+      
       def write_worker_status(task, timeout=nil)
         # begin
         #   take_worker_status(task,0.00001)
@@ -44,6 +44,20 @@ class Skynet
         end
         cnt
       end
+      
+      private
+
+      def self.get_tuple_space(options = {})    
+        return @@ts if valid_tuplespace?(@@ts)
+        begin
+          manager = Skynet::Manager.get
+        rescue DRb::DRbConnError, RuntimeError, Errno::ECONNREFUSED  => e
+          raise Skynet::ConnectionError.new("Couldn't get Manager")
+        end
+        @@ts = manager.wqts
+        return @@ts if valid_tuplespace?(@@ts)        
+      end
+      
     end
   end
 end

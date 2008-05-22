@@ -7,7 +7,6 @@ class Skynet
     rescue Skynet::ConnectionError
       if Skynet::MessageQueue.adapter == :tuplespace
         cmd = "skynet_tuplespace_server --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet.config.skynet_pid_dir} --use_ringserver=#{Skynet.config.ts_use_ringserver} --drburi=#{Skynet.config.ts_drburi} start"
-        puts cmd
         pid = fork do
           exec(cmd)
         end

@@ -16,7 +16,7 @@ class Skynet
     end
 
     attr_accessor :required_libs, :queue_id
-    attr_reader   :config, :worker_queue
+    attr_reader   :config, :worker_queue, :wqts
 
     def initialize(options)
       raise Error.new("You must provide a script path to Skynet::Manager.new.") unless options[:script_path]
@@ -33,12 +33,24 @@ class Skynet
       @all_workers_started  = false
       @config               = Skynet::Config.new
       @mutex                = Mutex.new
+      @wqts                 = Queue.new                      
+    end
+
+    def worker_notify(item)
+      @wqts2.enq(item)
     end
 
     def start_workers
-      load_worker_queue_from_file
+      Thread.new do
+        loop do
+          task = @wqts2.deq
+          status = Skynet::WorkerStatusMessage.new(task)
+          status.started_at = status.started_at.to_i
+          @worker_queue[status.worker_id] = status          
+        end
+      end
 
-      @mq = Skynet::WorkerQueue.start_or_connect
+      load_worker_queue_from_file
 
       setup_signals
 
@@ -49,7 +61,6 @@ class Skynet
 
     ### maybe workers_to_start should be a method
     def workers_to_start(workers_to_start)
-      update_worker_queue
       if not worker_pids.empty?
         worker_pids.each do |worker_pid|
           if worker_alive?(worker_pid)
@@ -67,7 +78,6 @@ class Skynet
     def check_started_workers
       begin
         100.times do |ii|
-          update_worker_queue
           warn "Checking started workers, #{active_workers.size} out of #{@number_of_workers} after the #{(ii+1)}th try..."
           break if active_workers.size >= @number_of_workers
           sleep (@number_of_workers - active_workers.size)
@@ -90,7 +100,6 @@ class Skynet
       loop do
         next unless @all_workers_started
         begin
-          update_worker_queue
           check_workers
           sleep Skynet::CONFIG[:WORKER_CHECK_DELAY]
         rescue SystemExit, Interrupt => e
@@ -170,14 +179,10 @@ class Skynet
         if not active_workers.detect { |w| w.map_or_reduce == "master" }
           signal_workers("TERM")
           @masters_dead = true
-          sleep 1
-          # return check_number_of_workers
         else
-          sleep 2
           return check_number_of_workers
         end
       end
-      update_worker_queue
       if worker_pids.size < 1
         info "No more workers running."
       else
@@ -254,8 +259,6 @@ class Skynet
         worker_pids.delete(worker.process_id)
         worker.started_at = Time.now.to_f
         worker.process_id = nil
-        @active_workers   = nil
-        @worker_pids      = nil
       end
     end
 
@@ -345,31 +348,6 @@ class Skynet
       exit
     end
 
-    def mq
-      @mq ||= Skynet::WorkerQueue.new
-    end
-
-    def update_worker_queue
-      @worker_queue_retries ||= 0
-      begin
-        mq.take_all_worker_statuses(hostname,0.00001).each do |status|
-          status.started_at = status.started_at.to_i
-          @worker_queue[status.worker_id] = status
-        end
-        @worker_pids = nil
-        save_worker_queue_to_file
-        @active_workers = nil
-      rescue Skynet::ConnectionError => e
-        exit if @worker_queue_retries > 3
-        @worker_queue_retries += 1
-        warn "Skynet Worker Queue Tuplespace Server appears down.  Trying to restart"
-        self.class.start_worker_queue
-        sleep 4
-      end
-      @worker_queue
-    end
-
-
     def save_worker_queue_to_file
       File.open(Skynet.config.manager_statfile_location,"w") do |f|
         f.write(YAML.dump(@worker_queue))
@@ -393,7 +371,6 @@ class Skynet
 
     def prune_inactive_worker_stats
       @worker_queue.delete_if{|worker_id, worker| !worker.process_id.is_a?(Fixnum) }
-      update_worker_queue
       stats
     end
 
@@ -461,7 +438,7 @@ class Skynet
     end
 
     def active_workers
-      @active_workers ||= @worker_queue.values.select{|status| status.process_id.is_a?(Fixnum) }
+      @worker_queue.values.select{|status| status.process_id.is_a?(Fixnum) }
     end
 
     def inactive_workers
@@ -469,7 +446,7 @@ class Skynet
     end
 
     def worker_pids
-      @worker_pids ||= active_workers.collect {|w| w.process_id}
+      active_workers.collect {|w| w.process_id}
     end
 
     def parent_pid
@@ -623,19 +600,14 @@ class Skynet
           end
 
           printlog "STARTING THE MANAGER!!!!!!!!!!! @ #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL]}"
-          @manager = Skynet::Manager.new(options)
-          if Skynet::WorkerQueue.adapter == :tuplespace
-            @wqpid = start_worker_queue
-            sleep 1
-          end
-          @manager.start_workers
           if options["daemonize"]
             Skynet.safefork do
-              s = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
-              printlog "MANAGER STARTED AT #{s.uri}"
+              @manager = Skynet::Manager.new(options)
+              @drb_manager = DRb.start_service(Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_URL], @manager)
+              @manager.start_workers
+              printlog "MANAGER STARTED AT #{@drb_manager.uri}"
               sess_id = Process.setsid
               Skynet.close_console
-              at_exit {Process.kill("TERM", @wqpid)} if @wqpid
               run_manager(@manager)
               exit!
             end
@@ -649,34 +621,10 @@ class Skynet
       end
     end
 
-    def self.start_worker_queue
-      queue_proc = Proc.new do
-        @ts = Rinda::TupleSpace.new
-        begin
-          Signal.trap("TERM") { exit }
-          Signal.trap("INT") { exit }
-          s = DRb.start_service(Skynet::CONFIG[:TS_WQUEUE_URI], @ts)
-          info "Starting worker queue tuplespace @ #{Skynet::CONFIG[:TS_WQUEUE_URI]} ACTUAL @ #{s.uri}"
-          DRb.thread.join
-        rescue SystemExit, Interrupt
-        rescue Exception => e
-          error "Error in worker queue process", e
-        end
-        info "Shutting down worker queue"
-      end
-      begin
-        f = fork {queue_proc.call}
-        return f
-      rescue Exception => e
-        fatal "Error starting worker queue TS ", e
-      end
-    end
-
     def self.run_manager(manager)
       write_pid_file
       info "WORKER MANAGER URI: #{DRb.uri}"
       manager.run
-      DRb.thread.join
     end
 
     # stop the daemon, nicely at first, and then forcefully if necessary

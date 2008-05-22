@@ -103,7 +103,6 @@ module ActiveRecord
       opts = opts.clone
       opts[:id] || opts[:id] = 0
       count = model_klass.count(:all,:conditions => opts[:conditions], :joins => opts[:joins])
-      Skynet::Logger.get.error "COUNT #{count}"
       if count <= batch_size
         return yield({"first" => 0, "last" => nil, "cnt" => 0}, 0)
       end

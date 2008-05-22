@@ -20,7 +20,7 @@ require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 options = { 
   :port           => 7647,
   :logfile        => Skynet::Config.pidfile_location,
-  :loglevel       => "DEBUG",
+  :loglevel       => "ERROR",
   :piddir         => Skynet::CONFIG[:SKYNET_PID_DIR],
   :use_ringserver => Skynet::CONFIG[:TS_USE_RINGSERVER],
 }

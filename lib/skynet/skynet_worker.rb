@@ -12,7 +12,7 @@ class Skynet
     MEMORY_CHECK_DELAY = 30
     MANAGER_PING_INTERVAL = 60
 
-    attr_accessor :message,:task, :mq, :wq, :processed
+    attr_accessor :message,:task, :mq, :processed
     attr_reader :worker_id, :worker_info, :worker_type, :queue_id
 
     class Error             < StandardError; end
@@ -31,7 +31,6 @@ class Skynet
       @processed    = 0
       @in_process   = false
       @mq           = Skynet::MessageQueue.new
-      @wq           = Skynet::WorkerQueue.new
 
       debug "THIS WORKER TAKES #{worker_type}"
 
@@ -91,7 +90,7 @@ class Skynet
     end
 
     def notify_worker_started
-      wq.write_worker_status(
+      write_worker_status(
         @worker_info.merge({
           :name       => "waiting for #{@worker_type}",
           :processed  => 0,
@@ -104,14 +103,14 @@ class Skynet
       task[:processed] = @processed
       task[:started_at] = Time.now.to_i
       @in_process = true      
-      wq.write_worker_status(@worker_info.merge(task))
+      write_worker_status(@worker_info.merge(task))
     end
 
     def notify_task_complete
       @processed += 1
       @in_process = false
 
-      wq.write_worker_status(
+      write_worker_status(
         @worker_info.merge({
           :task_id       => 0,
           :job_id        => 0,
@@ -125,7 +124,7 @@ class Skynet
 
     def notify_worker_stop
       info "Worker #{process_id} stopping..."
-      wq.write_worker_status(
+      write_worker_status(
       @worker_info.merge({
         :task_id       => 0,
         :job_id        => 0,
@@ -136,8 +135,16 @@ class Skynet
         :started_at    => Time.now.to_i
         })
       )
+    end           
+    
+    def write_worker_status(status)
+      manager.worker_notify(status)
+    end                              
+    
+    def manager
+      Skynet::Manager.get
     end
-
+    
     def payload_type
       return nil if worker_type == :any
       return worker_type

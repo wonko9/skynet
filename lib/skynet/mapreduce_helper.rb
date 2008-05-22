@@ -56,7 +56,7 @@ module MapreduceHelper
   # Takes an array of post reduce_partitioned data, iterates over that array calling self.reduce_each(item) for each 
   # item in that array.   Catches exceptions in each iteration and continues processing.
   def reduce(reduce_partitioned_data_array)
-    raise Skynet::Job::BadMapOrReduceError.new("#{self.class} has no self.reduce_each method.") unless self.respond_to?(:reduce_each)
+    return reduce_partitioned_data_array unless self.respond_to?(:reduce_each)
     if reduce_partitioned_data_array.is_a?(Array)
       results = []
       reduce_partitioned_data_array.each do |data|

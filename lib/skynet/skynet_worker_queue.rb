@@ -9,7 +9,7 @@ class Skynet
     extend Forwardable
 
     def self.adapter_class
-      Skynet::CONFIG[:WORKER_QUEUE_ADAPTER]
+      "Skynet::WorkerQueueAdapter::TupleSpace"
     end
 
     def mq
