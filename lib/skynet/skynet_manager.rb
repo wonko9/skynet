@@ -37,20 +37,28 @@ class Skynet
     end
 
     def worker_notify(item)
-      @wqts2.enq(item)
+      @wqts.enq(item)
     end
 
-    def start_workers
+    def start_worker_queue_thread
       Thread.new do
+        last_save_time = Time.now
         loop do
-          task = @wqts2.deq
+          task = @wqts.deq
           status = Skynet::WorkerStatusMessage.new(task)
           status.started_at = status.started_at.to_i
-          @worker_queue[status.worker_id] = status          
+          @worker_queue[status.worker_id] = status
+          if last_save_time < Time.now - 60
+            save_worker_queue_to_file
+            last_save_time = Time.now
+          end
         end
-      end
-
+      end      
+    end  
+    
+    def start_workers
       load_worker_queue_from_file
+      start_worker_queue_thread
 
       setup_signals
 
@@ -112,7 +120,7 @@ class Skynet
     end
 
     def check_workers
-      info "Checking on #{@number_of_workers} workers..." unless @shutdown
+      debug "Checking on #{@number_of_workers} workers..." unless @shutdown
       check_running_pids
       check_number_of_workers
       true
@@ -349,6 +357,7 @@ class Skynet
     end
 
     def save_worker_queue_to_file
+      debug "Writing worker queue to file #{Skynet.config.manager_statfile_location}"
       File.open(Skynet.config.manager_statfile_location,"w") do |f|
         f.write(YAML.dump(@worker_queue))
       end
