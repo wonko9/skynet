@@ -345,8 +345,8 @@ class Skynet
         GROUP BY tasktype, payload_type, iteration          
       })       
       stat_rows.each do |row|
-        if row["expire_time"].to_i < Time.now.to_i
-          stats[:untaken_future_tasks] += 1
+        if row["expire_time"].to_i > Time.now.to_i
+          stats[:untaken_future_tasks] += 1 if row["tasktype"] == "task"    
         elsif row["tasktype"] == "result" or row["payload_type"] == "result"
           stats[:results] += row["number_of_tasks"].to_i
         elsif row["tasktype"] == "task"    
