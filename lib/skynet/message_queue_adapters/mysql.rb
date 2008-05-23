@@ -335,17 +335,19 @@ class Skynet
         :untaken_master_tasks => 0,
         :untaken_task_tasks   => 0,
         :failed_tasks         => 0,
+        :untaken_future_tasks => 0,
         :time                 => Time.now.to_f,
       }
 
       stat_rows = SkynetWorkerQueue.connection.select_all(%{
         SELECT tasktype, payload_type, iteration, count(id) as number_of_tasks, expire_time
         FROM #{message_queue_table}
-        WHERE expire_time <= #{Time.now.to_i}        
         GROUP BY tasktype, payload_type, iteration          
       })       
       stat_rows.each do |row|
-        if row["tasktype"] == "result" or row["payload_type"] == "result"
+        if row["expire_time"].to_i < Time.now.to_i
+          stats[:untaken_future_tasks] += 1
+        elsif row["tasktype"] == "result" or row["payload_type"] == "result"
           stats[:results] += row["number_of_tasks"].to_i
         elsif row["tasktype"] == "task"    
           type_of_tasks = nil

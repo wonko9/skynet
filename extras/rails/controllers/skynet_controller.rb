@@ -2,6 +2,7 @@ class Admin::SkynetController < AdminController
 
   def index
     begin
+      start_time = Time.now
       setup
       if params[:skynet_message_queue]
         Skynet.configure(:MYSQL_MESSAGE_QUEUE_TABLE => params[:skynet_message_queue]) do
@@ -12,6 +13,7 @@ class Admin::SkynetController < AdminController
       end
       @stats.merge!(Skynet::Manager.stats_for_hosts)
       @stats[:hosts] = @stats[:servers].size
+      @stats[:processed_time] = Time.now - start_time
     rescue Exception => e
       logger.error "ERROR #{e.inspect} #{e.backtrace.join("\n")}"      
     end

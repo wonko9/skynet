@@ -16,7 +16,7 @@
         <th>Workers</th>
         <th>Active Workers<BR>(Masters / Tasks / Either)</th>
         <th>Idle Workers<BR>(Masters / Tasks / Either)</th>
-        <th>Untaken Tasks<BR>(Master / Task)</th>
+        <th>Untaken Tasks<BR>(Master / Task / Future)</th>
         <th>Taken Tasks<BR>(Master / Task)</th>
         <th>Results</th>
         <th>Processed <br />(by active workers)</th>
@@ -29,11 +29,11 @@
         <td class="numeric"><%= @stats[:number_of_workers] %></td>
         <td class="numeric"><b><%= @stats[:active_workers] %></b> (<%= @stats[:active_masters] %> / <%= @stats[:active_taskworkers] %> / <%= @stats[:active_master_or_task_workers] %>)</td>
         <td class="numeric"><b><%= @stats[:idle_workers] %></b> (<%= @stats[:idle_masters] %> / <%= @stats[:idle_taskworkers] %> / <%= @stats[:idle_master_or_task_workers] %>)</td>
-        <td class="numeric"><%= @stats[:untaken_tasks] %> (<b><%= @stats[:untaken_master_tasks] %></b> / <%= @stats[:untaken_task_tasks] %>)</td>
+        <td class="numeric"><%= @stats[:untaken_tasks] %> (<b><%= @stats[:untaken_master_tasks] %></b> / <%= @stats[:untaken_task_tasks] %> / <%= @stats[:untaken_future_tasks] %>)</td>
         <td class="numeric"><b><%= @stats[:taken_tasks] %></b> (<%= @stats[:taken_master_tasks] %> / <%= @stats[:taken_task_tasks] %>)</td>
         <td class="numeric"><%= @stats[:results] %></td>
         <td class="numeric"><%= @stats[:processed] %> (<%= @stats[:processed_by_active_workers] %>)</td>
-        <td><%= @stats[:time] %></td>
+        <td><%= @stats[:processed_time] %></td>
       </tr>
     </tbody>
   </table>
