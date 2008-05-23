@@ -1,4 +1,4 @@
-== 0.9.3 2008-04-10
+== 0.9.3 2008-05-22
 Skynet::Manager and Skynet Script Runner
  - Rewrote how Skynet workers and skynet manager talks on each machine.  See below for more info 
  
@@ -10,6 +10,7 @@ Skynet::Manager and Skynet Script Runner
      Skynet::Manager detatches from console by calling Skynet.close_console
 
  - Dramatically improved Skynet shutdown time
+ - Huge performance improvements in taking/putting tasks and results.  Much lower resource utilization, especially on mysql.
  - You now have to specify your PIDFILE and LOGFILE dirs and files differently. This will break all old skynet runners. Sorry.
  - Skynet runner handles default config variables better
  - Fix serious bug in Skynet::Partitioners::RecombineAndSplit where it wouldn't handle empty results well.
@@ -33,8 +34,8 @@ Skynet::Manager and Skynet Script Runner
  
  
 Skynet Manager/Worker Refactor
-  The workers used to publish their worker statuses to the skynet_worker_queue which lived in the same Q space as the skynet_message_queue.  skynet managers would then query that queue for their workers' statuses.   This was a very inefficient use of central resources.    The rewrite split the message_queue_adapter into a Skynet::MessageQueueAdapter and a Skynet::WorkerQueueAdapter, such that the message queue and worker queue could use different adapters.  I think made the default worker_queue adapter be the TupleSpace adapter.   With this adapter, each box running a manager and workers will end up running its own TupleSpace server.  The workers will put their statuses on that LOCAL q, which the managers pick up.  
- The other difference is that the manager no longer leaves worker_queue entries on the Q. Instead it just takes them off the Q as soon as it sees them and caches the information about its workers locally.  It also saves that information to a file in case the manager dies or is stopped.
+  The workers used to publish their worker statuses to the skynet_worker_queue which lived in the same Q space as the skynet_message_queue.  skynet managers would then query that queue for their workers' statuses.   This was a very inefficient use of central resources.    NOW, workers communicate with their manager vir DRb, calling manager.worker_notify(status).   This adds the worker status hash onto a local Queue object stored in the manager.  A separate thread watches that queue and updates the internal manager information about it's workers.  This was in place of polling a queue every N seconds for new worker records.
+Managers now save their worker information to a file periodically so they can be reloaded on a restart.  This means managers can keep track of how many tasks all of their workers have done even after restarts.
 As a consequence of decentralizing worker stats, you now have to ask all your managers for their individual stats along with the main message queue stats.  Added a stats_for_hosts method to Skynet::Manager which aggregates stats accross many managers.
 
 
