@@ -37,14 +37,14 @@ class Skynet
     end
 
     def worker_notify(item)
-      @wqts.enq(item)
+      @wqts.push(item)
     end
 
     def start_worker_queue_thread
       Thread.new do
         last_save_time = Time.now
         loop do
-          task = @wqts.deq
+          task = @wqts.pop
           begin
             status = Skynet::WorkerStatusMessage.new(task)
             status.started_at = status.started_at.to_i
@@ -404,13 +404,17 @@ class Skynet
       }
       servers = {}
       manager_hosts.each do |manager_host|
-        manager = DRbObject.new(nil,"druby://#{manager_host}:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}")
-        manager_stats = manager.stats
-        servers[manager_host] = manager_stats
-        manager_stats.each do |key,value|
-          next unless value.is_a?(Fixnum)
-          stats[key] ||= 0
-          stats[key] += value
+        begin
+          manager = DRbObject.new(nil,"druby://#{manager_host}:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}")
+          manager_stats = manager.stats
+          servers[manager_host] = manager_stats
+          manager_stats.each do |key,value|
+            next unless value.is_a?(Fixnum)
+            stats[key] ||= 0
+            stats[key] += value
+          end
+        rescue DRb::DRbConnError, Errno::ECONNREFUSED  => e
+          warn "Couldn't get stats from manager at druby://#{manager_host}:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
         end
       end
       stats[:servers] = servers
