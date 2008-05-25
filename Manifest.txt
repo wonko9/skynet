@@ -88,11 +88,13 @@ extras/init.d/skynet
 extras/nagios/check_skynet.sh
 extras/rails/controllers/skynet_controller.rb
 extras/rails/views/skynet/index.rhtml
+lib/qui_q.rb
 lib/skynet.rb
 lib/skynet/mapreduce_helper.rb
 lib/skynet/mapreduce_test.rb
 lib/skynet/message_queue_adapters/message_queue_adapter.rb
 lib/skynet/message_queue_adapters/mysql.rb
+lib/skynet/message_queue_adapters/qui_q.rb
 lib/skynet/message_queue_adapters/tuple_space.rb
 lib/skynet/skynet_active_record_extensions.rb
 lib/skynet/skynet_config.rb

@@ -42,22 +42,6 @@ class Skynet
       raise AbstractClassError.new("You must implement method in a subclass.")
     end            
 
-    def write_worker_status(template,timeout=nil)
-      raise AbstractClassError.new("You must implement method in a subclass.")
-    end
-
-    def take_worker_status(template,timeout=nil)
-      raise AbstractClassError.new("You must implement method in a subclass.")
-    end
-
-    def read_all_worker_statuses(template,timeout=nil)
-      raise AbstractClassError.new("You must implement method in a subclass.")
-    end
-
-    def get_worker_version(template,timeout=nil)
-      raise AbstractClassError.new("You must implement method in a subclass.")
-    end
-
     def set_worker_version(template,timeout=nil)
       raise AbstractClassError.new("You must implement method in a subclass.")
     end

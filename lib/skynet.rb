@@ -13,10 +13,13 @@ require 'timeout'
 Skynet::CONFIG[:SKYNET_PATH]    ||= File.expand_path(File.dirname(__FILE__) +"/..")
 # Skynet::CONFIG[:LAUNCHER_PATH]  ||= File.expand_path(ENV['_'])
 
+# require 'single_queues'
 require 'skynet_debugger'
 require 'skynet_message'
 require 'message_queue_adapters/message_queue_adapter'
 require 'message_queue_adapters/tuple_space'
+require 'qui_q'
+require 'message_queue_adapters/qui_q'
 require "skynet_message_queue"
 require 'skynet_partitioners'
 require 'skynet_job'

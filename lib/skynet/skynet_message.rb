@@ -138,7 +138,8 @@ class Skynet
     end
 
     def self.next_task_template(version=nil, payload_type=nil, queue_id=0)
-      template = {
+      template = {                           
+        ### FIXME expire_time should just be a number
         :expire_time  => (0 .. Time.now.to_i),
         :tasktype     => :task,
         :queue_id     => queue_id,
