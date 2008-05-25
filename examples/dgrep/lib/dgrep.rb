@@ -7,13 +7,16 @@ class Dgrep
   def self.map(map_datas)
     results = []
     map_datas.each do |filename,words|
-      next unless File.file?(filename)
-      words.each do |word|
-        cnt = File.read(filename).scan(/#{word}/i).size
-        results << [word,cnt] if cnt and cnt > 0
+      begin
+        words.each do |word|
+          cnt = File.read(filename).scan(/\W#{word}\W/i).size
+          results << [word,cnt] if cnt and cnt > 0
+        end
+      rescue Errno::EISDIR
+        # skip directories
       end
     end
-    results
+    return results if results.any?
   end
 
   # The chosen reduce partiioner attempts group keys by partition.  For example, if you choose 2 words and 2 reducers it will make sure

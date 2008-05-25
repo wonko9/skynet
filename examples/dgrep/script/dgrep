@@ -5,7 +5,9 @@
 #
 # Eg:
 #
-# ruby ./dgrep word1 word2 word3 directory
+# ruby ./dgrep [-r] word1 word2 word3 directory
+#
+# Passing -r means search recursively
 #
 # You can also choose to distribute the reduce step by passing --reducers=2  (or any other number. 1 is the default)
 
@@ -13,6 +15,14 @@ require 'rubygems'
 require 'skynet'         
 require 'rdoc/usage'
 require File.dirname(__FILE__) + "/../lib/dgrep"
+require File.dirname(__FILE__) + "/../lib/most_common_words"
+
+Skynet::CONFIG[:SKYNET_LOG_DIR]    = File.expand_path(File.dirname(__FILE__) + "/../log")
+Skynet::CONFIG[:SKYNET_PID_DIR]    = File.expand_path(File.dirname(__FILE__) + "/../log")
+Skynet::CONFIG[:SKYNET_LOG_LEVEL]  = Logger::ERROR
+# Skynet::CONFIG[:TS_USE_RINGSERVER] = false
+
+# puts "LOGGING TO #{Skynet.config.logfile_location}"
 
 RDoc::usage if ARGV.empty? or ARGV.include?("--help")
 
@@ -22,17 +32,44 @@ if reduce_arg = ARGV.detect {|i| i =~ /--reducers/ }
   ARGV.delete_if {|i| i =~ /--reducers/ }  
 end
 
-directory = File.expand_path(ARGV.pop)
+user_dir = ARGV.pop
+directory = File.expand_path(user_dir)
+
+mcw = ARGV.delete('-mcw') ? true : false
+
+files = if ARGV.delete('-r')
+   Dir["#{directory}/**/*"]
+else
+  Dir["#{directory}/*"]
+end                             
+
+if files.empty?
+  puts "No files in #{user_dir}"
+  exit
+end
+
 words = ARGV
 
-files = Dir.entries(directory).collect{ |file| File.expand_path("#{directory}/#{file}") }
-words = ARGV
-
-puts "Looking at all the files in #{directory} for the word or words '#{words.join(',')}'"
-map_data = files.collect{|file| [file,words]}
 results = []
-results = map_data.mapreduce(Dgrep, :reducers => reducers)
-puts "RESULTS:"
-results.each do |word,cnt|
-  puts "#{cnt} #{word}"
+if mcw
+  puts "Looking for the most common words in #{user_dir}"
+  results = files.mapreduce(MostCommonWords, :reducers => reducers, :master_timeout => 60)
+  if results and results.any?
+    results.sort_by{|a| a[1]}.reverse.each_with_index do |a,ii|
+      puts "#{ii}. #{a[1]} #{a[0]}"
+    end
+  else
+    puts "No results"
+  end
+else
+  map_data = files.collect{|file| [file,words]}
+  puts "Looking at all the files in #{user_dir} for the word or words '#{words.join(',')}'"
+  results = map_data.mapreduce(Dgrep)
+  if results and results.any?
+    results.sort_by{|a| a[1]}.reverse.each_with_index do |a,ii|
+      puts "#{ii}. #{a[1]} #{a[0]}"
+    end
+  else
+    puts "No results"
+  end
 end

@@ -73,17 +73,19 @@ class Skynet
       def self.reduce_partition(post_map_data, new_partitions)
         partitions = []
         (0..new_partitions - 1).each { |i| partitions[i] = Array.new }
-        keys_seen = {}
+        cnt = 0
         post_map_data.each do |partition|
-          partition.each do |array|
+          partition.each do |array|            
             next unless array.is_a?(Array) and array.size >= 2
             if array[0].kind_of?(Fixnum)
-              key = array[0]
-            else
-              keys_seen[array[0]] ||= keys_seen.keys.size
-              key = keys_seen[array[0]]
+              key = array[0] % new_partitions
+            elsif array[0].kind_of?(String)
+              key = array[0].sum % new_partitions
+            else                 
+              cnt += 1
+              key = cnt % new_partitions
             end
-            partitions[key % new_partitions] << array
+            partitions[key] << array
           end
         end
         partitions

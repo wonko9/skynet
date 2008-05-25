@@ -21,6 +21,7 @@ examples/dgrep/data/testfile3.txt
 examples/dgrep/data/testfile4.txt
 examples/dgrep/lib/dgrep.rb
 examples/dgrep/lib/mapreduce_test.rb
+examples/dgrep/lib/most_common_words.rb
 examples/dgrep/script/dgrep
 examples/dgrep/script/skynet
 examples/rails_mysql_example/README
