@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="stylesheets/screen.css" type="text/css" media="screen" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>
-      functor
+      space
   </title>
   <script src="javascripts/rounded_corners_lite.inc.js" type="text/javascript"></script>
 <style>
@@ -30,59 +30,96 @@
 <body>
 <div id="main">
 
-    <h1>functor</h1>
-    <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/functor"; return false'>
+    <h1>space</h1>
+    <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/skynet"; return false'>
       <p>Get Version</p>
-      <a href="http://rubyforge.org/projects/functor" class="numbers">0.8.0</a>
+      <a href="http://rubyforge.org/projects/skynet" class="numbers">0.9.3</a>
     </div>
-    <h1>&#x2192; &#8216;functor&#8217;</h1>
+    <p><img src="skynet_logo.jpg" alt="" /></p>
 
 
-	<h2>What</h2>
+	<h2>A Ruby MapReduce Framework</h2>
+
+
+	<p><a href="http://rubyforge.org/projects/skynet/">Skynet RubyForge Home</a><br />
+<a href="doc/index.html">Documentation</a></p>
+
+
+	<h2>See Skynet at RailsConf 08</h2>
+
+
+	<h4>Sat Mar 31, 2008 4:25pm &#8211; 5:15pm <span class="caps">PDT</span> @ Portland Ballroom 255</h4>
+
+
+	<p><a href="http://en.oreilly.com/rails2008/public/schedule/detail/2022" target="_blank">More Info</a></p>
+
+
+	<p><a href="http://en.oreilly.com/rails2008/public/schedule/detail/2022" target="_blank">
+<img src="http://conferences.oreillynet.com/banners/rails/speaker/728x90.jpg" width="728" height="90"  border="0"  alt="RailsConf 2008" title="RailsConf 2008"  />
+</a></p>
+
+
+	<h2>What is Skynet</h2>
+
+
+	<p>Skynet is an open source Ruby implementation of Google&#8217;s Map/Reduce framework, created at Geni.com. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.</p>
+
+
+	<p>Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed system with no single point of failure. It uses a &#8220;peer recovery&#8221; system where workers watch out for each other. If a worker dies or fails for any reason, another worker will notice and pick up that task. Skynet also has no special &#8216;master&#8217; servers, only workers which can act as a master for any task at any time. Even these master tasks can fail and will be picked up by other workers.</p>
 
 
 	<h2>Installing</h2>
 
 
-	<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">functor</span></pre></p>
+	<p>Skynet can be installed via RubyGems:</p>
 
 
-	<h2>The basics</h2>
+	<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">skynet</span></pre></p>
 
 
-	<h2>Demonstration of usage</h2>
+	<h2>More Info</h2>
 
 
-	<h2>Forum</h2>
-
-
-	<p><a href="http://groups.google.com/group/functor">http://groups.google.com/group/functor</a></p>
-
-
-	<p><span class="caps">TODO</span> &#8211; create Google Group &#8211; functor</p>
-
-
-	<h2>How to submit patches</h2>
-
-
-	<p>Read the <a href="http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/">8 steps for fixing other people&#8217;s code</a> and for section <a href="http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/#8b-google-groups">8b: Submit patch to Google Groups</a>, use the Google Group above.</p>
-
-
-	<p>The trunk repository is <code>svn://rubyforge.org/var/svn/functor/trunk</code> for anonymous access.</p>
-
-
-	<h2>License</h2>
-
-
-	<p>This code is free to use under the terms of the <span class="caps">MIT</span> license.</p>
+	<p>For more info check out the <a href="doc/index.html"><span class="caps">README</span></a></p>
 
 
 	<h2>Contact</h2>
 
 
-	<p>Comments are welcome. Send an email to <a href="mailto:FIXME"><span class="caps">FIXME</span> full name</a> email via the <a href="http://groups.google.com/group/functor">forum</a></p>
+	<p>Comments are welcome. Send an email to &#8220;Adam Pisoni&#8221; apisoni at geni.com</p>
+
+
+	<h2><span class="caps">LICENSE</span>:</h2>
+
+
+	<p>(The <span class="caps">MIT</span> License)</p>
+
+
+	<p>Copyright&#169; 2007 Adam Pisoni, Geni.com</p>
+
+
+	<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+&#8220;Software&#8221;), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+
+	<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+
+	<p><span class="caps">THE SOFTWARE IS PROVIDED</span> &#8220;AS IS&#8221;, <span class="caps">WITHOUT WARRANTY OF ANY KIND</span>,
+<span class="caps">EXPRESS OR IMPLIED</span>, INCLUDING <span class="caps">BUT NOT LIMITED TO THE WARRANTIES OF</span>
+<span class="caps">MERCHANTABILITY</span>, FITNESS <span class="caps">FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT</span>.
+<span class="caps">IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY</span>
+<span class="caps">CLAIM</span>, DAMAGES <span class="caps">OR OTHER LIABILITY</span>, WHETHER <span class="caps">IN AN ACTION OF CONTRACT</span>,
+<span class="caps">TORT OR OTHERWISE</span>, ARISING <span class="caps">FROM</span>, OUT <span class="caps">OF OR IN CONNECTION WITH THE</span>
+<span class="caps">SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE</span>.</p>
     <p class="coda">
-      <a href="FIXME email">FIXME full name</a>, 16th January 2008<br>
+      Adam Pisoni, Geni.com 18th May 2008<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>
