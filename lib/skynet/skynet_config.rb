@@ -1,11 +1,11 @@
 class Skynet       
-  DEFAULT_LOG_FILE_LOCATION = ENV["HOME"]
-  
+
   CONFIG = {
     :ENABLE                               => true,
     :SOLO                                 => false,
-    :SKYNET_LOG_DIR                       => DEFAULT_LOG_FILE_LOCATION,
-    :SKYNET_PID_DIR                       => "/tmp",
+    :APP_ROOT                             => nil,
+    :SKYNET_LOG_DIR                       => nil,
+    :SKYNET_PID_DIR                       => nil,
     :SKYNET_PID_FILE                      => "skynet.pid",
     :SKYNET_LOG_FILE                      => "skynet.log",
     :SKYNET_MANAGER_STATS_FILE            => "skynet_manager_stats.txt",
@@ -189,7 +189,7 @@ class Skynet
     end
     
     def self.logfile_location
-      if skynet_log_file.is_a?(String)
+      if skynet_log_file.is_a?(String) and skynet_log_dir
         skynet_log_dir.sub(/\/$/,'') + "/" + skynet_log_file.sub(/^\//,'')
       else
         skynet_log_file
@@ -197,7 +197,7 @@ class Skynet
     end
 
     def self.pidfile_location
-      if skynet_pid_dir.is_a?(String)
+      if skynet_pid_dir and skynet_pid_file
         skynet_pid_dir.sub(/\/$/,'') + "/" + skynet_pid_file.sub(/^\//,'')
       else
         skynet_pid_dir
@@ -205,7 +205,7 @@ class Skynet
     end
     
     def manager_statfile_location
-      if skynet_log_dir.is_a?(String)
+      if skynet_log_dir.is_a?(String) and skynet_log_dir
         skynet_log_dir.sub(/\/$/,'') + "/" + skynet_manager_stats_file.sub(/^\//,'')
       else
         skynet_log_dir

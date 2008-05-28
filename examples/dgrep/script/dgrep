@@ -5,24 +5,23 @@
 #
 # Eg:
 #
-# ruby ./dgrep [-r] word1 word2 word3 directory
+# ruby ./script/dgrep [-r] word1 word2 word3 directory
 #
 # Passing -r means search recursively
+#
+# Most Common Words
+# I've included a second demo in the form of:
+# ruby ./script/dgrep -r -mcw directory
+# This will return the top 10 most common 5 or more letter words
 #
 # You can also choose to distribute the reduce step by passing --reducers=2  (or any other number. 1 is the default)
 
 require 'rubygems'
-require 'skynet'         
 require 'rdoc/usage'
-require File.dirname(__FILE__) + "/../lib/dgrep"
-require File.dirname(__FILE__) + "/../lib/most_common_words"
+require 'skynet'
+require File.dirname(__FILE__) + '/../config/skynet_config.rb'
 
-Skynet::CONFIG[:SKYNET_LOG_DIR]    = File.expand_path(File.dirname(__FILE__) + "/../log")
-Skynet::CONFIG[:SKYNET_PID_DIR]    = File.expand_path(File.dirname(__FILE__) + "/../log")
-Skynet::CONFIG[:SKYNET_LOG_LEVEL]  = Logger::ERROR
-# Skynet::CONFIG[:TS_USE_RINGSERVER] = false
-
-# puts "LOGGING TO #{Skynet.config.logfile_location}"
+puts "LOGGING TO #{Skynet.config.logfile_location}"
 
 RDoc::usage if ARGV.empty? or ARGV.include?("--help")
 
@@ -55,6 +54,7 @@ if mcw
   puts "Looking for the most common words in #{user_dir}"
   results = files.mapreduce(MostCommonWords, :reducers => reducers, :master_timeout => 60)
   if results and results.any?
+    puts "RESULTS:"
     results.sort_by{|a| a[1]}.reverse.each_with_index do |a,ii|
       puts "#{ii}. #{a[1]} #{a[0]}"
     end
@@ -64,7 +64,7 @@ if mcw
 else
   map_data = files.collect{|file| [file,words]}
   puts "Looking at all the files in #{user_dir} for the word or words '#{words.join(',')}'"
-  results = map_data.mapreduce(Dgrep)
+  results = map_data.mapreduce(Dgrep, :data_debug => true)
   if results and results.any?
     results.sort_by{|a| a[1]}.reverse.each_with_index do |a,ii|
       puts "#{ii}. #{a[1]} #{a[0]}"

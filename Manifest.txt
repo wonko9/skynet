@@ -6,7 +6,7 @@ Rakefile
 app_generators/skynet_install/USAGE
 app_generators/skynet_install/skynet_install_generator.rb
 app_generators/skynet_install/templates/migration.rb
-app_generators/skynet_install/templates/skynet
+app_generators/skynet_install/templates/skynet_config.rb
 app_generators/skynet_install/templates/skynet_initializer.rb
 app_generators/skynet_install/templates/skynet_mysql_schema.sql
 bin/skynet
@@ -15,6 +15,13 @@ bin/skynet_tuplespace_server
 config/hoe.rb
 config/requirements.rb
 examples/dgrep/README
+examples/dgrep/config/skynet_config.rb
+examples/dgrep/data/shakespeare/README
+examples/dgrep/data/shakespeare/poetry/loverscomplaint
+examples/dgrep/data/shakespeare/poetry/rapeoflucrece
+examples/dgrep/data/shakespeare/poetry/sonnets
+examples/dgrep/data/shakespeare/poetry/various
+examples/dgrep/data/shakespeare/poetry/venusandadonis
 examples/dgrep/data/testfile1.txt
 examples/dgrep/data/testfile2.txt
 examples/dgrep/data/testfile3.txt
@@ -23,7 +30,6 @@ examples/dgrep/lib/dgrep.rb
 examples/dgrep/lib/mapreduce_test.rb
 examples/dgrep/lib/most_common_words.rb
 examples/dgrep/script/dgrep
-examples/dgrep/script/skynet
 examples/rails_mysql_example/README
 examples/rails_mysql_example/Rakefile
 examples/rails_mysql_example/app/controllers/application.rb
@@ -42,6 +48,7 @@ examples/rails_mysql_example/config/initializers/inflections.rb
 examples/rails_mysql_example/config/initializers/mime_types.rb
 examples/rails_mysql_example/config/initializers/skynet.rb
 examples/rails_mysql_example/config/routes.rb
+examples/rails_mysql_example/config/skynet_config.rb
 examples/rails_mysql_example/db/migrate/001_create_skynet_tables.rb
 examples/rails_mysql_example/db/migrate/002_create_users.rb
 examples/rails_mysql_example/db/migrate/003_create_user_favorites.rb
@@ -78,7 +85,6 @@ examples/rails_mysql_example/script/process/reaper
 examples/rails_mysql_example/script/process/spawner
 examples/rails_mysql_example/script/runner
 examples/rails_mysql_example/script/server
-examples/rails_mysql_example/script/skynet
 examples/rails_mysql_example/test/fixtures/user_favorites.yml
 examples/rails_mysql_example/test/fixtures/users.yml
 examples/rails_mysql_example/test/test_helper.rb
@@ -131,3 +137,8 @@ test/test_skynet_manager.rb
 test/test_skynet_message.rb
 test/test_skynet_task.rb
 test/test_tuplespace_message_queue.rb
+website/index.html
+website/index.txt
+website/javascripts/rounded_corners_lite.inc.js
+website/stylesheets/screen.css
+website/template.rhtml

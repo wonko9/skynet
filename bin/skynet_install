@@ -1,15 +1,15 @@
 #!/usr/bin/env ruby
 
-# skynet_install is used to install skynet binaries into your application.
-# The value of using your own skynet binaries is that they can ensure your code
-# is available to all skynet workers.
+# skynet_install is used to install skynet libraries into your application.
+# Specifically, it installs a config/skynet_config.rb file
+# Once you have a config/skynet_config.rb you can run skynet start from within your root_app_dir/
 # This is also how you can run skynet from within rails. (using --rails)
 #
-# USAGE: skynet_install [--rails] directory (can be '.' for current)"
+# USAGE: skynet_install [--rails] directory/ (can be '.' for current)"
 # 
 #   Options:
 #       -v, --version                    Show the skynet_install version number and quit.
-#           --include-migration          Include mysql migration if you want to use mysql as your message queue
+#           --mysql                      Include mysql migration if you want to use mysql as your message queue
 #       -r, --rails                      Install into rails app
 #                                        Default: false
 #   General Options:

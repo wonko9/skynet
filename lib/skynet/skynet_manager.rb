@@ -20,7 +20,7 @@ class Skynet
 
     def initialize(options)
       raise Error.new("You must provide a script path to Skynet::Manager.new.") unless options[:script_path]
-      @script_path          = options[:script_path]
+      @script_path          = options[:script_path] || Skynet::CONFIG[:LAUNCHER_PATH]
       # info "Skynet Launcher Path: [#{@script_path}]"
       @workers_requested    = options[:workers]  || 4
       @required_libs        = options[:required_libs]   || []
@@ -231,6 +231,7 @@ class Skynet
           worker_types[:any] += 1
         end
         cmd = "#{@script_path} --worker_type=#{worker_type}"
+        cmd << " --config='#{Skynet::CONFIG[:CONFIG_FILE]}'" if Skynet::CONFIG[:CONFIG_FILE]
         cmd << " --queue_id=#{queue_id}"
         cmd << " -r #{required_libs.join(' -r ')}" if required_libs and not required_libs.empty?
         wpid = Skynet.fork_and_exec(cmd)
@@ -493,10 +494,7 @@ class Skynet
       options[:remove_workers] ||= nil
       options[:use_rails]      ||= false
       options[:required_libs]  ||= []
-      options[:workers]        ||= Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4
-      options[:pid_file]       ||= Skynet::Config.pidfile_location
-      options[:script_path]    ||= Skynet::CONFIG[:LAUNCHER_PATH]
-
+      
       config = Skynet::Config.new
 
       OptionParser.new do |opt|
@@ -511,7 +509,7 @@ class Skynet
         You can also run:
         > skynet console [options]
         }
-        opt.on('', '--restart-all-workers', 'Restart All Workers') do |v|
+        opt.on('--restart-all-workers', 'Restart All Workers') do |v|
           puts "Restarting ALL workers on ALL machines."
           begin
             manager = self.get
@@ -522,7 +520,7 @@ class Skynet
             exit
           end
         end
-        opt.on('', '--restart-workers', 'Restart Workers') do |v|
+        opt.on('--restart-workers', 'Restart Workers') do |v|
           puts "Restarting workers on this machine."
           begin
             manager = self.get
@@ -533,27 +531,30 @@ class Skynet
             exit
           end
         end
-        opt.on('-i', '--increment-worker-version', 'Increment Worker Version') do |v|
+        opt.on('--increment-worker-version', 'Increment Worker Version') do |v|
           ver = Skynet::MessageQueue.new.increment_worker_version
           puts "Incrementing Worker Version to #{ver}"
           exit
         end
-        opt.on('-a', '--add-workers WORKERS', 'Number of workers to add.') do |v|
+        opt.on('--add-workers=WORKERS', 'Number of workers to add.') do |v|
           options[:add_workers] = v.to_i
         end
-        opt.on('-k', '--remove-workers WORKERS', 'Number of workers to remove.') do |v|
+        opt.on('--remove-workers=WORKERS', 'Number of workers to remove.') do |v|
           options[:remove_workers] = v.to_i
         end
-        opt.on('-w', '--workers WORKERS', 'Number of workers to start.') do |v|
+        opt.on('--workers=WORKERS', 'Number of workers to start.') do |v|
           options[:workers] = v.to_i
         end
         opt.on('-r', '--required LIBRARY', 'Require the specified libraries') do |v|
           options[:required_libs] << File.expand_path(v)
         end
-        opt.on('-q', '--queue QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v|
+        opt.on('--config=CONFIG_FILE', 'Where to find the skynet.rb config file') do |v|
+          options[:config_file] = File.expand_path(v)
+        end
+        opt.on('--queue=QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v|
           options[:queue] = v
         end
-        opt.on('-i', '--queue_id queue_id', 'Which queue should these workers use (default 0).') do |v|
+        opt.on('--queue_id=queue_id', 'Which queue should these workers use (default 0).') do |v|
           options[:queue_id] = v.to_i
         end
         opt.parse!(ARGV)
@@ -575,6 +576,22 @@ class Skynet
           exit
         end
       end
+
+      options[:config_file] ||= Skynet::CONFIG[:CONFIG_FILE]
+      if options[:config_file]
+        begin
+          require options[:config_file]
+        rescue MissingSourceFile => e
+          error "The config file at #{options[:config_file]} was not found: #{e.inspect}"
+          exit
+        end
+      elsif Skynet::CONFIG[:SYSTEM_RUNNER]
+        error "Config file missing. Please add a config/skynet_config.rb before starting."        
+      end
+
+      options[:workers]        ||= Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4
+      options[:pid_file]       ||= Skynet::Config.pidfile_location
+      options[:script_path]    ||= Skynet::CONFIG[:LAUNCHER_PATH]
 
       # Handle add or remove workers
       if options[:add_workers] or options[:remove_workers]
@@ -623,6 +640,7 @@ class Skynet
           end
 
           printlog "STARTING THE MANAGER!!!!!!!!!!! port: #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
+          info "CONFIG FILE #{Skynet::CONFIG[:CONFIG_FILE]}"
           if options["daemonize"]
             Skynet.safefork do
               sess_id = Process.setsid
@@ -653,7 +671,10 @@ class Skynet
     # stop the daemon, nicely at first, and then forcefully if necessary
     def self.stop(options = {})
       pid = read_pid_file
-      raise "The Skynet Manager is not running" unless pid
+      if not pid
+        puts "The Skynet Manager is not running. No PID found in #{Skynet::Config.pidfile_location}"
+        exit
+      end
       $stdout.puts "Stopping Skynet"
       printlog "Stopping Skynet"
       Process.kill("TERM", pid)

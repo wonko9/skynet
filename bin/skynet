@@ -27,8 +27,46 @@
 require 'rubygems'
 require File.expand_path(File.dirname(__FILE__)) + '/../lib/skynet.rb'
 
+
+if config_arg = ARGV.detect {|i| i =~ /--help/ }
+  Skynet.start
+  exit
+end
+
+conf_file = nil
+if config_arg = ARGV.detect {|i| i =~ /--config/i }
+  conf_file = config_arg.split('=').last
+  ARGV.delete_if {|i| i =~ /--config/ }  
+else
+  ['config/skynet_config.rb', 'skynet_config.rb', "../config/skynet_config.rb" , "#{ENV['HOME']}/.skynet/config.rb"].each do |path|
+    if File.exists?(path)
+      conf_file = path
+      break
+    end
+  end
+end
+
+if conf_file
+  Skynet::CONFIG[:CONFIG_FILE]      = File.expand_path(conf_file)
+  Skynet::CONFIG[:APP_ROOT]         = File.dirname(Skynet::CONFIG[:CONFIG_FILE])
+  Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(Skynet::CONFIG[:APP_ROOT]+ "/../log")
+  Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(Skynet::CONFIG[:APP_ROOT] + "/../log")
+  begin
+    require conf_file
+  rescue MissingSourceFile => e
+    puts "Specified config file #{conf_file} is missing."
+    exit
+  end
+  puts "using config file: #{File.expand_path(conf_file)}" unless conf_file == 'config/skynet_config.rb'
+else
+  puts "No configuration file found.\nTry running skynet_install to create a config/skynet_config.rb or starting skynet with --config=CONFIG_FILE_LOCATION.  Exiting."
+  exit
+end
+
 Skynet::CONFIG[:WORKER_CHECK_DELAY]     ||= 4
 Skynet::CONFIG[:LAUNCHER_PATH]          = File.expand_path(__FILE__)
+
+Skynet::CONFIG[:SYSTEM_RUNNER] = true
 
 begin
   mq = Skynet::MessageQueue.new

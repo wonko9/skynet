@@ -12,7 +12,10 @@ To
  > tail -f log/skynet.log
  
 3. Run dgrep providing it with some words and a directory
- > ./script/dgrep data file ./data
+ > ./script/dgrep -r love hate ./data
+
+I've put all of shakespears poetry in the data directory.  You can download all of Shakespeare's work
+to add to the data at http://www.it.usyd.edu.au/~matty/Shakespeare/shakespeare.tar.gz
 
 Thats it!!
 
@@ -25,7 +28,7 @@ partitioner).  This partitioner not only breaks up the data returned from the ma
 gets all the same keys.
 
 1. Run dgrep passing --reducers=2  This tells Skynet to try and use up to 2 reducers (instead of the default of 1)
-> ./script/dgrep --reducers=2 data file ./data
+> ./script/dgrep -r --reducers=2 data file ./data
 
 This sample application was created by creating in the following way
 
@@ -42,7 +45,24 @@ These are any text files named testfileN.txt and so on
 4. Create dgrep.rb and drep script (found in lib/ and script/)
 
 ------------------------------------
-If you'd like get a peak at what Skynet is doing, edit ./script/skynet and set
+
+EXAMPLE 1: Most Common Words
+------------------------------
+You have a list of files and want the 10 most common 5 or more letter words in all of those fules.
+
+1. Run Skynet
+ > ./script/skynet start
+
+2. Watch the logs in another terminal
+ > tail -f log/skynet.log
+ 
+3. Run dgrep providing it with the '-mcw' (most common words) command, some words and a directory
+ > ./script/dgrep -r -mcw ./data
+
+To see what's going on check out lib/most_common_words.rb
+------------------------------------
+
+If you'd like get a peak at what Skynet is doing, edit ./config/skynet_config.rb and set
 
 Skynet::CONFIG[:SKYNET_LOG_LEVEL] = Logger::INFO # or Logger::INFO
 

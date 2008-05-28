@@ -1,25 +1,5 @@
 class CreateSkynetTables < ActiveRecord::Migration
   def self.up
-    create_table :skynet_worker_queues do |t|
-      t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id,      :integer, :default => 0      
-      t.column  :created_on,    :timestamp
-      t.column  :updated_on,    :timestamp
-      t.column  :tasktype,      :string
-      t.column  :tasksubtype,   :string
-      t.column  :worker_id,     'bigint unsigned'
-      t.column  :hostname,      :string
-      t.column  :process_id,    :integer
-      t.column  :job_id,        'bigint unsigned'
-      t.column  :task_id,       'bigint unsigned'
-      t.column  :iteration,     :integer
-      t.column  :name,          :string
-      t.column  :map_or_reduce, :string
-      t.column  :started_at,    "decimal(16,4)"
-      t.column  :version,       :integer
-      t.column  :processed,     :integer
-      t.column  :timeout,       "decimal(16,4)"            
-    end                                 
     create_table :skynet_message_queues do |t|
       t.column  :id,            "bigint unsigned primary key"
       t.column  :queue_id,      :integer, :default => 0
@@ -29,7 +9,7 @@ class CreateSkynetTables < ActiveRecord::Migration
       t.column  :tasktype,      :string
       t.column  :task_id,       'bigint unsigned'
       t.column  :job_id,        'bigint unsigned'
-      t.column  :raw_payload,   :text
+      t.column  :raw_payload,   "longtext"
       t.column  :payload_type,  :string
       t.column  :name,          :string
       t.column  :expiry,        :integer
@@ -51,15 +31,12 @@ class CreateSkynetTables < ActiveRecord::Migration
     add_index :skynet_message_queues, :task_id
     add_index :skynet_message_queues, :tran_id, :unique => true
     add_index :skynet_message_queues, [:queue_id,:tasktype,:payload_type,:expire_time], :name => "index_skynet_mqueue_for_take"
-    add_index :skynet_worker_queues, [:hostname, :process_id]
-    add_index :skynet_worker_queues, :worker_id, :unique=> true
     execute "insert into skynet_queue_temperature (queue_id,type) values (0,'master')"
     execute "insert into skynet_queue_temperature (queue_id,type) values (0,'any')"
     execute "insert into skynet_queue_temperature (queue_id,type) values (0,'task')"
   end
 
   def self.down
-    drop_table :skynet_worker_queues
     drop_table :skynet_queue_temperature
     drop_table :skynet_message_queues
   end

@@ -2,7 +2,15 @@
 Skynet::Manager and Skynet Script Runner
  - Rewrote how Skynet workers and skynet manager talks on each machine.  See below for more info 
  
- - Support starting Skynet with ./script/skynet start and stop to daemonize
+ - Added an examples/ directory with sample skynet apps.
+ 
+ - Support starting Skynet with 'skynet start/stop' to daemonize
+ - skynet_install now only installs a config/skynet_config.rb in your applications directory.  You are no longer supposed
+ to have a script/skynet to start skynet.  Instead, as long as you have a config/skynet_config.rb you can just run
+ 'skynet start/stop' from within your application_directory/
+ If you're installing in a rails application, it will install a default config/initializers/skynet.rb which merely requires config/skynet_config.rb
+ - The config file can also be specified with --config= skynet start
+
  - Gracefully handles trying to start skynet more than once
  - Close file handles on exec.
      Skynet::Worker and Skynet::Manager now call Skynet.fork_and_exec instead of their own versions.
@@ -19,6 +27,7 @@ Skynet::Manager and Skynet Script Runner
  - Added printlog logging method which always prints to the log as [LOG]
  - Deprecated Skynet.new to Skynet.start 
  - Mysql Message Queue Adapter - Make delete_expired_messages much safer.
+ - rename ActiveRecord::Base.distributed_find.each to ActiveRecord::Base.distributed_find.mapreduce
  - ActiveRecord::Base.distributed_find - Patch submitted by Lourens Naude (lourens@methodmissing.com) which checks the model for the primary_key name as opposed to assuming it is
   'id'
  - We don't want to use rails constantize so I've temporarily borrowed the method from ActiveSupport inflector and added it to skynet_ruby_extensions.
@@ -30,8 +39,7 @@ Skynet::Manager and Skynet Script Runner
  - Modified the skynet_install skynet runner to take skynet initializer into account
  - Skynet::ActiveRecordExtensions Fixed a bug where it would fail if your table had fewer than 1000 rows.  It performs a count
   first now to make sure there are enough rows.
- - Introduced some new Skynet::Config methods for getting logfile and pidfile locations 
- 
+ - Introduced some new Skynet::Config methods for getting logfile and pidfile locations   
  
 Skynet Manager/Worker Refactor
   The workers used to publish their worker statuses to the skynet_worker_queue which lived in the same Q space as the skynet_message_queue.  skynet managers would then query that queue for their workers' statuses.   This was a very inefficient use of central resources.    NOW, workers communicate with their manager vir DRb, calling manager.worker_notify(status).   This adds the worker status hash onto a local Queue object stored in the manager.  A separate thread watches that queue and updates the internal manager information about it's workers.  This was in place of polling a queue every N seconds for new worker records.

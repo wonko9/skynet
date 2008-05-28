@@ -20,19 +20,19 @@ class SkynetInstallGenerator < RubiGen::Base
 
   def manifest
     record do |m|
+
       # Ensure appropriate folder(s) exists
-      m.directory 'script'
       BASEDIRS.each { |path| m.directory path }
       
       # Create stubs
-      m.template     "skynet",         "script/skynet", :collision => :ask, :chmod => 0775, :shebang => options[:shebang]
+      m.template  "skynet_config.rb", "config/skynet_config.rb", :collision => :ask, :chmod => 0655
       if @in_rails
-        m.template  "skynet_initializer.rb", "config/initializers/skynet.rb", :collision => :ask, :chmod => 0655
         m.directory 'config/initializers'
+        m.template  "skynet_initializer.rb", "config/initializers/skynet.rb", :collision => :ask, :chmod => 0655
       end
       if @mysql
-        m.template   "skynet_mysql_schema.sql", "db/skynet_mysql_schema.sql", :collision => :ask, :chmod => 0655
         m.directory 'db/migrate'
+        m.template   "skynet_mysql_schema.sql", "db/skynet_mysql_schema.sql", :collision => :ask, :chmod => 0655
         m.migration_template "migration.rb", "db/migrate", 
           :collision => :ask, 
           :assigns => {
@@ -49,7 +49,7 @@ Creates a ...
 
 USAGE: #{spec.name} [--rails] [--mysql] directory (can be '.' for current)"
 Installs: 
-  ./script/skynet
+  ./config/skynet_config.rb
 EOS
     end
 
@@ -88,8 +88,7 @@ EOS
     # Installation skeleton.  Intermediate directories are automatically
     # created so don't sweat their absence here.
     BASEDIRS = %w(
-      db
+      config
       log
-      script
     )
 end

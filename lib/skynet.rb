@@ -50,7 +50,7 @@ class Skynet
   def self.fork_and_exec(command)
     sleep 0.01  # remove contention on manager drb object
     log = Skynet::Logger.get
-    info "executing /bin/sh -c \"#{command}\""
+    debug "executing /bin/sh -c \"#{command}\""
     pid = safefork do
       close_files
       exec("/bin/sh -c \"#{command}\"")

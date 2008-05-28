@@ -4,12 +4,12 @@
 #   Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER] = "Skynet::MessageQueueAdapter::TupleSpace"
 #
 # Usage: skynet_tuplespace_server (start|stop|run) [options]
-#     -t, --ontop TRUE                 Dont Daemonize
-#     -p, --port PORT                  Port to listen on. default 7647
-#     -o, --log LOGFILE                Logfile to log to
-#     -l, --loglevel LOGLEVEL          Log level defaults to DEBUG
-#     -d, --piddir PIDDIR              Directory to put pidfile
-#     -u, --drburi Drb URI             What DRbURI to use
+#     -t, --ontop=TRUE                 Dont Daemonize
+#     -p, --port=PORT                  Port to listen on. default 7647
+#     -o, --logfile=LOGFILE            Logfile to log to
+#     -l, --loglevel=LOGLEVEL          Log level defaults to DEBUG
+#     -d, --piddir=PIDDIR              Directory to put pidfile
+#     -u, --drburi=druby://DRB_URI     What DRbURI to use
 
 require 'rubygems'
 require 'daemons'
@@ -30,26 +30,26 @@ OptionParser.new do |opt|
   opt.on('-t', '--ontop TRUE', 'Dont Daemonize') do |v| 
     options[:ontop] = true if v.upcase == "TRUE" or v == "1"
   end
-  opt.on('-p', '--port PORT', 'Port to listen on. default 7647') do |v| 
+  opt.on('-p', '--port=PORT', 'Port to listen on. default 7647') do |v| 
     options[:port] = v.to_i
   end
-  opt.on('-o', '--logfile LOGFILE', 'Logfile to log to') do |v|
+  opt.on('-o', '--logfile=LOGFILE', 'Logfile to log to') do |v|
     options[:logfile] = File.expand_path(v)
   end
-  opt.on('-l', '--loglevel LOGLEVEL', 'Log level defaults to DEBUG') do |v|
+  opt.on('-l', '--loglevel=LOGLEVEL', 'Log level defaults to DEBUG') do |v|
     options[:loglevel] = v
   end
-  opt.on('-d', '--piddir PIDDIR', 'Directory to put pidfile') do |v|
+  opt.on('-d', '--piddir=PIDDIR', 'Directory to put pidfile') do |v|
     options[:piddir] = File.expand_path(v)
   end
-  opt.on('--use_ringserver TRUE', 'Use ringserver?') do |v|
+  opt.on('--use_ringserver=TRUE', 'Use ringserver?') do |v|
     if v.upcase == "true" or v == "1"
       options[:use_ringserver] = true
     else
       options[:use_ringserver] = false
     end      
   end
-  opt.on('-u', '--drburi Drb URI', 'What DRbURI to use') do |v|
+  opt.on('-u', '--drburi=druby://DRB_URI', 'What DRbURI to use') do |v|
     if v =~ %r{druby://}
       options[:drburi] = v
     else

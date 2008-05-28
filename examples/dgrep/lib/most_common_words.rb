@@ -1,11 +1,3 @@
-class IO
-  def each_word(&b)
-    each do |line|
-     line.scan(/\w+/, &b)
-    end
-  end
-end
-
 class MostCommonWords
   include SkynetDebugger
 
@@ -21,6 +13,7 @@ class MostCommonWords
         # skip directories
       end
     end
+    ## For efficiency.  Not 100% accurate.
     results.sort{|a,b| a[1]<=>b[1]}.reverse.first(100)
   end
 
@@ -43,3 +36,10 @@ class MostCommonWords
 
 end
 
+class IO
+  def each_word(&b)
+    each do |line|
+     line.scan(/\w+/, &b)
+    end
+  end
+end

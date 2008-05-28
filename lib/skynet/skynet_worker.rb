@@ -368,17 +368,20 @@ class Skynet
         opt.on('-r', '--required LIBRARY', 'Include the specified libraries') do |v|
           options[:required_libs] << v
         end
-        opt.on('-ot', '--worker_type WORKERTYPE', "master, task or any") do |v|
+        opt.on('--worker_type=WORKERTYPE', "master, task or any") do |v|
           if ["any","master","task"].include?(v)
             options[:worker_type] = v
           else
             raise Skynet::Error.new("#{v} is not a valid worker_type")
           end
         end
-        opt.on('-q', '--queue QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v|
+        opt.on('--config=CONFIG_FILE', 'Where to find the skynet.rb config file') do |v|
+          options[:config_file] = File.expand_path(v)
+        end
+        opt.on('--queue=QUEUE_NAME', 'Which queue should these workers use (default "default").') do |v|
           options[:queue] = v
         end
-        opt.on('-i', '--queue_id queue_id', 'Which queue should these workers use (default 0).') do |v|
+        opt.on('--queue_id=queue_id', 'Which queue should these workers use (default 0).') do |v|
           options[:queue_id] = v.to_i
         end
         opt.parse!(ARGV)
@@ -400,6 +403,19 @@ class Skynet
         end
       end
 
+      options[:config_file] ||= Skynet::CONFIG[:CONFIG_FILE]
+      if options[:config_file]
+        begin
+          require options[:config_file]
+        rescue MissingSourceFile => e
+          error "The config file at #{options[:config_file]} was not found: #{e.inspect}"
+          exit
+        end
+      else
+        error "Config file missing. Please add a config/skynet_config.rb before starting."        
+        exit
+      end
+
       debug "WORKER STARTING WORKER_TYPE?:#{options[:worker_type]}. QUEUE: #{Skynet::Config.new.queue_name_by_id(options[:queue_id])}"
 
       begin
@@ -410,7 +426,8 @@ class Skynet
         exit
       rescue Skynet::Worker::RespawnWorker => e
         warn "WORKER #{$$} SCRIPT CAUGHT RESPAWN.  RESTARTING #{e.message}"
-        cmd = "ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]} --queue_id=#{options[:queue_id]}"
+        cmd = "ruby #{Skynet::CONFIG[:LAUNCHER_PATH]} --worker_type=#{options[:worker_type]} --queue_id=#{options[:queue_id]} "
+        cmd << "--config=#{options[:config_file]} "
         cmd << "-r #{options[:required_libs].join(' -r ')}" if options[:required_libs] and not options[:required_libs].empty?
         pid = Skynet.fork_and_exec(cmd)
         exit

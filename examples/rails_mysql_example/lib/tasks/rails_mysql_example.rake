@@ -14,7 +14,7 @@ namespace :db do
 
   desc "Migrate Favorites"
   task :migrate_favorites => :environment do
-    User.distributed_find(:all).each(:migrate_favorites)
+    User.distributed_find(:all).mapreduce(:migrate_favorites)
   end
 
 end

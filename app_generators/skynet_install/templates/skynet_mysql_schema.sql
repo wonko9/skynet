@@ -22,29 +22,6 @@ CREATE TABLE skynet_message_queues (
   KEY index_skynet_message_queues_on_task_id (task_id),
   KEY index_skynet_mqueue_for_take (queue_id,tasktype,payload_type,expire_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-CREATE TABLE skynet_worker_queues (
-  id int(11) NOT NULL auto_increment,
-  queue_id int(11) default '0',
-  created_on datetime default NULL,
-  updated_on datetime default NULL,
-  tasktype varchar(255) default NULL,
-  tasksubtype varchar(255) default NULL,
-  worker_id bigint(20) unsigned default NULL,
-  hostname varchar(255) default NULL,
-  process_id int(11) default NULL,
-  job_id bigint(20) unsigned default NULL,
-  task_id bigint(20) unsigned default NULL,
-  iteration int(11) default NULL,
-  name varchar(255) default NULL,
-  map_or_reduce varchar(255) default NULL,
-  started_at decimal(16,4) default NULL,
-  version int(11) default NULL,
-  processed int(11) default NULL,
-  timeout decimal(16,4) default NULL,
-  PRIMARY KEY  (id),
-  UNIQUE KEY index_skynet_worker_queues_on_worker_id (worker_id),
-  KEY index_skynet_worker_queues_on_hostname_and_process_id (hostname,process_id)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE skynet_queue_temperature (
   id int(11) NOT NULL auto_increment,
   queue_id int(11) default '0',
