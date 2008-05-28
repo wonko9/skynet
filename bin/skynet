@@ -68,15 +68,4 @@ Skynet::CONFIG[:LAUNCHER_PATH]          = File.expand_path(__FILE__)
 
 Skynet::CONFIG[:SYSTEM_RUNNER] = true
 
-begin
-  mq = Skynet::MessageQueue.new
-rescue Skynet::ConnectionError
-  if Skynet::MessageQueue.adapter == :tuplespace
-    pid = fork do
-      exec("skynet_tuplespace_server start")
-    end
-    sleep 3
-  end
-end
-
 Skynet.start

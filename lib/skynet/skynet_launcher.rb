@@ -6,7 +6,9 @@ class Skynet
       mq = Skynet::MessageQueue.new
     rescue Skynet::ConnectionError
       if Skynet::MessageQueue.adapter == :tuplespace
-        cmd = "skynet_tuplespace_server --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet.config.skynet_pid_dir} --use_ringserver=#{Skynet.config.ts_use_ringserver} --drburi=#{Skynet.config.ts_drburi} start"
+        ts_port = Skynet::CONFIG[:TS_SERVER_HOSTS].first.split(':').last
+        # puts "trying to make ts skynet_tuplespace_server --port=#{ts_port} --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet.config.skynet_pid_dir} --use_ringserver=#{Skynet.config.ts_use_ringserver} --drburi=#{Skynet.config.ts_drburi} start"
+        cmd = "skynet_tuplespace_server  --port=#{ts_port} --logfile=#{Skynet.config.logfile_location} --piddir=#{Skynet.config.skynet_pid_dir} --use_ringserver=#{Skynet.config.ts_use_ringserver} --drburi=#{Skynet.config.ts_drburi} start"
         pid = fork do
           exec(cmd)
         end

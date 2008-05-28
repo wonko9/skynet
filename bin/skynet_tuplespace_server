@@ -43,7 +43,7 @@ OptionParser.new do |opt|
     options[:piddir] = File.expand_path(v)
   end
   opt.on('--use_ringserver=TRUE', 'Use ringserver?') do |v|
-    if v.upcase == "true" or v == "1"
+    if v.downcase == "true" or v == "1"
       options[:use_ringserver] = true
     else
       options[:use_ringserver] = false
@@ -56,7 +56,7 @@ OptionParser.new do |opt|
       options[:drburi] = "druby://#{v}"
     end
     options[:drburi] =~ /druby:\/\/.+?:(\d*)/
-    options[:port] = $1.to_i
+    options[:port] ||= $1.to_i
   end
 
   opt.parse!(ARGV)

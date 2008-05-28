@@ -36,18 +36,6 @@ class Skynet
         :tuplespace
       end
 
-      def self.start_or_connect(options={})
-        begin
-          mq = new
-        rescue Skynet::ConnectionError
-          pid = fork do
-            exec("skynet_tuplespace_server start")
-          end
-          sleep 5
-          mq = new
-        end
-      end
-
       attr_accessor :start_options
       
       def initialize(options={})

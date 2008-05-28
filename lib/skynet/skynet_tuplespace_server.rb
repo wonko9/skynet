@@ -52,25 +52,25 @@ class Skynet
   class TuplespaceServer
 
     def self.start(options)
+      options[:port] ||= 7647
       log = Logger.new(options[:logfile])
-      log.level = Object.module_eval("#{"Logger::" + options[:loglevel].upcase}", __FILE__, __LINE__)
+      log.level = Object.module_eval("#{"Logger::" + options[:loglevel].upcase}", __FILE__, __LINE__) if options[:loglevel]
       log.info "STARTING TUPLESPACE SERVER ON PORT: #{options[:port]} Logging to #{options[:logfile]}"
 
       # Create a TupleSpace to hold named services, and start running
+      ts = Rinda::TupleSpace.new
       begin
-        ts = Rinda::TupleSpace.new
-        if options[:drburi]
-          DRb.start_service(options[:drburi], ts)          
-        else
+        if options[:use_ringserver] and options[:port]
           DRb.start_service
-        end
-        if options[:use_ringserver] and options[:port] 
           tuple = [:name,:TupleSpace, ts, 'Tuple Space']
           renewer = Rinda::SimpleRenewer.new
           ring_ts = Rinda::TupleSpace.new
           ring_ts.write(tuple, renewer)
 
           server = Rinda::RingServer.new(ring_ts, options[:port])
+        end
+        if options[:drburi]
+          DRb.start_service(options[:drburi], ts)          
         end
         DRb.thread.join
       rescue SystemExit, Interrupt
