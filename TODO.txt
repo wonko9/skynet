@@ -1,0 +1,97 @@
+Allow map_reduce class to include something or inherit from something and just say
+
+  map do |map_data|
+  end
+
+  job_error do ||
+  end
+
+  task_error do ||
+  end
+
+Let jobs have an on_error method (on_map_error, on_reduce_error), which gets called and passed a message on error
+
+App throws Skynet::Task:Error.
+Maybe map and reduce takes an OPTIONAL second argument which is the message or some response object.  So they can return
+the data OR use the response object.  Or at least modify the response object or something. Putting response codes etc...
+                             
+Instead of a skynet runner:
+  Install a conf/skynet.rb
+  If they run skynet where there's a conf/skynet.rb then it just uses requires that.  No need for a runner
+  Even if they run it locally, there's a conf skynet
+  Allow a ~/.skynet/config.rb for global skynet config!
+  This file can contain the SKYNET_WORKER_VERSION
+  Workers can always RE check this file to see if there's a new version
+  
+Error Logging adapter classes
+
+MessageQueueAdapter::SingleProcess
+  Deal with error messages (figure out when to write retry task)
+    Timeouts
+  Handle new Message object
+  timeout vs start_after
+    don't use start after for failover tasks
+
+Skynet::Worker
+  Deal with Task errors and Timeouts better vs other exceptions
+  Handle new Message object
+  
+Skynet::Message
+  Deal with errors
+  
+  renamed payload to task
+  removed payload_type, it's now using tasktype
+  added start_after
+  renamed expiry to timeout
+  really, expiry should be timeout
+  
+  Timeouts are still funny in their naming and meaning between jobs, tasks and queues
+  
+  Start AFter
+    Don't start until this TIME
+  Task Timeout
+    Time to complete the task (expiry)
+  Expire Time (we probably shouldn't write expire time to the Q even if it's in the object)
+    The time this task should expire (time task started + timeout)
+
+## These may only make sense for results, and errors, not tasks, or masters.
+  Result Timeout
+    How long after this message is put on the queue should it be removed?
+  Result Expire Time (I guess we have to write this to the Q)
+    What time should this message just disappear from the queue (time message put on the Q + result_timeout)
+
+    change result_timeout to timeout in Tasks
+
+    renamed task.result_timeout to task.task_timeout
+    reused task.result_timeout as the actual result_timeout
+    
+    3 Message Subclasses
+      Task
+        Runs task, returns error or result message within a transaction. Always returns a Skynet::Message subclass
+      Error
+      Result
+      
+
+Skynet::Job
+  run() needs begin rescue blocks to handle errors with local master and such Master errors should flow back to job
+  
+  Make sure we know the difference between result_timeout and timeout
+  timeout and result_timeout are being used for both sides
+    A task is made in job, then passed through the q in a message.   
+    A worker tasks a task from the task queue out of a message
+    Why can't the message be passed all the way through!
+
+    Be careful of persistent messages.  If the expire_time is started on initialization. If the object gets passed around
+    by reference, it will never be reinitialized, even when we want the expire_time recalculated
+    PERHAPS we need start, stop methods.   OR, if wrap the RUN in a message block... which handles the timeout!
+    The timeout could still be caught by Task
+    message.start do / end
+
+Errors
+  Maybe there should be a skynet error logger that watches the error Q
+  If there is no error q, we don't write to it
+  Or at least an error logger adapter class that can be subclassed
+    The error logger should have access to the message itself
+    There should be callbacks to distinguish task vs. master errors
+    You might only want to deal with master errors or visa versa
+    With access to the message you could only report on non retryable errors if you want. Maybe there's a convenience callback for that.

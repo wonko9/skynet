@@ -26,7 +26,7 @@ class Skynet
       @required_libs        = options[:required_libs]   || []
       @queue_id             = options[:queue_id] || 0
       @number_of_workers    = 0
-      @workers_by_type      = {:master => [], :task => [], :any => []}
+      @workers_by_type      = {:master => [], :task => [], :master_or_task => []}
       @signaled_workers     = []
       @worker_queue         = {}
       @workers_restarting   = 0
@@ -218,9 +218,9 @@ class Skynet
       warn "Adding #{workers} WORKERS. Task Workers: #{num_task_only_workers}, Master Workers: #{num_master_only_workers} Master & Task Workers: #{workers - num_task_only_workers - num_master_only_workers}"
 
       @all_workers_started = false
-      worker_types = {:task => 0, :master => 0, :any => 0}
+      worker_types = {:task => 0, :master => 0, :master_or_task => 0}
       (1..workers).collect do |ii|
-        worker_type = :any
+        worker_type = :master_or_task
         if (ii <= num_master_only_workers)
           worker_type = :master
           worker_types[:master] += 1
@@ -228,7 +228,7 @@ class Skynet
           worker_type = :task
           worker_types[:task] += 1
         else
-          worker_types[:any] += 1
+          worker_types[:master_or_task] += 1
         end
         cmd = "#{@script_path} --worker_type=#{worker_type}"
         cmd << " --queue_id=#{queue_id}"
@@ -302,7 +302,7 @@ class Skynet
       signal_workers("TERM")
       @restart = true
       signal_workers("INT",:master)
-      signal_workers("INT",:any)
+      signal_workers("INT",:master_or_task)
       sleep @number_of_workers
       check_started_workers
     end
@@ -352,7 +352,7 @@ class Skynet
     def shutdown
       info(:shutdown)
       @shutdown = true
-      signal_workers("TERM",[:idle,:master,:any])
+      signal_workers("TERM",[:idle,:master,:master_or_task])
     end
 
     def terminate
@@ -445,13 +445,13 @@ class Skynet
       stats[:idle_workers]                  = idle_workers.size
       stats[:shutdown_workers]              = inactive_workers.size
       stats[:masters]                       = active_workers.select{|worker|worker.tasktype.to_s == "master"}.size
-      stats[:master_or_task_workers]        = active_workers.select{|worker|worker.tasktype.to_s == "any"}.size
+      stats[:master_or_task_workers]        = active_workers.select{|worker|worker.tasktype.to_s == "master_or_task"}.size
       stats[:taskworkers]                   = active_workers.select{|worker|worker.tasktype.to_s == "task"}.size
       stats[:active_masters]                = currently_active_workers.select{|worker|worker.tasktype.to_s == "master"}.size
-      stats[:active_master_or_task_workers] = currently_active_workers.select{|worker|worker.tasktype.to_s == "any"}.size
+      stats[:active_master_or_task_workers] = currently_active_workers.select{|worker|worker.tasktype.to_s == "master_or_task"}.size
       stats[:active_taskworkers]            = currently_active_workers.select{|worker|worker.tasktype.to_s == "task"}.size
       stats[:idle_masters]                  = idle_workers.select{|worker|worker.tasktype.to_s == "master"}.size
-      stats[:idle_master_or_task_workers]   = idle_workers.select{|worker|worker.tasktype.to_s == "any"}.size
+      stats[:idle_master_or_task_workers]   = idle_workers.select{|worker|worker.tasktype.to_s == "master_or_task"}.size
       stats[:idle_taskworkers]              = idle_workers.select{|worker|worker.tasktype.to_s == "task"}.size
       stats
     end

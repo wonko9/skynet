@@ -3,6 +3,7 @@ License.txt
 Manifest.txt
 README.txt
 Rakefile
+TODO.txt
 app_generators/skynet_install/USAGE
 app_generators/skynet_install/skynet_install_generator.rb
 app_generators/skynet_install/templates/migration.rb
@@ -94,7 +95,7 @@ lib/skynet/mapreduce_helper.rb
 lib/skynet/mapreduce_test.rb
 lib/skynet/message_queue_adapters/message_queue_adapter.rb
 lib/skynet/message_queue_adapters/mysql.rb
-lib/skynet/message_queue_adapters/qui_q.rb
+lib/skynet/message_queue_adapters/single_process.rb
 lib/skynet/message_queue_adapters/tuple_space.rb
 lib/skynet/skynet_active_record_extensions.rb
 lib/skynet/skynet_config.rb
@@ -124,6 +125,7 @@ tasks/website.rake
 test/test_active_record_extensions.rb
 test/test_generator_helper.rb
 test/test_helper.rb
+test/test_message_queue_adapter.rb
 test/test_mysql_message_queue_adapter.rb
 test/test_skynet.rb
 test/test_skynet_install_generator.rb

@@ -23,7 +23,7 @@ class Skynet
 
       include SkynetDebugger
 
-      USE_FALLBACK_TASKS = true
+      USE_FALLBACK_TASKS = false
 
       @@ts = nil
       @@curhostidx = 0
@@ -55,34 +55,93 @@ class Skynet
         @ts = self.class.get_tuple_space(options)
       end
 
-      def take_next_task(curver,timeout=nil,payload_type=nil,queue_id=0)
-        message = Skynet::Message.new(take(Skynet::Message.next_task_template(curver,payload_type, queue_id),timeout))
-        write_fallback_task(message)
+      def dequeue_task(version,tasktype,timeout=0.00001,queue_id=0)
+        real_tasktype = tasktype.to_sym
+        if tasktype.to_s == :master_or_task
+          real_tasktype = [:master,:task].rand
+        end
+        template = {                           
+          ### FIXME expire_time should just be a number
+          :expire_time  => (0 .. Time.now.to_f),
+          :tasktype     => real_tasktype,
+          :queue_id     => queue_id,
+          :version      => version,
+          :iteration    => (0..Skynet::CONFIG[:MAX_RETRIES]),
+        }
+        ts_template = Skynet::TaskMessage.fields.collect do |field|
+          if template[field]
+            template[field]
+          else
+            nil
+          end
+        end
+        ts_template.unshift(:task)
+                                          
+        tuple = take(ts_template,timeout)
+        tuple.shift
+        message = Skynet::TaskMessage.new(tuple)
         message
       end
-
-      def write_message(message,timeout=nil)
-        timeout ||= message.expiry
-        write(message,timeout)
+      
+      def enqueue_task(message)
+        timeout = message.result_timeout if message.result_timeout and message.result_timeout > 0
+        timeout ||= 10
+        message.tasktype = message.tasktype.to_s
+        message_array = message.to_a
+        message_array[Skynet::TaskMessage.fields.index(:expire_time)] ||= 0
+        message_array.unshift(:task)
+        write(message_array,timeout)
       end
 
-      def write_result(message,result=[],timeout=nil)
+      def enqueue_result(message)
+        # First we'll make sure that task is acknowledged so it is taken off the Q permanently
+        acknowledge(message)
         result_message = message.result_message(result).to_a
-        timeout ||= result_message.expiry
+        result_message.unshift(:result)
+        timeout = result_message.timeout
         write(result_message,timeout)
-        take_fallback_message(message)
-        result_message
       end
 
-      def take_result(job_id,timeout=nil)
-        Skynet::Message.new(take(Skynet::Message.result_template(job_id),timeout))
+      # def write_result(message,result=[],timeout=nil)
+      #   result_message = message.result_message(result).to_a
+      #   timeout ||= result_message.timeout
+      #   write(result_message,timeout)
+      #   take_fallback_message(message)
+      #   result_message
+      # end
+
+      def dequeue_result(job_id,timeout=1)
+        template_message = Skynet::ResultMessage.new(:job_id => job_id)
+        template_message.tasktype = nil
+        result_template = template_message.to_a
+        result_template.unshift(:result)        
+        tuple = Skynet::Message.new(take(result_template,timeout))
+        tuple.shift
+        tuple
       end
 
-      def write_error(message,error='',timeout=nil)
-        timeout ||= message.expiry
-        write(message.error_message(error),timeout)
-        take_fallback_message(message)
+      def accept_unacknowledged_message(message)
+        write_failover(message)
       end
+      
+      def acknowledge(message)    
+        take_fallback_message(message,timeout=0.01)
+      end
+
+      #subclass
+      def unacknowledge(message)
+        ## How do we unacknowledge
+        take_fallback_message(message,timeout=0.01)
+      end
+
+
+
+
+
+
+
+
+
 
       def list_tasks(iteration=nil,queue_id=0)
         read_all(Skynet::Message.outstanding_tasks_template(iteration,queue_id))
@@ -104,10 +163,11 @@ class Skynet
       end
 
       def get_worker_version
+        1
         begin
-          message = Skynet::WorkerVersionMessage.new(read(Skynet::WorkerVersionMessage.template,0.00001))
+          message = read([:workerversion,nil],0.00001)
           if message
-            curver = message.version
+            curver = message[1]
           else
             curver=0
           end
@@ -118,15 +178,16 @@ class Skynet
       end
 
       def set_worker_version(ver=nil)
+        return true
         begin
-          messages = read_all(Skynet::WorkerVersionMessage.template).collect {|ret| Skynet::WorkerVersionMessage.new(ret)}
+          tuples = read_all([:workerversion,nil])
           curver = 0
-          messages.each do |message|
-            curver = message.version
+          tuples.each do |tuple|
+            curver = tuple[1]
             debug "CURRENT WORKER VERSION #{curver}"
-            curvmessage = Skynet::WorkerVersionMessage.new(take(message.template,0.00001))
+            curvmessage = take([:workerversion,nil],0.00001)
             if curvmessage
-              curver = curvmessage.version
+              curver = curvmessage[1]
             else
               curver=0
             end
@@ -137,29 +198,39 @@ class Skynet
 
         newver = ver ? ver : curver + 1
         debug "WRITING CURRENT WORKER REV #{newver}"
-        write(Skynet::WorkerVersionMessage.new(:version=>newver))
+        write([:workerversion,never])
         newver
       end
 
+      def flush
+        clear_outstanding_tasks
+      end
+      
       def clear_outstanding_tasks
+        task_template = []
+        Skynet::ResultMessage.fields.each_with_index do
+          task_template << nil
+        end
+        task_template.unshift(:task)
         begin
-          tasks = read_all(Skynet::Message.outstanding_tasks_template)
+          tasks = read_all(task_template)
         rescue DRb::DRbConnError, Errno::ECONNREFUSED => e
           error "ERROR #{e.inspect}", caller
         end
 
         tasks.size.times do |ii|
-          take(Skynet::Message.outstanding_tasks_template,0.00001)
+          take(task_template,0.00001)
         end
-
-        results = read_all(Skynet::Message.outstanding_results_template)
+        
+        result_template = []
+        Skynet::ResultMessage.fields.each_with_index do
+          result_template << nil
+        end
+        result_template.unshift(:result)
+        results = read_all(result_template)
         results.size.times do |ii|
-          take(Skynet::Message.outstanding_results_template,0.00001)
+          take(result_template,0.00001)
         end
-
-        task_tuples = read_all(Skynet::Message.outstanding_tasks_template)
-        result_tuples = read_all(Skynet::Message.outstanding_results_template)
-        return task_tuples + result_tuples
       end
 
       def stats
@@ -192,25 +263,28 @@ class Skynet
       end
 
       ###### FALLBACK METHODS
-      def write_fallback_task(message)
-        return unless USE_FALLBACK_TASKS
-        debug "4 WRITING BACKUP TASK #{message.task_id}", message.to_h
-        ftm = message.fallback_task_message
-        debug "WRITE FALLBACK TASK", ftm.to_h
-        timeout = message.expiry * 8
-        write(ftm,timeout) unless ftm.iteration == -1
-        ftm
-      end
+      # def write_fallback_task(message)
+      #   return unless USE_FALLBACK_TASKS
+      #   debug "4 WRITING BACKUP TASK #{message.task_id}", message.to_h
+      #   ftm = message.fallback_task_message
+      #   debug "WRITE FALLBACK TASK", ftm.to_h
+      #   timeout = message.timeout * 8
+      #   write(ftm,timeout) unless ftm.iteration == -1
+      #   ftm
+      # end
 
       def take_fallback_message(message,timeout=0.01)
         return unless USE_FALLBACK_TASKS
         return if message.retry <= message.iteration
         begin
-          # debug "LOOKING FOR FALLBACK TEMPLATE", message.fallback_template
-          fb_message = Skynet::Message.new(take(message.fallback_template,timeout))
-          # debug "TOOK FALLBACK MESSAGE for TASKID: #{fb_message.task_id}"
+          fb_message = Skynet::TaskMessage.new(:task_id => message.task_id)
+          fb_template = fb_message.to_a
+          fb_template.unshift(:task)         
+          debug "LOOKING FOR FALLBACK TEMPLATE", fb_template
+          take(fb_template,timeout)
+          debug "TOOK FALLBACK MESSAGE for TASKID: #{fb_message.task_id}"
         rescue Skynet::RequestExpiredError => e
-          error "Couldn't find expected FALLBACK MESSAGE", Skynet::Message.new(message.fallback_template).to_h
+          error "Couldn't find expected FALLBACK MESSAGE", fb_template
         end
       end
       ## END FALLBACK METHODS

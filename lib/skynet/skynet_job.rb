@@ -83,7 +83,7 @@ class Skynet
               :map, :map_partitioner, :reduce, :reduce_partition, :map_reduce_class,
               :master_retry, :map_retry, :reduce_retry,
               :keep_map_tasks, :keep_reduce_tasks,
-              :local_master, :async
+              :local_master, :async, :data_debug
             ]                                                       
 
     FIELDS.each do |method| 
@@ -96,7 +96,7 @@ class Skynet
       end
     end        
     
-    attr_accessor :use_local_queue
+    attr_accessor :use_local_queue, :data_debug
     
     Skynet::CONFIG[:JOB_DEFAULTS] = {
       :queue_id              => 0,
@@ -283,6 +283,8 @@ class Skynet
       info "RUN 1 BEGIN #{name}, job_id:#{job_id} vers: #{version} async:#{async}, local_master: #{local_master}, master?: #{master?}"
       
       # run the master task if we're running async or local_master
+      
+      ## FIXME we need beging rescue blocks here
       if master?
         master_enqueue
         # ====================================================================================
@@ -327,7 +329,10 @@ class Skynet
       self.use_local_queue = map_local?
       if map_tasks        
         number_of_tasks = 0
-        map_tasks.each do |task|
+        size = map_tasks.size - 1
+        printlog "MESSAGES TO MAP ENQUEUE #{size}" if data_debug?
+        map_tasks.each_with_index do |task,ii|
+          printlog "#{size - ii} MAP TASKS LEFT TO ENQUEUE" if data_debug?
           number_of_tasks += 1
           enqueue_messages(tasks_to_messages(task))
         end            
@@ -347,6 +352,7 @@ class Skynet
     def partition_data(post_map_data)
       debug "RUN REDUCE 3.1 BEFORE PARTITION #{display_info} reducers: #{reducers}"
       debug "RUN REDUCE 3.1 : #{reducers} #{name}, job_id:#{job_id}", post_map_data  
+      printlog "RUN REDUCE 3.1 : #{reducers} #{name}, job_id:#{job_id}", post_map_data if data_debug?
       return unless post_map_data
       partitioned_data = nil
       if not @reduce_partition
@@ -368,17 +374,21 @@ class Skynet
       partitioned_data.compact! if partitioned_data
       debug "RUN REDUCE 3.2 AFTER PARTITION #{display_info} reducers: #{reducers}"
       debug "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", partitioned_data if partitioned_data
+      printlog "RUN REDUCE 3.2 AFTER PARTITION  #{display_info} data:", partitioned_data if data_debug?
       partitioned_data
     end
 
     def reduce_enqueue(partitioned_data)    
       return partitioned_data unless @reduce and reducers and reducers > 0
       debug "RUN REDUCE 3.3 CREATED REDUCE TASKS #{display_info}", partitioned_data
+      size = partitioned_data.size
+      printlog "REDUCE MESSAGES TO ENQUEUE #{size}" if data_debug?
       
       reduce_tasks = self.reduce_tasks(partitioned_data)
       self.use_local_queue = reduce_local?(reduce_tasks)
       number_of_tasks = 0
-      reduce_tasks.each do |task|
+      reduce_tasks.each_with_index do |task,ii|
+        printlog "#{size - ii} REDUCE TASKS LEFT TO ENQUEUE" if data_debug?
         number_of_tasks += 1
         enqueue_messages(tasks_to_messages(task))
       end            
@@ -387,6 +397,7 @@ class Skynet
     
     def reduce_results(number_of_tasks)
       results = gather_results(number_of_tasks, reduce_timeout, reduce_name)
+      printlog "REDUCE RESULTS", results if data_debug?
       if results.is_a?(Array) and results.first.is_a?(Hash)
         hash_results = Hash.new
         results.each {|h| hash_results.merge!(h) if h.class == Hash}
@@ -401,8 +412,8 @@ class Skynet
 
     def enqueue_messages(messages)
       messages.each do |message|
-        timeout = message.expiry || 5
-        debug "RUN TASKS SUBMITTING #{message.name} job_id: #{job_id} #{message.payload.is_a?(Skynet::Task) ? 'task' + message.payload.task_id.to_s : ''}"        
+        timeout = message.timeout || 5
+        debug "RUN TASKS SUBMITTING #{message.name} job_id: #{job_id} #{message.task.is_a?(Skynet::Task) ? 'task' + message.task.task_id.to_s : ''}"        
         debug "RUN TASKS WORKER MESSAGE #{message.name} job_id: #{job_id}", message.to_a
         mq.write_message(message,timeout * 5)
       end
@@ -411,8 +422,9 @@ class Skynet
     # Given a job_id, returns the results from the message queue.  Used to retrieve results of asyncronous jobs.
     def self.results_by_job_id(job_id,timeout=2)
       result_message = mq.take_result(job_id,timeout)
-      result     = result_message.payload
+      result     = result_message.result
       return nil unless result
+      printlog "POST REDUCE RESULTS", results if data_debug?
       return result
     end
 
@@ -426,9 +438,9 @@ class Skynet
         loop do
           # debug "LOOKING FOR RESULT MESSAGE TEMPLATE"
           result_message = self.mq.take_result(job_id,timeout * 2)
-          ret_result     = result_message.payload
+          ret_result     = result_message.result
 
-          if result_message.payload_type == :error
+          if result_message.tasktype == :error
             errors[result_message.task_id] = ret_result
             error "ERROR RESULT TASK #{result_message.task_id} returned #{errors[result_message.task_id].inspect}"
           else
@@ -436,6 +448,7 @@ class Skynet
             debug "RESULT returned TASKID: #{result_message.task_id} #{results[result_message.task_id].inspect}"
           end          
           debug "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(number_of_tasks - (results.keys + errors.keys).uniq.size)}"
+          printlog "RESULT collected: #{(results.keys + errors.keys).size}, remaining: #{(number_of_tasks - (results.keys + errors.keys).uniq.size)}" if data_debug?
           break if (number_of_tasks - (results.keys + errors.keys).uniq.size) <= 0
         end
       rescue Skynet::RequestExpiredError => e
@@ -489,11 +502,11 @@ class Skynet
         debug "RUN MAP 2.1 #{display_info} data before partition:", @map_data
 
         task_options = {
-          :process        => @map,
-          :name           => map_name,
-          :map_or_reduce  => :map,
-          :result_timeout => map_timeout,
-          :retry          => map_retry || Skynet::CONFIG[:DEFAULT_MAP_RETRY]
+          :process       => @map,
+          :name          => map_name,
+          :map_or_reduce => :map,
+          :timeout       => map_timeout,
+          :retry         => map_retry || Skynet::CONFIG[:DEFAULT_MAP_RETRY]
         }
 
         if @map_data.is_a?(Array)
@@ -522,11 +535,11 @@ class Skynet
     def reduce_tasks(partitioned_data)
       @reduce_tasks ||= begin
         task_options = {
-          :name           => reduce_name,
-          :process        => @reduce,
-          :map_or_reduce  => :reduce,
-          :result_timeout => reduce_timeout,
-          :retry          => reduce_retry || Skynet::CONFIG[:DEFAULT_REDUCE_RETRY]
+          :name          => reduce_name,
+          :process       => @reduce,
+          :map_or_reduce => :reduce,
+          :timeout       => reduce_timeout,
+          :retry         => reduce_retry || Skynet::CONFIG[:DEFAULT_REDUCE_RETRY]
         }
         Skynet::TaskIterator.new(task_options, partitioned_data)
       end
@@ -540,7 +553,7 @@ class Skynet
       end
 
       tasks.collect do |task|
-        Skynet::Message.new_task_message(task,self)
+        Skynet::TaskMessage.new_task_message(task,self)
       end
 	  end
 
@@ -603,6 +616,10 @@ class Skynet
 
     def single?
       @single
+    end
+
+    def data_debug?
+      @data_debug || Skynet::CONFIG[:SKYNET_JOB_DEBUG_DATA_LEVEL]
     end
 
     def reset!
@@ -781,7 +798,7 @@ class Skynet::Job::LocalMessageQueue
   def run_message(message)
     result = nil
     (message.retry + 1).times do
-      task = message.payload
+      task = message.task
       debug "RUN TASKS LOCALLY SUBMITTING #{message.name} task #{task.task_id}", task
       begin
         result = task.run

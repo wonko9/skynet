@@ -35,10 +35,9 @@ class Skynet
       debug "THIS WORKER TAKES #{worker_type}"
 
       @worker_info = {
-        :tasktype     => worker_type,
         :hostname     => hostname,
         :process_id   => process_id,
-        :worker_type  => payload_type,
+        :worker_type  => worker_type,
         :worker_id    => worker_id,
         :version      => mq.get_worker_version,
       }
@@ -155,8 +154,8 @@ class Skynet
       Skynet::Manager.get
     end
     
-    def payload_type
-      return nil if worker_type == :any
+    def worker_type
+      # return nil if worker_type == :master_or_task
       return worker_type
     end
 
@@ -195,6 +194,7 @@ class Skynet
       task    = nil
 
       loop do
+        @in_process = false
         message = nil
         begin
           if Skynet::CONFIG[:WORKER_MAX_PROCESSED] and Skynet::CONFIG[:WORKER_MAX_PROCESSED] > 0 and @processed >= Skynet::CONFIG[:WORKER_MAX_PROCESSED]
@@ -220,11 +220,15 @@ class Skynet
           #
           # debug "LOOK FOR WORK USING TEMPLATE", Skynet::Message.task_template(@curver)
           # message = Skynet::Message.new(mq.take(Skynet::Message.task_template(@curver),0.00001))
+          
+          ### FIXME These should be real messages not tasks!!!!!!!!!!  
+          ## That way we'd have enough information to pass back to the queue that we wouldn't have to reuse fields in task
+          ## We'd be able to rename task.timeout back to task.timeout, or may not need it at all. We've got it in the message.
           message = mq.take_next_task(@curver, 0.00001, payload_type, queue_id)
 
-          next unless message.respond_to?(:payload)
+          next unless message.respond_to?(:task)
 
-          task = message.payload
+          task = message.task
           error "BAD MESSAGE", task unless task.respond_to?(:map_or_reduce)
 
           info "STEP 2 GOT MESSAGE #{message.name} type:#{task.map_or_reduce}, jobid: #{message.job_id}, taskid:#{message.task_id} it: #{message.iteration}"
@@ -244,20 +248,15 @@ class Skynet
             :name          => message.name,
             :map_or_reduce => task.map_or_reduce
           })
-          result = task.run(message.iteration)
+          result = message.run(message.iteration)
 
           info "STEP 5 GOT RESULT FROM RUN TASK #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
           debug "STEP 5.1 RESULT DATA:", result
 
-          result_message = mq.write_result(message,result,task.result_timeout)
+          result_message = mq.write_result_for_task(message,result,task.result_timeout)
           info "STEP 6 WROTE RESULT MESSAGE #{message.name} jobid: #{message.job_id} taskid: #{task.task_id}"
           # debug "STEP 6.1 RESULT_MESSAGE:", result_message
           notify_task_complete
-
-        rescue Skynet::Task::TimeoutError => e
-          error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
-          @in_process = false
-          next
 
         rescue Skynet::Worker::RespawnWorker => e
           info "Respawning and taking worker status #{e.message}"
@@ -288,24 +287,33 @@ class Skynet
         rescue NoManagerError => e
           fatal e.message
           break
+
         rescue Interrupt, SystemExit => e
           info "Exiting..."
           notify_worker_stop
           break
+
+        rescue Skynet::Task::TimeoutError => e
+          error "Task timed out while executing #{e.inspect} #{e.backtrace.join("\n")}"
+          @in_process = false
+          ### FIXME We should be sending an error back to the queue?
+          ### Do we retry if there's a timeout?
+          ### We should raise a task error here with a special code
+          next
+
         rescue Exception => e
           error "skynet_worker.rb:#{__LINE__} #{e.inspect} #{e.backtrace.join("\n")}"
           exceptions += 1
           break if exceptions > 1000
           #mq.take(@next_worker_message.task_template,0.0005) if message
+          ## FIXME Do we need this now that we're handling errors in message.run
           if message
-            mq.write_error(message,"#{e.inspect} #{e.backtrace.join("\n")}",(task.respond_to?(:result_timeout) ? task.result_timeout : 200))
+            mq.write_error_for_message(message,"#{e.inspect} #{e.backtrace.join("\n")}",(task.respond_to?(:result_timeout) ? task.result_timeout : 200))
           else
             # what do we do here
             # mq.write_error(message,"ERROR in WORKER [#{$$}] #{e.inspect} #{e.backtrace.join("\n")}")
           end
           # mq.write_error("ERROR in WORKER [#{$$}] #{e.inspect} #{e.backtrace.join("\n")}")
-          @in_process = false
-          next
         end
       end
     end
@@ -360,7 +368,7 @@ class Skynet
     end
 
     def self.start(options={})
-      options[:worker_type]    ||= :any
+      options[:worker_type]    ||= :master_or_task
       options[:required_libs]  ||= []
 
       OptionParser.new do |opt|
@@ -368,8 +376,8 @@ class Skynet
         opt.on('-r', '--required LIBRARY', 'Include the specified libraries') do |v|
           options[:required_libs] << v
         end
-        opt.on('-ot', '--worker_type WORKERTYPE', "master, task or any") do |v|
-          if ["any","master","task"].include?(v)
+        opt.on('-ot', '--worker_type WORKERTYPE', "master, task or master_or_task") do |v|
+          if ["master_or_task","master","task"].include?(v)
             options[:worker_type] = v
           else
             raise Skynet::Error.new("#{v} is not a valid worker_type")

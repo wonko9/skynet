@@ -104,7 +104,7 @@ class Skynet
         if message.send(field).is_a?(Symbol)
           hash[field] = message.send(field).to_s
         elsif field == :payload
-          hash[:raw_payload] = message.raw_payload
+          hash[:raw_task] = message.raw_task
         else
           hash[field] = message.send(field)
         end
@@ -207,7 +207,7 @@ class Skynet
       timeout_sql = (timeout ? ", timeout = #{timeout}, expire_time = #{Time.now.to_f + timeout}" : '')
       rows = 0      
       raw_payload_sql = " raw_payload = "
-      raw_payload_sql << (message.raw_payload ? "'#{::Mysql.escape_string(message.raw_payload)}'" : 'NULL')
+      raw_payload_sql << (message.raw_task ? "'#{::Mysql.escape_string(message.raw_task)}'" : 'NULL')
       update_sql = %{
         update #{message_queue_table} 
         set tasktype = "#{message.tasktype}", 

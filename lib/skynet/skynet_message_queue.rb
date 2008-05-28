@@ -84,8 +84,9 @@ class Skynet
       )
     end
 
-    def_delegators :mq, :take_next_task, :write_message, :take_result, :write_error, :write_result,
-                   :list_tasks, :list_results, :clear_outstanding_tasks, :clear_outstanding_results, :stats
+    def_delegators :mq, :take_next_task, :write_task, :write_message, :take_result, :write_error, :write_result,
+                   :list_tasks, :list_results, :clear_outstanding_tasks, :clear_outstanding_results, :stats,
+                   :write_error_for_task, :write_result_for_task
 
 
 
