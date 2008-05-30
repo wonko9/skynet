@@ -4,7 +4,7 @@ Skynet
 
 == DESCRIPTION:
 
-Skynet is an open source Ruby implementation of Google's MapReduce framework, created at Geni. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.
+Skynet is an open source Ruby implementation of Google's MapReduce framework, created at Geni. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.  If you'd like to learn more about MapReduce see my intro at the bottom of this document.
 
 Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed system with no single point of failure. It uses a "peer recovery" system where workers watch out for each other. If a worker dies or fails for any reason, another worker will notice and pick up that task. Skynet also has no special 'master' servers, only workers which can act as a master for any task at any time. Even these master tasks can fail and will be picked up by other workers.
 
@@ -32,23 +32,6 @@ or grab the bleeding edge skynet in svn at
   $ svn checkout svn+ssh://developername@rubyforge.org/var/svn/skynet
   $ cd skynet; rake install_gem
 
-== MapReduce
-
-If you already know what MapReduce is you can skip this section.
-
-Skynet is merely a distributed computing system that allows you to break your problem into map and reduce steps.  You don't have to use it as a MapReduce framework though.  You can use it as a simple distributed system, or even a simple asynchronous processing system.
-
-If you want to know where all this MapReduce hype started, you should read Google's paper on it.  http://labs.google.com/papers/mapreduce.html
-
-When I first read that Google paper some years ago, I was a little confused about what all the hypes was.   At the most basic level, it seemed too simple to be revolutionary.  So you've got a job with 3 steps,  you put some data in, it gets split out to a map step run no many machines, the returned data gets reshuffled and parceled out to a reduce step run on many machines.  All the results are then put together again.   You can see it as 5 steps actually.   Data -> Partition -> Map -> Partition -> Reduce.  Simple enough.  Almost too simple.   It was only years later when I began working on Skynet that I realize what the revolutionary part of Google's framwork was.  It made distributed computing accessible.   Any engineer could write a complex distributed system without needing to know about the complexities of such systems.   Also, since the distributed system was generalized, you would only need one class of machines to run ALL of your distributed processing, instead of specialized machines for specialized functions.  THAT was revolutionary.   
-
-There are a number of key differences between Google's MR system and skynet.  Firstly, currently you can not actually send raw code to the workers.  You are really only telling it where the code is.   At first this bothered me a lot.  Then I realized that in most OO systems, the amount of code you'd need duplicate and to send over the wire to every worker could be ridiculous.  For example, if you want to distribute a task you need to run in Rails, you'd have to send almost all of your app and rails to every worker with every chunk of data.  So, even if you COULD send code, you'd probably only be sending code that just called some other code in your system.  If you can't send ALL the code it needs, then you might as well just tell it where the code is.
-
-The second big difference is that Google's MR framework uses Master federater processes to dole out tasks, recombine them, and generally watch the system.  Skynet has not such masters.   Instead Skynet uses a standard message queue for all communication.  That same message queue allows workers to watch each other in the same way a master would, but without the single point of failure (except the queue itself). 
-
-At its simplest level, a single map reduce job defines a data set, a map method and a reduce method. It may also define a partition method. The MapReduce server evenly splits up (partitions) the data given to it and sends those chunks of data, along with a copy of the code in the map method, to workers that execute the map method against the data it was given. The output from each worker is sent back to the MapReduce server. At this point the Mapreduce server evenly partitions the RESULT data returned from the workers and sends those chunks of data along with the reduce code to the workers to be executed. The reducers return the final result which is returned to whomever requested the job be done in the first place. Not all job need a reduce step, some may just have a map step.
-
-The most common example of a mapreduce job is a distributed word counter. Say you wanted to determine how many times a single word appears in a 1GB text file. The MapReduce server would break up the 1GB file into reasonable chunks, say 100 lines per chunk (or partition) and then send each 100 line partition along with the code that looks for that word, to workers. Each worker would grab its partition of the data, count how many times the word appears in the data and return that number. It might take dozens of workers to complete the task. When the map step is done, you are left with a huge list of counts returned by the workers. In this example, the reduce step would involve sending that list of counts to another worker, with the code required to sum those counts and finally return the total. In this way a task that used to be done in a linear fashion can be parallelized easily.
 
 == GETTING STARTED
 
@@ -93,6 +76,8 @@ Here are some commands you can run in the skynet console.
   > [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)
   
 That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It's not a very useful task, but it shows how easy it is to use.
+
+To see what Skynet is doing, you may want to tail the skynet logs being written to your log directory.
 
 For more information on creating your own Skynet jobs read the Skynet::Job documentation.
 
@@ -143,6 +128,24 @@ Your map and reduce class methods should ALWAYS assume they are being passed an 
     include SkynetDebugger
 
 SkynetDebugger[link:files/lib/skynet/skynet_debugger_rb.html]    
+
+== MapReduce
+
+If you already know what MapReduce is you can skip this section.
+
+Skynet is merely a distributed computing system that allows you to break your problem into map and reduce steps.  You don't have to use it as a MapReduce framework though.  You can use it as a simple distributed system, or even a simple asynchronous processing system.
+
+If you want to know where all this MapReduce hype started, you should read Google's paper on it.  http://labs.google.com/papers/mapreduce.html
+
+When I first read that Google paper some years ago, I was a little confused about what all the hypes was.   At the most basic level, it seemed too simple to be revolutionary.  So you've got a job with 3 steps,  you put some data in, it gets split out to a map step run on many machines, the returned data gets reshuffled and parceled out to a reduce step run on many machines.  All the results are then put together again.   You can see it as 5 steps actually.   Data -> Partition -> Map -> Partition -> Reduce.  Simple enough.  Almost too simple.   It was only years later when I began working on Skynet that I realize what the revolutionary part of Google's framework was.  It made distributed computing accessible.   Any engineer could write a complex distributed system without needing to know about the complexities of such systems.   Also, since the distributed system was generalized, you would only need one class of machines to run ALL of your distributed processing, instead of specialized machines for specialized functions.  THAT was revolutionary.   
+
+There are a number of key differences between Google's MR system and skynet.  Firstly, currently you can not actually send raw code to the workers.  You are really only telling it where the code is.   At first this bothered me a lot.  Then I realized that in most OO systems, the amount of code you'd need duplicate and to send over the wire to every worker could be ridiculous.  For example, if you want to distribute a task you need to run in Rails, you'd have to send almost all of your app and rails to every worker with every chunk of data.  So, even if you COULD send code, you'd probably only be sending code that just called some other code in your system.  If you can't send ALL the code it needs, then you might as well just tell it where the code is.
+
+The second big difference is that Google's MR framework uses Master federater processes to dole out tasks, recombine them, and generally watch the system.  Skynet has not such masters.   Instead Skynet uses a standard message queue for all communication.  That same message queue allows workers to watch each other in the same way a master would, but without the single point of failure (except the queue itself). 
+
+At its simplest level, a single map reduce job defines a data set, a map method and a reduce method. It may also define a partition method. The MapReduce server evenly splits up (partitions) the data given to it and sends those chunks of data, along with a copy of the code in the map method, to workers that execute the map method against the data it was given. The output from each worker is sent back to the MapReduce server. At this point the Mapreduce server evenly partitions the RESULT data returned from the workers and sends those chunks of data along with the reduce code to the workers to be executed. The reducers return the final result which is returned to whomever requested the job be done in the first place. Not all job need a reduce step, some may just have a map step.
+
+The most common example of a mapreduce job is a distributed word counter. Say you wanted to determine how many times a single word appears in a 1GB text file. The MapReduce server would break up the 1GB file into reasonable chunks, say 100 lines per chunk (or partition) and then send each 100 line partition along with the code that looks for that word, to workers. Each worker would grab its partition of the data, count how many times the word appears in the data and return that number. It might take dozens of workers to complete the task. When the map step is done, you are left with a huge list of counts returned by the workers. In this example, the reduce step would involve sending that list of counts to another worker, with the code required to sum those counts and finally return the total. In this way a task that used to be done in a linear fashion can be parallelized easily.
 
 == CREDITS
 

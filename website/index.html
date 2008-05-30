@@ -77,6 +77,61 @@
 	<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">skynet</span></pre></p>
 
 
+	<p>Since Skynet is a distributed system, it requires you have a skynet message queue as well as any number of skynet workers running.   Skynet workers need to boot with your code in order to run your jobs.   The easiest way is to install a skynet config file with skynet_install.</p>
+
+
+	<p><pre class='syntax'><span class="global">$ </span><span class="ident">skynet_install</span> <span class="punct">[--</span><span class="ident">rails</span><span class="punct">]</span> <span class="punct">[--</span><span class="ident">mysql</span><span class="punct">]</span> <span class="constant">YOUR_APP_DIRECTORY</span></pre></p>
+
+
+	<p>skynet_install installs a config/skynet_config.rb file into your application directory.</p>
+
+
+	<p>If you pass&#8212;rails it will assume it is installing in a rails app.  If you pass&#8212;mysql it will assume you are using the mysql as your message queue.</p>
+
+
+	<p>Edit this config file to include the libraries you want skynet workers to know about.  If you chose to install into a rails application the skynet_config.rb is already requiring your environment.rb file.  Now you can create your own Skynet jobs!</p>
+
+
+	<h2>Starting Skynet</h2>
+
+
+	<p>Once it is installed in your application, you can run skynet from your applications root directory with:</p>
+
+
+	<p><pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="ident">start</span></pre></p>
+
+
+	<p>This starts a skynet tuple space message queue and 4 workers.    You can control how many workers to start per machine
+by passing&#8212;workers=NUMBER_OF_WORKERS.</p>
+
+
+	<p>You can now run the skynet console to play with skynet a little.  See Skynet::ConsoleHelper for commands.
+<pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="ident">console</span></pre></p>
+
+
+	<p>Remember, when you change your code, you must stop/start skynet.</p>
+
+
+	<p>For help try:
+<pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="punct">--</span><span class="ident">help</span></pre>
+or
+<pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="ident">console</span> <span class="punct">--</span><span class="ident">help</span></pre></p>
+
+
+	<p>Here are some commands you can run in the skynet console.
+<pre class='syntax'>
+  <span class="punct">&gt;</span> <span class="ident">stats</span>
+  <span class="punct">&gt;</span> <span class="ident">manager</span><span class="punct">.</span><span class="ident">worker_pids</span>
+  <span class="punct">&gt;</span> <span class="punct">[</span><span class="number">1</span><span class="punct">,</span><span class="number">2</span><span class="punct">,</span><span class="number">3</span><span class="punct">,</span><span class="number">1</span><span class="punct">,</span><span class="number">1</span><span class="punct">,</span><span class="number">4</span><span class="punct">].</span><span class="ident">mapreduce</span><span class="punct">(</span><span class="constant">Skynet</span><span class="punct">::</span><span class="constant">MapreduceTest</span><span class="punct">)</span>
+</pre></p>
+
+
+	<p>That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It&#8217;s not a very useful task, but it shows how easy it is to use.</p>
+
+
+	<p>To see what Skynet is doing, you may want to tail the skynet logs being written to your log directory.</p>
+
+
 	<h2>More Info</h2>
 
 
@@ -119,7 +174,7 @@ included in all copies or substantial portions of the Software.</p>
 <span class="caps">TORT OR OTHERWISE</span>, ARISING <span class="caps">FROM</span>, OUT <span class="caps">OF OR IN CONNECTION WITH THE</span>
 <span class="caps">SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE</span>.</p>
     <p class="coda">
-      Adam Pisoni, Geni.com 27th May 2008<br>
+      Adam Pisoni, Geni.com 30th May 2008<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>

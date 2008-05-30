@@ -29,6 +29,47 @@ Skynet can be installed via RubyGems:
 
 <pre syntax="ruby">sudo gem install skynet</pre>
 
+Since Skynet is a distributed system, it requires you have a skynet message queue as well as any number of skynet workers running.   Skynet workers need to boot with your code in order to run your jobs.   The easiest way is to install a skynet config file with skynet_install.
+
+<pre syntax="ruby">$ skynet_install [--rails] [--mysql] YOUR_APP_DIRECTORY</pre>
+
+skynet_install installs a config/skynet_config.rb file into your application directory.  
+  
+If you pass --rails it will assume it is installing in a rails app.  If you pass --mysql it will assume you are using the mysql as your message queue.
+
+Edit this config file to include the libraries you want skynet workers to know about.  If you chose to install into a rails application the skynet_config.rb is already requiring your environment.rb file.  Now you can create your own Skynet jobs! 
+
+h2. Starting Skynet
+
+Once it is installed in your application, you can run skynet from your applications root directory with:
+
+<pre syntax="ruby">$ skynet start</pre>
+
+This starts a skynet tuple space message queue and 4 workers.    You can control how many workers to start per machine
+by passing --workers=NUMBER_OF_WORKERS. 
+
+You can now run the skynet console to play with skynet a little.  See Skynet::ConsoleHelper for commands.
+<pre syntax="ruby">$ skynet console</pre>
+
+Remember, when you change your code, you must stop/start skynet.
+
+For help try:
+<pre syntax="ruby">$ skynet --help</pre>
+or
+<pre syntax="ruby">$ skynet console --help</pre>
+
+
+Here are some commands you can run in the skynet console.
+<pre syntax="ruby">
+  > stats
+  > manager.worker_pids
+  > [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)
+</pre>
+  
+That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It's not a very useful task, but it shows how easy it is to use.
+
+To see what Skynet is doing, you may want to tail the skynet logs being written to your log directory.
+
 h2. More Info
 
 For more info check out the <a href="doc/index.html">README</a>
