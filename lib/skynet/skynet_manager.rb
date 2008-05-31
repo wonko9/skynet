@@ -640,7 +640,8 @@ class Skynet
           end
 
           printlog "STARTING THE MANAGER!!!!!!!!!!! port: #{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
-          info "CONFIG FILE #{Skynet::CONFIG[:CONFIG_FILE]}"
+          puts "Starting Skynet..."
+          printlog "Skynet Stopped"
           if options["daemonize"]
             Skynet.safefork do
               sess_id = Process.setsid
