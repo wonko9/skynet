@@ -180,7 +180,7 @@ module ActiveRecord
       job.run
     end
     
-    def mapreduce(klass_or_method=nil,&block)    
+    def map(klass_or_method=nil,&block)    
       klass_or_method ||= model_class
       log = Skynet::Logger.get
 
@@ -207,7 +207,8 @@ module ActiveRecord
       run_job_for_batch(batches)      
     end
 
-    alias_method :each, :mapreduce
+    alias_method :each, :map
+    alias_method :mapreduce, :map
 
     def model_class
       @model_class || self.class.model_class

@@ -25,7 +25,7 @@ I added a rake task to run the skynet migration
 You can also choose to run the command (or other commands) yourself in the skynet console
                                                                                          
 > ruby script/skynet console
-console> User.distributed_find(:all).each(:migrate_favorites)
+console> User.distributed_find(:all).map(:migrate_favorites)
 console> u = User.find(:first)
 console> u.user_favorites.size
 

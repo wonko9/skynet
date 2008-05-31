@@ -27,7 +27,7 @@ Skynet::Manager and Skynet Script Runner
  - Added printlog logging method which always prints to the log as [LOG]
  - Deprecated Skynet.new to Skynet.start 
  - Mysql Message Queue Adapter - Make delete_expired_messages much safer.
- - rename ActiveRecord::Base.distributed_find.each to ActiveRecord::Base.distributed_find.mapreduce
+ - rename ActiveRecord::Base.distributed_find.each to ActiveRecord::Base.distributed_find.map
  - ActiveRecord::Base.distributed_find - Patch submitted by Lourens Naude (lourens@methodmissing.com) which checks the model for the primary_key name as opposed to assuming it is
   'id'
  - We don't want to use rails constantize so I've temporarily borrowed the method from ActiveSupport inflector and added it to skynet_ruby_extensions.

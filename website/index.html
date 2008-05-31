@@ -62,34 +62,57 @@
 	<h2>What is Skynet</h2>
 
 
-	<p>Skynet is an open source Ruby implementation of Google&#8217;s Map/Reduce framework, created at Geni.com. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.</p>
+	<p>Skynet is an open source Ruby implementation of Google&#8217;s MapReduce framework, created at Geni. With Skynet, one can easily convert a time-consuming serial task, such as a computationally expensive Rails migration, into a distributed program running on many computers.  If you&#8217;d like to learn more about MapReduce, see my intro at the bottom of this document.</p>
 
 
 	<p>Skynet is an adaptive, self-upgrading, fault-tolerant, and fully distributed system with no single point of failure. It uses a &#8220;peer recovery&#8221; system where workers watch out for each other. If a worker dies or fails for any reason, another worker will notice and pick up that task. Skynet also has no special &#8216;master&#8217; servers, only workers which can act as a master for any task at any time. Even these master tasks can fail and will be picked up by other workers.</p>
 
 
-	<h2>Installing</h2>
+	<p>For more detailed documentation see the following:</p>
+
+
+	<p>Skynet::Job &#8211; The main interface to Skynet; includes an example of how to use Skynet</p>
+
+
+	<p>Skynet::Config &#8211; Configuration options</p>
+
+
+	<p>bin/skynet[link:files/bin/skynet.html] &#8211; Starting Skynet</p>
+
+
+	<p>bin/skynet_install[link:files/bin/skynet_install.html] &#8211; Installing Skynet into a local project</p>
+
+
+	<p>There are also some examples in the examples/ directory included with Skynet.</p>
+
+
+	<h2>Installation</h2>
 
 
 	<p>Skynet can be installed via RubyGems:</p>
 
 
-	<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">skynet</span></pre></p>
+	<pre><code>$ sudo gem install skynet</code></pre>
 
 
-	<p>Since Skynet is a distributed system, it requires you have a skynet message queue as well as any number of skynet workers running.   Skynet workers need to boot with your code in order to run your jobs.   The easiest way is to install a skynet config file with skynet_install.</p>
+	<p>or grab the bleeding edge skynet in svn at
+  $ svn checkout svn+ssh://developername@rubyforge.org/var/svn/skynet
+  $ cd skynet; rake install_gem</p>
 
 
-	<p><pre class='syntax'><span class="global">$ </span><span class="ident">skynet_install</span> <span class="punct">[--</span><span class="ident">rails</span><span class="punct">]</span> <span class="punct">[--</span><span class="ident">mysql</span><span class="punct">]</span> <span class="constant">YOUR_APP_DIRECTORY</span></pre></p>
+	<h2>Initial Setup</h2>
 
 
-	<p>skynet_install installs a config/skynet_config.rb file into your application directory.</p>
+	<p>Skynet works by putting &#8220;tasks&#8221; on a message queue which are picked up by skynet workers. The workers execute tasks and put their results back on the message queue. Skynet workers need to load your code at startup in order to be able to execute your tasks. This loading is handled by installing a skynet config file into your app running skynet_install[link:files/bin/skynet_install.html]. </p>
 
 
-	<p>If you pass&#8212;rails it will assume it is installing in a rails app.  If you pass&#8212;mysql it will assume you are using the mysql as your message queue.</p>
+	<pre><code>$ skynet_install <a href="</del>-mysql"><del>-rails</a> APP_ROOT_DIR</code></pre>
 
 
-	<p>Edit this config file to include the libraries you want skynet workers to know about.  If you chose to install into a rails application the skynet_config.rb is already requiring your environment.rb file.  Now you can create your own Skynet jobs!</p>
+	<p>This creates a file called skynet_config.rb in <span class="caps">APP</span>_ROOT_DIR/config to which you can add the relevant requires. For example, you might have a rails app and want some of that code to run asynchronously or in a distributed way. Just run &#8216;skynet_install&#8212;rails&#8217; in your rails root, and it will automatically create config/skynet_config.rb and require environment.rb.</p>
+
+
+	<p>Skynet currently supports 2 message queue systems, TupleSpace and Mysql. By default, the TupleSpace queue is used as it is the easiest to set up, though it is less powerful and less scaleable for large installations. If you pass&#8212;mysql to skynet_install, it will assume you are using the mysql as your message queue.</p>
 
 
 	<h2>Starting Skynet</h2>
@@ -98,38 +121,11 @@
 	<p>Once it is installed in your application, you can run skynet from your applications root directory with:</p>
 
 
-	<p><pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="ident">start</span></pre></p>
+	<pre><code>$ skynet start [--workers=N]</code></pre>
 
 
-	<p>This starts a skynet tuple space message queue and 4 workers.    You can control how many workers to start per machine
-by passing&#8212;workers=NUMBER_OF_WORKERS.</p>
-
-
-	<p>You can now run the skynet console to play with skynet a little.  See Skynet::ConsoleHelper for commands.
-<pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="ident">console</span></pre></p>
-
-
-	<p>Remember, when you change your code, you must stop/start skynet.</p>
-
-
-	<p>For help try:
-<pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="punct">--</span><span class="ident">help</span></pre>
-or
-<pre class='syntax'><span class="global">$ </span><span class="ident">skynet</span> <span class="ident">console</span> <span class="punct">--</span><span class="ident">help</span></pre></p>
-
-
-	<p>Here are some commands you can run in the skynet console.
-<pre class='syntax'>
-  <span class="punct">&gt;</span> <span class="ident">stats</span>
-  <span class="punct">&gt;</span> <span class="ident">manager</span><span class="punct">.</span><span class="ident">worker_pids</span>
-  <span class="punct">&gt;</span> <span class="punct">[</span><span class="number">1</span><span class="punct">,</span><span class="number">2</span><span class="punct">,</span><span class="number">3</span><span class="punct">,</span><span class="number">1</span><span class="punct">,</span><span class="number">1</span><span class="punct">,</span><span class="number">4</span><span class="punct">].</span><span class="ident">mapreduce</span><span class="punct">(</span><span class="constant">Skynet</span><span class="punct">::</span><span class="constant">MapreduceTest</span><span class="punct">)</span>
-</pre></p>
-
-
-	<p>That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It&#8217;s not a very useful task, but it shows how easy it is to use.</p>
-
-
-	<p>To see what Skynet is doing, you may want to tail the skynet logs being written to your log directory.</p>
+	<p>This starts a skynet tuple space message queue and 4 workers. You can control how many workers to start per machine
+by passing&#8212;workers=N.</p>
 
 
 	<h2>More Info</h2>
