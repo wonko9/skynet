@@ -33,7 +33,7 @@ class Skynet
       @all_workers_started  = false
       @config               = Skynet::Config.new
       @mutex                = Mutex.new
-      @wqts                 = Queue.new                      
+      @wqts                 = Queue.new
     end
 
     def worker_notify(item)
@@ -48,7 +48,7 @@ class Skynet
           begin
             status = Skynet::WorkerStatusMessage.new(task)
             status.started_at = status.started_at.to_i
-            @mutex.synchronize do          
+            @mutex.synchronize do
               @worker_queue[status.worker_id] = status
             end
             if last_save_time < Time.now - 60
@@ -59,9 +59,9 @@ class Skynet
             error "Error in worker queue thread #{e.inspect} #{e.backtrace.join("\n")}"
           end
         end
-      end      
-    end  
-    
+      end
+    end
+
     def start_workers
       load_worker_queue_from_file
       start_worker_queue_thread
@@ -484,7 +484,7 @@ class Skynet
     def self.local_manager_uri
       "druby://localhost:#{Skynet::CONFIG[:SKYNET_LOCAL_MANAGER_PORT]}"
     end
-    
+
     def self.get
       DRbObject.new(nil,local_manager_uri)
     end
@@ -494,7 +494,7 @@ class Skynet
       options[:remove_workers] ||= nil
       options[:use_rails]      ||= false
       options[:required_libs]  ||= []
-      
+
       config = Skynet::Config.new
 
       OptionParser.new do |opt|
@@ -586,7 +586,7 @@ class Skynet
           exit
         end
       elsif Skynet::CONFIG[:SYSTEM_RUNNER]
-        error "Config file missing. Please add a config/skynet_config.rb before starting."        
+        error "Config file missing. Please add a config/skynet_config.rb before starting."
       end
 
       options[:workers]        ||= Skynet::CONFIG[:NUMBER_OF_WORKERS] || 4

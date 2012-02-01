@@ -1,5 +1,5 @@
-module Enumerable    
-  def mapreduce(klass=nil,options={},&block)               
+module Enumerable
+  def mapreduce(klass=nil,options={},&block)
     data = []
     if self.is_a?(Hash)
       self.each {|k,v| data << {k => v}}
@@ -16,22 +16,22 @@ module Enumerable
       :reduce_timeout         => 3600,
       :master_timeout         => 3600,
       :master_result_timeout  => 3600
-    }                                
+    }
 
     jobopts[:map_reduce_class] = klass.to_s if klass
 
     options.each { |k,v| jobopts[k] = v }
     if block_given?
       jobopts[:map] = block
-    end                               
-    
+    end
+
     if block_given? or not jobopts[:async]
       job = Skynet::Job.new(jobopts.merge(:local_master => true))
     else
       job = Skynet::AsyncJob.new(jobopts)
     end
-    job.run    
-  end  
+    job.run
+  end
 end
 
 class String

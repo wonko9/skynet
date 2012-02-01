@@ -1,9 +1,9 @@
 == 0.9.3 2008-05-22
 Skynet::Manager and Skynet Script Runner
- - Rewrote how Skynet workers and skynet manager talks on each machine.  See below for more info 
- 
+ - Rewrote how Skynet workers and skynet manager talks on each machine.  See below for more info
+
  - Added an examples/ directory with sample skynet apps.
- 
+
  - Support starting Skynet with 'skynet start/stop' to daemonize
  - skynet_install now only installs a config/skynet_config.rb in your applications directory.  You are no longer supposed
  to have a script/skynet to start skynet.  Instead, as long as you have a config/skynet_config.rb you can just run
@@ -25,13 +25,13 @@ Skynet::Manager and Skynet Script Runner
  - Fixed Skynet::Partitioners::ArrayDataSplitByFirstEntry to handle strings as keys better
  - Added Skynet::Job.results_by_job_id to retrieve results from asyncronous jobs
  - Added printlog logging method which always prints to the log as [LOG]
- - Deprecated Skynet.new to Skynet.start 
+ - Deprecated Skynet.new to Skynet.start
  - Mysql Message Queue Adapter - Make delete_expired_messages much safer.
  - rename ActiveRecord::Base.distributed_find.each to ActiveRecord::Base.distributed_find.map
  - ActiveRecord::Base.distributed_find - Patch submitted by Lourens Naude (lourens@methodmissing.com) which checks the model for the primary_key name as opposed to assuming it is
   'id'
  - We don't want to use rails constantize so I've temporarily borrowed the method from ActiveSupport inflector and added it to skynet_ruby_extensions.
- - Fix bug in Job comment where it referenced MapreduceTest instead of Skynet::MapreduceTest 
+ - Fix bug in Job comment where it referenced MapreduceTest instead of Skynet::MapreduceTest
  - Fix tests. For some reason you still can't run ALL the test at once with rake test, but if the files are run individually they all pass.
  - Change mysql text fields to longtext in migration and schema files
  - Include some extras including our init.d script, our nagios monitoring script, rails controller and view for monitoring
@@ -39,8 +39,8 @@ Skynet::Manager and Skynet Script Runner
  - Modified the skynet_install skynet runner to take skynet initializer into account
  - Skynet::ActiveRecordExtensions Fixed a bug where it would fail if your table had fewer than 1000 rows.  It performs a count
   first now to make sure there are enough rows.
- - Introduced some new Skynet::Config methods for getting logfile and pidfile locations   
- 
+ - Introduced some new Skynet::Config methods for getting logfile and pidfile locations
+
 Skynet Manager/Worker Refactor
   The workers used to publish their worker statuses to the skynet_worker_queue which lived in the same Q space as the skynet_message_queue.  skynet managers would then query that queue for their workers' statuses.   This was a very inefficient use of central resources.    NOW, workers communicate with their manager vir DRb, calling manager.worker_notify(status).   This adds the worker status hash onto a local Queue object stored in the manager.  A separate thread watches that queue and updates the internal manager information about it's workers.  This was in place of polling a queue every N seconds for new worker records.
 Managers now save their worker information to a file periodically so they can be reloaded on a restart.  This means managers can keep track of how many tasks all of their workers have done even after restarts.
@@ -48,7 +48,7 @@ As a consequence of decentralizing worker stats, you now have to ask all your ma
 
 
 == 0.9.2 2008-01-22
-Highlights: 
+Highlights:
  - Multiple Message Queues
  - Many more Job options including options to control how jobs are distributed.
  - The various options for how a job is run has been made much clearer.
@@ -63,7 +63,7 @@ Active::Record#distributed_find
 
 Skynet::Job
   - code path through Skynet::Job is now clear. There are 3 ways to run Skynet::Job. Local Master (default), Remote Master, Async (implies remote master)
-  - Skynet::Job supports keep_map_tasks and keep_reduce_tasks settings.  
+  - Skynet::Job supports keep_map_tasks and keep_reduce_tasks settings.
     If true, the master will run the tasks locally.
     If a number is provided, the master will run the tasks locally if there are LESS THAN OR EQUAL TO the number provided
     There are also Skynet::CONFIG settings for defaults. DEFAULT_KEEP_REDUCE_TASKS, DEFAULT_KEEP_MAP_TASKS
@@ -72,14 +72,14 @@ Skynet::Job
   - You can now pass queue_id or queue to Skynet::Job
   - There is now a :MAX_RETRIES config setting that controls how many iterations Skynet will even look for tasks as well.
   - You can now stream map_data to the queue by passing an Enumerable for your map_data
-  - Refactored Skynet::Job to be much cleaner and easier to test. 
+  - Refactored Skynet::Job to be much cleaner and easier to test.
   - Skynet::Job now has access to a local queue which it can treat almost like the real one.
   - deprecate Skynet::Job#run_master
   - rename reduce_partitioner method to just reduce_partition
   - Skynet::Job has better support for running tasks locally.  A job may run tasks in its own process if
     you are running in solo mode, you've made a "single" job, or you set the keep_map_tasks or keep_reduce_tasks below.
-    When a job runs tasks locally it now honors the retry settings and timeouts.  
-  - Skynet::Job and Skynet::AsyncJob are now almost identical.  In fact you can just use Skynet::Job and tell it to run async.  
+    When a job runs tasks locally it now honors the retry settings and timeouts.
+  - Skynet::Job and Skynet::AsyncJob are now almost identical.  In fact you can just use Skynet::Job and tell it to run async.
   - Skynet::Job Changed map_tasks and reduce_tasks to mappers and reducers respectively.  This was to remove the ambiguity between the actual map/reduce tasks and the number of mappers/reducers desired.
   - Skynet::Jobs can not be told what queue to use for that job by passing :queue or :queue_id DEFAULT 0
   - Skynet::Job won't call the reduce_partitioner if there are no valid results from the map_step.
@@ -88,7 +88,7 @@ MapreduceHelper mixin
   - You can include MapreduceHelper into your class and then implement self.map_each and self.reduce_each methods.  The included self.map and self.reduce methods will handle iterating over the map_data and reduce_data, passing each element to your map_each and reduce_each methods respectively.  They will also handle error handling within that loop to make sure even if a single map or reduce fails, processing will continue.  If you do not want processing to continue if a map fails, do not use the MapreduceHelper mixin.
 
 Multiple Message Queues!
-  - Add the ability to have multiple message queues in the same table message_queue_table. 
+  - Add the ability to have multiple message queues in the same table message_queue_table.
   - You can start skynet with a --queue_id or --queue option to determine which queue workers should look in.
   - Skynet::Jobs can not be told what queue to use for that job by passing :queue or :queue_id.  DEFAULT 0
   - Queues can be configred via Skynet::CONFIG[:MESSAGE_QUEUES] = [] which comes with an array of queues id 1 through 10 named "one" through "ten"
@@ -96,10 +96,10 @@ Multiple Message Queues!
 Skynet Console
   - You now start the skynet console by running 'skynet console' at the command line.   There is no longer a skynet_console app.
   - The console now loads the configs that are in your local skynet script.
-  
+
 Skynet::Config
   - Added Skynet.silent {} Runs your code with no debugging output.
-  - Made sure all config options for TupleSpace? adapter begin with TS and all Mysql adapter CONFIG settings start with MYSQL.        
+  - Made sure all config options for TupleSpace? adapter begin with TS and all Mysql adapter CONFIG settings start with MYSQL.
   - There is now a :MAX_RETRIES config setting that controls how many iterations Skynet will even look for tasks as well.
 
 Skynet::Partitioners
@@ -114,8 +114,8 @@ Mysql Message Queue Adapter
   - Fixed Mysql Message Adaptor to take_next_task safer and more efficiently.   There seems to be far less risk of a race condition where two workers would take the same task.
   - Eliminated 1 db update per every task taken making it MUCH more efficient.
   - Skynet::MessageQueueAdaptor::Mysql now tries to reconnect if it gets disconnected.   This was to solve the "Mysql Server has Gone Away" errors.
-  - Implemented version_active? in mysql message queue adapter.   It's a way for workers to check to see if a version is still in the queue.  
-  
+  - Implemented version_active? in mysql message queue adapter.   It's a way for workers to check to see if a version is still in the queue.
+
 Skynet::Task
   - Skynet::Task#master_task takes care of creating the master job and task now. I have mixed feelings about this.
   - ENFORCED TIMEOUTS - Even though a master might give up on a worker if it didn't respond in time, there was nothing to step any given worker from running forever.  We now enforce the timeouts (master_timeout, map_timeout, reduce_timeout) given in Skynet::Job using the Timeout module.  This causes a Timeout::Error to be thrown.   If you are using the mysql adapter, this can cause strange results sometimes.   If the Timeout error is thrown during a DB query, ActiveRecord will throw an ActiveRecord::StatementInvalid exception which includes the Timeout::Error exception in it.  Not sure how to prevent that from happening.
@@ -132,9 +132,9 @@ Now 90% more Tests!
 
 BUGFIXES
 - Skynet Workers now restart properly when the worker_version changes.
-- starting tuplespce_server, you no longer need to provide the --port if you're already providing the drburi- 
+- starting tuplespce_server, you no longer need to provide the --port if you're already providing the drburi-
 - Fixed a bug where Skynet::MessageQueueAdapter::Mysql would sometimes pick up tasks another worker had already picked up.
-- Fix bug in Skynet::Worker where it wouldn't die right if the max processed was reached. 
+- Fix bug in Skynet::Worker where it wouldn't die right if the max processed was reached.
 - Workers were supposed to restart when the worker_version changed.  They do that properly now.
 
 Thanks to Jason Rimmer for finding these bugs.

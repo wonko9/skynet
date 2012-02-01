@@ -18,10 +18,10 @@ class CreateSkynetTables < ActiveRecord::Migration
       t.column  :version,       :integer
       t.column  :timeout,       "decimal(16,4)"
       t.column  :retry,         :integer, :default => 0
-    end                                   
+    end
     create_table :skynet_queue_temperature do |t|
       t.column  :id,            "bigint unsigned primary key"
-      t.column  :queue_id,      :integer, :default => 0      
+      t.column  :queue_id,      :integer, :default => 0
       t.column  :updated_on,    :timestamp
       t.column  :count,         :integer, :default => 0
       t.column  :temperature,   "decimal(6,4) default 1"

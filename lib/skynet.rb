@@ -8,7 +8,7 @@ require 'drb'
 require 'skynet_guid_generator'
 require 'skynet_logger'
 require 'skynet_config'
-require 'timeout'    
+require 'timeout'
 
 Skynet::CONFIG[:SKYNET_PATH]    ||= File.expand_path(File.dirname(__FILE__) +"/..")
 # Skynet::CONFIG[:LAUNCHER_PATH]  ||= File.expand_path(ENV['_'])
@@ -25,7 +25,7 @@ require 'skynet_task'
 require 'skynet_manager'
 require 'skynet_tuplespace_server'
 require 'skynet_ruby_extensions'
-begin                       
+begin
   require 'active_record'
   require 'skynet_active_record_extensions'
   require 'message_queue_adapters/mysql'
@@ -59,7 +59,7 @@ class Skynet
     Process.detach(pid)
     pid
   end
-  
+
   def self.safefork (&block)
     @fork_tries ||= 0
     fork(&block)
@@ -69,7 +69,7 @@ class Skynet
     sleep 5
     retry
   end
-  
+
 
   # close open file descriptors starting with STDERR+1
   def self.close_files(from=3, to=50)
@@ -82,7 +82,7 @@ class Skynet
   def self.close_console
     STDIN.reopen "/dev/null"
     STDOUT.reopen "/dev/null", "a"
-    STDERR.reopen STDOUT 
+    STDERR.reopen STDOUT
   end
 
   def self.process_alive?(worker_pid)
@@ -90,6 +90,6 @@ class Skynet
     return true
   rescue Errno::ESRCH => e
     return false
-  end  
+  end
 
 end

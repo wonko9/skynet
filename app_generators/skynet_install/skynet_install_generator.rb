@@ -1,15 +1,15 @@
 class SkynetInstallGenerator < RubiGen::Base
-  
+
   DEFAULT_SHEBANG = File.join(Config::CONFIG['bindir'],
                               Config::CONFIG['ruby_install_name'])
-  
+
   default_options :in_rails => false
   default_options :mysql    => false
-  
+
   attr_reader :name
   attr_reader :in_rails
   attr_reader :mysql
-  
+
   def initialize(runtime_args, runtime_options = {})
     super
     usage if args.empty?
@@ -23,7 +23,7 @@ class SkynetInstallGenerator < RubiGen::Base
 
       # Ensure appropriate folder(s) exists
       BASEDIRS.each { |path| m.directory path }
-      
+
       # Create stubs
       m.template  "skynet_config.rb", "config/skynet_config.rb", :collision => :ask, :chmod => 0655
       if @in_rails
@@ -33,8 +33,8 @@ class SkynetInstallGenerator < RubiGen::Base
       if @mysql
         m.directory 'db/migrate'
         m.template   "skynet_mysql_schema.sql", "db/skynet_mysql_schema.sql", :collision => :ask, :chmod => 0655
-        m.migration_template "migration.rb", "db/migrate", 
-          :collision => :ask, 
+        m.migration_template "migration.rb", "db/migrate",
+          :collision => :ask,
           :assigns => {
               :migration_name => "CreateSkynetTables"
           },  :migration_file_name => "create_skynet_tables"
@@ -48,7 +48,7 @@ class SkynetInstallGenerator < RubiGen::Base
 Creates a ...
 
 USAGE: #{spec.name} [--rails] [--mysql] directory (can be '.' for current)"
-Installs: 
+Installs:
   ./config/skynet_config.rb
 EOS
     end
@@ -59,8 +59,8 @@ EOS
       # For each option below, place the default
       # at the top of the file next to "default_options"
       opts.on("-v", "--version", "Show the #{File.basename($0)} version number and quit.")
-      opts.on("--mysql", 
-             "Include mysql migration if you want to use mysql as your message queue.  
+      opts.on("--mysql",
+             "Include mysql migration if you want to use mysql as your message queue.
              Installs:
              ./db/skynet_mysql_schema.sql
              ./db/migrate/db/migrate/###_create_skynet_tables.rb
@@ -72,11 +72,11 @@ EOS
               Installs:
               ./config/initializers/skynet.rb
               (If using rails 1, make sure to add require 'skynet' to your environment.rb)",
-              "Default: false") do |rails| 
+              "Default: false") do |rails|
                 options[:rails] = true if rails
               end
     end
-    
+
     def extract_options
       # for each option, extract it into a local variable (and create an "attr_reader :author" at the top)
       # Templates can access these value via the attr_reader-generated methods, but not the

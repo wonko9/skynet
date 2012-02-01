@@ -32,7 +32,7 @@ or grab the bleeding edge skynet in svn at
 
 == INITIAL SETUP
 
-Skynet works by putting "tasks" on a message queue which are picked up by skynet workers. The workers execute tasks and put their results back on the message queue. Skynet workers need to load your code at startup in order to be able to execute your tasks. This loading is handled by installing a skynet config file into your app running skynet_install[link:files/bin/skynet_install.html]. 
+Skynet works by putting "tasks" on a message queue which are picked up by skynet workers. The workers execute tasks and put their results back on the message queue. Skynet workers need to load your code at startup in order to be able to execute your tasks. This loading is handled by installing a skynet config file into your app running skynet_install[link:files/bin/skynet_install.html].
 
   $ skynet_install [--rails] [--mysql] APP_ROOT_DIR
 
@@ -66,7 +66,7 @@ Here are some commands you can run in the skynet console.
   > stats
   > manager.worker_pids
   > [1,2,3,1,1,4].mapreduce(Skynet::MapreduceTest)
-  
+
 That last command actually took whatever array you gave it and counted the number of times each element appeared in the array.  It's not a very useful task, but it shows how easy Skynet is to use.
 
 To see what Skynet is doing, you may want to tail the skynet logs being written to your log directory.
@@ -79,18 +79,18 @@ Skynet was designed to make doing easy things easy and hard things possible. The
 
 == USING SKYNET IN RAILS
 
-Skynet includes an extension to ActiveRecord that is very powerful.   
+Skynet includes an extension to ActiveRecord that is very powerful.
 
 === distributed_find
 
   $ YourModel.distributed_find(:all).each(:somemethod)
-  
+
 A find is 'virtually' run with your model class, and the results are distributed to the skynet workers. Each worker then calls :somemethod against each object.
 
 === send_later
 
   $ model_object.send_later(:method, options, :save)
-  
+
 Sometimes you have a method you want to call on a model asynchronously. Using :send_later you can call a method, pass it options, and decide whether you want Skynet to save that model or not once its done calling your method.
 
 == Creating Skynet Jobs
@@ -99,9 +99,9 @@ The main interface to Skynet is through Skynet::Job
 
   job = Skynet::Job.new(options)
   job.run
-  
+
 There are many options you can pass or change once you have a job object. See Skynet::Job for more info.
-  
+
 Most of the time, you will only need to pass a :map_reduce_class and :map_data. All other options just give you finer grained control. The :map_data must be an array, and the :map_reduce_class must implement at least a self.map class method. It may optionally implement self.reduce and self.reduce_partitioner. Your map and reduce class methods should ALWAYS assume they are being passed an array. Your map method must always return an array as well.
 
 == Skynet Logging

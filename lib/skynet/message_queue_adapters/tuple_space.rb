@@ -37,7 +37,7 @@ class Skynet
       end
 
       attr_accessor :start_options
-      
+
       def initialize(options={})
         @start_options = options
         @ts = self.class.get_tuple_space(options)
@@ -247,11 +247,11 @@ class Skynet
 
       ### XXX ACCEPT MULTIPLE TUPLE SPACES and a flag whether to use replication or failover.
 
-      def self.get_tuple_space(options = {})    
+      def self.get_tuple_space(options = {})
         use_ringserver   = options[:use_ringserver]
         ringserver_hosts = options[:ringserver_hosts]
         drburi           = options[:drburi]
-        
+
         return @@ts if valid_tuplespace?(@@ts)
         loop do
           begin

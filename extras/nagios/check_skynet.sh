@@ -1,8 +1,8 @@
-#! /bin/sh 
+#! /bin/sh
 #
 # Usage: ./check_skynet --help
 #
-# Examples: 
+# Examples:
 #	./check_skynet -w 300 -c 2000 -u
 
 # Paths to commands used in this script.  These
@@ -115,7 +115,7 @@ if [[ $CURRENT -lt $CRITICAL  &&  $CURRENT -lt $WARNING ]]; then
 	$ECHO "Skynet untaken_tasks: $CURRENT threshold critical: $CRITICAL threshold warning: $WARNING OK"
 	$ECHO " "
     exit $STATE_OK
-	
+
 fi
 $ECHO "NO SCRIPT OUTPUT CALL NOPS!"
 exit $STATE_CRITICAL

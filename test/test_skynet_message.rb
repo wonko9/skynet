@@ -1,50 +1,50 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
 
 class MysqlMessageQueueTest < Test::Unit::TestCase
-  
+
   def setup
     Skynet.configure(
       :ENABLE                         => false,
       :SKYNET_LOG_FILE                => STDOUT,
       :SKYNET_LOG_LEVEL               => Logger::ERROR
-    )              
-  end      
+    )
+  end
 
   def setup_worker_message
     @worker_message = Skynet::WorkerStatusMessage.new(
-      :tasktype     => :task, 
-      :drburi       => "localhost", 
+      :tasktype     => :task,
+      :drburi       => "localhost",
       :job_id       => 1,
       :task_id      => 2,
       :payload      => "payload",
       :payload_type => "task",
-      :expiry       => 20, 
+      :expiry       => 20,
       :expire_time  => 1095108406.9251,
       :iteration    => 0,
-      :name         => "name",       
+      :name         => "name",
       :version      => 1,
       :queue_id     => 0
     )
-  end    
+  end
 
   def setup_task_message
     @task_message = Skynet::Message.new(
-      :tasktype     => :task, 
-      :drburi       => "localhost", 
+      :tasktype     => :task,
+      :drburi       => "localhost",
       :job_id       => 1,
       :task_id      => 2,
       :payload      => "payload",
       :payload_type => "task",
-      :expiry       => 20, 
+      :expiry       => 20,
       :expire_time  => 0,
       :iteration    => 0,
-      :name         => "name",       
+      :name         => "name",
       :version      => 1,
       :retry        => 2,
       :queue_id     => 0
-    )     
-  end    
-  
+    )
+  end
+
   def test_worker_status_message
     setup_worker_message
     {
@@ -66,7 +66,7 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
        assert_equal val, @worker_message.send(key), key
      end
      assert_equal @worker_message.to_a, Skynet::WorkerStatusMessage.new([:status, :worker, nil, nil, nil, 1, 2, 0, "name", nil, nil, 1, nil, 0]).to_a
-  end              
+  end
 
   def test_task_message
     setup_task_message
@@ -86,8 +86,8 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
        assert_equal val, @task_message.send(key)
      end
      assert_equal @task_message.to_a, Skynet::Message.new([:task, "localhost", 2, 1, "payload", :task, "name", 20, 0, 0, 1, 2, 0]).to_a
-  end              
-  
+  end
+
 
   def test_worker_status_template
     template = Skynet::WorkerStatusMessage.worker_status_template(:hostname => "localhost", :process_id => $$)
@@ -96,7 +96,7 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
       assert_equal field, template[ii]
     end
   end
-  
+
   def test_fallback_message
     setup_task_message
     fb = @task_message.fallback_task_message
@@ -113,14 +113,14 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
      :retry=>2,
      :task_id=>2,
      :version=>1}
-    
-    test_fb.each do |key, val| 
+
+    test_fb.each do |key, val|
       next if key == :expire_time
       assert_equal val, fb.send(key)
     end
-    
+
   end
-  
+
   def test_retry
     setup_task_message
     test_fb = {:payload=>"payload",
@@ -134,38 +134,38 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
      :retry=>2,
      :task_id=>2,
      :version=>1}
-     
+
     fb1 = @task_message.fallback_task_message
-    test_fb.merge(:iteration => 1).each do |k,v| 
+    test_fb.merge(:iteration => 1).each do |k,v|
       assert_equal v, fb1.send(k)
     end
 
     fb2 = fb1.fallback_task_message
-    test_fb.merge(:iteration => 2).each do |k,v| 
+    test_fb.merge(:iteration => 2).each do |k,v|
       assert_equal v, fb2.send(k)
     end
 
     fb3 = fb2.fallback_task_message
-    test_fb.merge(:iteration => -1).each do |k,v| 
+    test_fb.merge(:iteration => -1).each do |k,v|
       assert_equal v, fb3.send(k)
     end
   end
-  
+
   def test_next_task_template
     template = Skynet::Message.next_task_template(0,:any, 99)
     [:task, nil, nil, nil, nil, :any, nil, nil, :skip, 0..6, 0, nil, 99].each_with_index do |field, ii|
       next if field == :skip
       assert_equal field, template[ii]
     end
-  end      
-  
+  end
+
   def test_result_template
     template = Skynet::Message.result_template(88,:task)
     [:task, nil, nil, 88, nil, nil, nil, nil, nil, nil, nil, nil, nil].each_with_index do |field, ii|
       assert_equal field, template[ii]
     end
-  end            
-  
+  end
+
   def test_result_message
     setup_task_message
     result = @task_message.result_message("result")
@@ -183,12 +183,12 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
        :retry=>2,
        :task_id=>2,
        :version=>1
-     }.each do |key, val| 
+     }.each do |key, val|
        assert_equal val, result.send(key)
      end
-     
+
   end
-  
+
   def test_fallback_template
     setup_task_message
     template = @task_message.fallback_template
@@ -196,7 +196,7 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
       assert_equal field, template[ii]
     end
   end
-  
+
   def test_no_retry
     setup_task_message
     @task_message.retry = 0
@@ -214,16 +214,16 @@ class MysqlMessageQueueTest < Test::Unit::TestCase
        :retry=>0,
        :task_id=>2,
        :version=>1
-     }.each do |k,v| 
+     }.each do |k,v|
        assert_equal v, fb1.send(k)
      end
   end
-  
+
   def test_payload
     setup_task_message
     @task_message.payload = "hi"
     assert_equal YAML::dump("hi"), @task_message.raw_payload
   end
-  
-  
+
+
 end

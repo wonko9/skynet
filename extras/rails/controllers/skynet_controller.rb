@@ -15,10 +15,10 @@ class Admin::SkynetController < AdminController
       @stats[:hosts] = @stats[:servers].size
       @stats[:processed_time] = Time.now - start_time
     rescue Exception => e
-      logger.error "ERROR #{e.inspect} #{e.backtrace.join("\n")}"      
+      logger.error "ERROR #{e.inspect} #{e.backtrace.join("\n")}"
     end
   end
-  
+
   # plain text page that will be used by monitoring scripts
   def status
     begin
@@ -31,13 +31,13 @@ class Admin::SkynetController < AdminController
     rescue Exception => e
       render :text => "skynet is down\n", :content_type => 'text/plain'
     end
-  end  
-  
+  end
+
   private
-  
+
   def setup
     @mq  ||= Skynet::MessageQueue.new(Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER])
     @last_updated = Time.now.strftime('%r')
   end
-  
+
 end
