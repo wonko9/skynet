@@ -4,13 +4,13 @@ EXAMPLE 1: Distributed Grep
 You have a list of files and want to see how many times each word shows up in those files.
 All of the map_reduce code is in lib/mapreduce_test.rb
 
-To 
+To
 1. Run Skynet
  > ./script/skynet start
 
 2. Watch the logs in another terminal
  > tail -f log/skynet.log
- 
+
 3. Run dgrep providing it with some words and a directory
  > ./script/dgrep -r love hate ./data
 
@@ -24,7 +24,7 @@ EXAMPLE 2: Distributed Grep with distributed reducing
 Same example as above, but this time we want to aggregate our results across multiple partitioners. This would
 be useful if you had a large reduce data set, or complex calculations in order to reduce.   All the code is already
 in dgrep.pl.  Specifically, notice I've included a self.reduce_partition method (which just forwards to a pre-packaged
-partitioner).  This partitioner not only breaks up the data returned from the mappers, but also makes sure each reducer 
+partitioner).  This partitioner not only breaks up the data returned from the mappers, but also makes sure each reducer
 gets all the same keys.
 
 1. Run dgrep passing --reducers=2  This tells Skynet to try and use up to 2 reducers (instead of the default of 1)
@@ -55,7 +55,7 @@ You have a list of files and want the 10 most common 5 or more letter words in a
 
 2. Watch the logs in another terminal
  > tail -f log/skynet.log
- 
+
 3. Run dgrep providing it with the '-mcw' (most common words) command, some words and a directory
  > ./script/dgrep -r -mcw ./data
 

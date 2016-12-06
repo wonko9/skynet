@@ -7,7 +7,7 @@ module Skynet::ConsoleHelper
 
     def mq
       @mq ||= Skynet::MessageQueue.new
-    end                       
+    end
 
     def stats
       mq.stats
@@ -32,7 +32,7 @@ module Skynet::ConsoleHelper
     def add_lib(lib)
       manager.required_libs << File.expand_path(lib)
       manager.restart_workers
-    end                      
+    end
 
     def restart_workers
       manager.restart_workers

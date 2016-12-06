@@ -14,7 +14,7 @@
 HOME=/skynet/current
 RAILS_ENV=production
 
-cd $HOME 
+cd $HOME
 RETVAL=0
 start() {
         echo -n $"Starting Skynet: "
@@ -25,12 +25,12 @@ start() {
 }
 
 stop() {
-    echo -n $"Stopping Skynet: " 
+    echo -n $"Stopping Skynet: "
 	pid=`cat /skynet/logs/skynet_production.pid`
 	kill ${pid}
     RETVAL=$?
     return $RETVAL
-}    
+}
 
 restart() {
         echo -n $"Restarting Skynet: "
@@ -66,7 +66,7 @@ case "$1" in
     reload
     ;;
   *)
-    echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}" 
+    echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"
     exit 1
 esac
 get_pid_for_cmd ()

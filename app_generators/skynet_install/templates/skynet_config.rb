@@ -1,9 +1,9 @@
-# Skynet Configuration File.  Should be in APP_ROOT/config/skynet_config.rb  
-# Start skynet from within your app root with 
+# Skynet Configuration File.  Should be in APP_ROOT/config/skynet_config.rb
+# Start skynet from within your app root with
 # > skynet start
 
 require 'rubygems'
-require 'skynet'         
+require 'skynet'
 
 <% if in_rails -%>
 # Load your rails app
@@ -20,8 +20,8 @@ Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(Skynet::CONFIG[:APP_ROOT] +
 Skynet::CONFIG[:SKYNET_LOG_FILE]  = "skynet_#{RAILS_ENV}.log"
 Skynet::CONFIG[:SKYNET_PID_FILE]  = "skynet_#{RAILS_ENV}.pid"
 <% else -%>
-Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log") 
-Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log") 
+Skynet::CONFIG[:SKYNET_LOG_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
+Skynet::CONFIG[:SKYNET_PID_DIR]   = File.expand_path(File.dirname(__FILE__) + "/../log")
 <% end -%>
 
 <% if mysql -%>

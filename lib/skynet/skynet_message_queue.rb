@@ -27,7 +27,7 @@ class Skynet
     def self.adapter_class
       Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER]
     end
-    
+
     def self.start_or_connect(adapter_class = self.adapter_class)
       begin
         mq = new
@@ -41,7 +41,7 @@ class Skynet
         new
       end
     end
-    
+
     def initialize(message_queue_proxy_class=Skynet::CONFIG[:MESSAGE_QUEUE_ADAPTER])
       mq
     end

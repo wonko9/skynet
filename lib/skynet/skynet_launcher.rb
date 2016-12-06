@@ -17,7 +17,7 @@ class Skynet
     end
 
     options[:script_path] = Skynet::CONFIG[:LAUNCHER_PATH]
-    
+
     if ARGV.detect {|a| a == 'console' }
       ARGV.delete('console')
       Skynet::Console.start
@@ -27,7 +27,7 @@ class Skynet
       if ARGV.include?('stop')
         Skynet::Manager.stop(options)
       else
-        options["daemonize"] = true if ARGV.include?('start')      
+        options["daemonize"] = true if ARGV.include?('start')
         Skynet::Manager.start(options)
       end
     end

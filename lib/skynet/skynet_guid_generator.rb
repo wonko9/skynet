@@ -53,7 +53,7 @@ class Skynet
           @@pid_ctr += 1
 
           guid_parts = [[timeprt,30],[Skynet::UniqueDBNumGenerator.server_num,8],[@@pid_id,14],[@@pid_ctr,12]]
-          
+
           guid = 0
           guid_parts.each do |part, bitlength|
             guid = guid << bitlength

@@ -1,17 +1,17 @@
 class Skynet
-  
+
   class Error < StandardError
   end
-  
+
   class RequestExpiredError < Skynet::Error
 	end
-	
+
 	class InvalidMessage < Skynet::Error
   end
-  
+
   class AbstractClassError < Skynet::Error
   end
-	
+
   class MessageQueueAdapter
 
     def list_results(data,timeout=nil)
@@ -40,7 +40,7 @@ class Skynet
 
     def write_error(template,timeout=nil)
       raise AbstractClassError.new("You must implement method in a subclass.")
-    end            
+    end
 
     def write_worker_status(template,timeout=nil)
       raise AbstractClassError.new("You must implement method in a subclass.")
@@ -61,10 +61,10 @@ class Skynet
     def set_worker_version(template,timeout=nil)
       raise AbstractClassError.new("You must implement method in a subclass.")
     end
-      
+
     def clear_outstanding_tasks
       raise AbstractClassError.new("You must implement clear_outstanding_tasks in a subclass.")
-    end  
+    end
 
   end
 end

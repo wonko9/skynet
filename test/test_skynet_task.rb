@@ -1,15 +1,15 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
 
 class SkynetTaskTest < Test::Unit::TestCase
-  
+
   def setup
     Skynet.configure(
       :ENABLE                         => false,
       :SKYNET_LOG_FILE                => STDOUT,
       :SKYNET_LOG_LEVEL               => Logger::ERROR
-    )              
-  end      
-  
+    )
+  end
+
   def test_master_task
     job = Skynet::Job.new(:map_reduce_class => self.class, :async => true, :local_master => false, :solo => true)
     master_task = Skynet::Task.master_task(job)

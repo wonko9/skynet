@@ -47,7 +47,7 @@ or grab the bleeding edge skynet in svn at
 
 h2. Initial Setup
 
-Skynet works by putting "tasks" on a message queue which are picked up by skynet workers. The workers execute tasks and put their results back on the message queue. Skynet workers need to load your code at startup in order to be able to execute your tasks. This loading is handled by installing a skynet config file into your app running skynet_install[link:files/bin/skynet_install.html]. 
+Skynet works by putting "tasks" on a message queue which are picked up by skynet workers. The workers execute tasks and put their results back on the message queue. Skynet workers need to load your code at startup in order to be able to execute your tasks. This loading is handled by installing a skynet config file into your app running skynet_install[link:files/bin/skynet_install.html].
 
   $ skynet_install [--rails] [--mysql] APP_ROOT_DIR
 

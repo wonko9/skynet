@@ -1,14 +1,14 @@
 class MapreduceTest
-  
+
   include SkynetDebugger
-  
+
   def self.run
     job = Skynet::Job.new(
-      :mappers          => 2, 
+      :mappers          => 2,
       :reducers         => 1,
       :map_reduce_class => self,
       :map_data         => [OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 2}),OpenStruct.new({:created_by => 3})]
-    )    
+    )
     results = job.run
   end
 

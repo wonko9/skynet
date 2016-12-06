@@ -102,7 +102,7 @@ class Skynet
     def notify_task_begun(task)
       task[:processed] = @processed
       task[:started_at] = Time.now.to_i
-      @in_process = true      
+      @in_process = true
       write_worker_status(@worker_info.merge(task))
     end
 
@@ -135,8 +135,8 @@ class Skynet
         :started_at    => Time.now.to_i
         })
       )
-    end           
-    
+    end
+
     def manager_send(method,*args)
       begin
         manager.send(method,*args)
@@ -149,12 +149,12 @@ class Skynet
 
     def write_worker_status(status)
       manager_send(:worker_notify,status)
-    end                              
-    
+    end
+
     def manager
       Skynet::Manager.get
     end
-    
+
     def payload_type
       return nil if worker_type == :any
       return worker_type
@@ -412,7 +412,7 @@ class Skynet
           exit
         end
       else
-        error "Config file missing. Please add a config/skynet_config.rb before starting."        
+        error "Config file missing. Please add a config/skynet_config.rb before starting."
         exit
       end
 

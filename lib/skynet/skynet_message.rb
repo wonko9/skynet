@@ -2,9 +2,9 @@ class Skynet
   class Message
 
     include SkynetDebugger
-    
+
     class BadMessage < Skynet::Error; end
-    
+
     class << self
       attr_accessor :fields
     end
@@ -25,13 +25,13 @@ class Skynet
      :queue_id
     ]
 
-    self.fields.each do |method| 
+    self.fields.each do |method|
       next if [:payload, :tasktype, :payload_type].include?(method)
       attr_accessor method
     end
-    
+
     attr_reader :payload_type, :tasktype
-    
+
     def self.new_task_message(task,job)
       self.new(
         :job_id       => job.job_id,
@@ -39,16 +39,16 @@ class Skynet
         :version      => job.version,
         :queue_id     => job.queue_id || 0,
         :iteration    => 0,
-        :tasktype     => :task, 
+        :tasktype     => :task,
         :task_id      => task.task_id,
         :payload      => task,
         :payload_type => task.task_or_master,
-        :expiry       => task.result_timeout, 
-        :name         => task.name,       
+        :expiry       => task.result_timeout,
+        :name         => task.name,
         :retry        => task.retry
       )
     end
-  
+
     def initialize(opts)
       if opts.is_a?(Array)
         self.class.fields.each_with_index do |field, ii|
@@ -65,13 +65,13 @@ class Skynet
         end
         self.retry ||= 0
       end
-      self.payload      
+      self.payload
     end
-                     
+
     def fields
       self.class.fields
     end
-    
+
     def tasktype=(ttype)
       @tasktype = ttype.to_sym
     end
@@ -79,18 +79,18 @@ class Skynet
     def payload_type=(ptype)
       @payload_type = ptype.to_sym if ptype
     end
-    
+
     # alias for payload
     def task
       payload
     end
-    
-    def payload=(data)  
+
+    def payload=(data)
       @payload = data
       self.raw_payload = data.to_yaml if data.respond_to?(:to_yaml) and not payload.kind_of?(Proc)
     end
-        
-    def payload    
+
+    def payload
       @payload ||= begin
           YAML::load(self.raw_payload) if self.raw_payload
         rescue Exception => e
@@ -106,29 +106,29 @@ class Skynet
     def raw_payload
       @raw_payload
     end
-    
+
     def [](ii)
       send(self.class.fields[ii])
     end
-    
+
     def to_a
       self.class.fields.collect do |field|
         self.send(field)
       end
     end
-    
+
     def to_hash
       hash = {}
       self.class.fields.each do |field|
         hash[field] = self.send(field)
-      end                                          
+      end
       hash
-    end   
-    
+    end
+
     def to_h
       to_hash
     end
-  
+
     def to_s
       to_a
     end
@@ -151,7 +151,7 @@ class Skynet
         template[field]
       end
     end
-  
+
     def self.result_template(job_id,tasktype=:result)
       template = {
         :tasktype => tasktype,
@@ -161,7 +161,7 @@ class Skynet
         template[field]
       end
     end
-  
+
     def self.result_message(message,result,tasktype=:result, resulttype=:result)
       template = {
         :tasktype     => tasktype,
@@ -174,11 +174,11 @@ class Skynet
       end
       new(template)
     end
-  
+
     def result_message(result,tasktype=:result, resulttype=:result)
       self.class.result_message(self,result,tasktype,resulttype)
     end
-  
+
     def self.outstanding_tasks_template(iteration=nil,queue_id=0)
       template = {
         :tasktype  => :task,
@@ -188,7 +188,7 @@ class Skynet
       fields.collect do |field|
         template[field]
       end
-    end  
+    end
 
     def self.outstanding_results_template(queue_id=0)
       template = {
@@ -199,31 +199,31 @@ class Skynet
         template[field]
       end
     end
-  
+
     def self.error_message(message,error)
       result_message(message,error,:result,:error)
     end
-  
+
     def error_message(error)
       self.class.error_message(self,error)
     end
-  
+
     def self.error_template(message)
       template = {
         :tasktype  => message.tasktype,
-        :drburi    => message.drburi, 
-        :version   => message.version, 
-        :task_id   => message.task_id, 
+        :drburi    => message.drburi,
+        :version   => message.version,
+        :task_id   => message.task_id,
         :queue_id  => message.queue_id
       }
       fields.collect do |field|
         template[field]
       end
     end
-    
+
     def error_template
       self.class.error_template(self)
-    end  
+    end
 
     def self.fallback_task_message(message)
        template = {}
@@ -235,9 +235,9 @@ class Skynet
          end
        # Originally I was gonna do this for map and reduce, but we don't know that here, just whether its a master.
        elsif message.payload_type.to_sym == :master and Skynet::CONFIG[:DEFAULT_MASTER_RETRY] and message.iteration >= Skynet::CONFIG[:DEFAULT_MASTER_RETRY]
-         template[:iteration] = -1           
+         template[:iteration] = -1
        elsif Skynet::CONFIG[:MAX_RETRIES] and message.iteration >= Skynet::CONFIG[:MAX_RETRIES]
-         template[:iteration] = -1           
+         template[:iteration] = -1
        else
          template[:iteration] = message.iteration + 1
        end
@@ -249,8 +249,8 @@ class Skynet
        end
        # debug "BUILDING NEXT FALLBACK TASK MESSAGE OFF"#, template
        Skynet::Message.new(template)
-    end      
-  
+    end
+
     def fallback_task_message
       self.class.fallback_task_message(self)
     end
@@ -258,17 +258,17 @@ class Skynet
     def self.fallback_template(message)
       template = {
         :tasktype  => message.tasktype,
-        :drburi    => message.drburi, 
-        :version   => message.version, 
-        :task_id   => message.task_id, 
-        :queue_id  => message.queue_id,        
-        :iteration => (1..Skynet::CONFIG[:MAX_RETRIES]),        
+        :drburi    => message.drburi,
+        :version   => message.version,
+        :task_id   => message.task_id,
+        :queue_id  => message.queue_id,
+        :iteration => (1..Skynet::CONFIG[:MAX_RETRIES]),
       }
       fields.collect do |field|
         template[field]
       end
     end
-  
+
     def fallback_template
       self.class.fallback_template(self)
     end
@@ -276,15 +276,15 @@ class Skynet
   end  ## END class Message
 
   class WorkerVersionMessage < Skynet::Message
-    
+
     self.fields = self.superclass.fields
-  
+
     def initialize(opts)
       super
       self.expire_time ||= Time.now.to_i
       self.tasktype    = :current_worker_rev
     end
-    
+
     def version
       @version.to_i
     end
@@ -297,7 +297,7 @@ class Skynet
         template[field]
       end
     end
-    
+
     def template
       template = {
         :tasktype    => :current_worker_rev,
@@ -333,18 +333,18 @@ class Skynet
       super
       self.tasksubtype = :worker
     end
-    
+
     def self.worker_status_template(opts)
       template = {
         :tasksubtype => :worker,
         :hostname    => opts[:hostname],
-        :process_id  => opts[:process_id]        
+        :process_id  => opts[:process_id]
       }
       fields.collect do |field|
         template[field]
       end
     end
-    
+
     def self.all_workers_template(hostname=nil)
       template = {
         :tasksubtype => :worker,
@@ -353,7 +353,7 @@ class Skynet
       fields.collect do |field|
         template[field]
       end
-    end    
+    end
   end # class WorkerStatusMessage
 
 end

@@ -1,7 +1,7 @@
  ========================
  = Skynet Rails Example =
  ========================
- 
+
 Below you'll find a few example skynet uses within a rails application.
 Rails itself is not included in the app so you will need Rails 2 installed locally.
 You will also need to have mysql running locally.  If you have special permissions, please edit config/database.yml.
@@ -23,7 +23,7 @@ I added a rake task to run the skynet migration
 > rake db:migrate_favorites
 
 You can also choose to run the command (or other commands) yourself in the skynet console
-                                                                                         
+
 > ruby script/skynet console
 console> User.distributed_find(:all).map(:migrate_favorites)
 console> u = User.find(:first)
@@ -37,7 +37,7 @@ Example 2: Sending Email Asyncronously
 -------------------------------------
 > ruby script/skynet console
 console> u = User.find(:first)
-console> u.send_welcome_email 
+console> u.send_welcome_email
 # pauses 5 seconds while the user goes to another site and never comes back We don't want that!
 # try again
 console> u.send_later(:send_welcome_email)
@@ -53,7 +53,7 @@ This sample application was created by creating in the following way
 
 3. Run skynet migrations
  > rake db:migrate
- 
+
 4. Create other migrations models
  > ./script/generate model user name:string password:string favorites:string email:string
  > ./script/generate model user_favorite user_id:integer favorite:string

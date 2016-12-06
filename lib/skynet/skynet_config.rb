@@ -1,4 +1,4 @@
-class Skynet       
+class Skynet
 
   CONFIG = {
     :ENABLE                               => true,
@@ -42,7 +42,7 @@ class Skynet
     :DEFAULT_KEEP_REDUCE_TASKS            => 1,
     :MESSAGE_QUEUES                       => ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'nineth']
   } unless defined?(CONFIG)
-                           
+
   def self.silent
     if block_given?
       Skynet.configure(:SKYNET_LOG_LEVEL => 10) do
@@ -52,7 +52,7 @@ class Skynet
       raise Error.new("Please provide a block to Skynet.silent")
     end
   end
-  
+
   def self.configure(config={})
     old_config = CONFIG.dup
     config.each {|k,v| CONFIG[k] = v}
@@ -66,12 +66,12 @@ class Skynet
       ret
     end
   end
-  
+
   def self.config
     Skynet::Config.new
   end
 
-  def self.solo(config = {}) 
+  def self.solo(config = {})
     raise Skynet::Error.new("You provide a code block to Skynet.solo") unless block_given?
     result = nil
     Skynet::Logger.log = nil
@@ -88,10 +88,10 @@ class Skynet
     end
     return result
   end
-  
+
   # Skynet has many global configuration options.
   # You can access specific options via Skynet::CONFIG[:OPTION] = ?
-  # You can set many options via                                          
+  # You can set many options via
   #
   #    Skynet.configure(:OPTION => option, :ANOTHEROPTION => anotheroption)
   #
@@ -137,12 +137,12 @@ class Skynet
   #
   # ENABLE turns Skynet on or off.
   #
-  # SOLO turns on SOLO mode where Skynet can run in the current process without workers.  
+  # SOLO turns on SOLO mode where Skynet can run in the current process without workers.
   # Its almost a Skynet emulation mode
   #
   # MESSAGE_QUEUE_ADAPTER
-  # Skynet comes with 2 message queue adaptors 
-  #   Skynet::MessageQueueAdapter::TupleSpace 
+  # Skynet comes with 2 message queue adaptors
+  #   Skynet::MessageQueueAdapter::TupleSpace
   #   Skynet::MessageQueueAdapter::Mysql
   # The default is TupleSpace which is an in memory database.
   # The mysql MQ takes running a migration that comes with skynet_install
@@ -160,7 +160,7 @@ class Skynet
   #   :MYSQL_MESSAGE_QUEUE_TEMP_CHECK_DELAY => 40,
   #   :MYSQL_NEXT_TASK_TIMEOUT              => 60,
 
-  class Config     
+  class Config
     include Enumerable
 
     def each
@@ -170,24 +170,24 @@ class Skynet
     def self.add_message_queue(queue_name)
       self.message_queues << queue_name
     end
-    
+
     def self.queue_id_by_name(queue_name)
       if Skynet::CONFIG[:MESSAGE_QUEUES].index(queue_name)
         return Skynet::CONFIG[:MESSAGE_QUEUES].index(queue_name)
-      else     
+      else
         raise Skynet::Error("#{queue_name} is not a valid queue")
       end
-    end       
-    
-    def self.queue_name_by_id(queue_id)               
+    end
+
+    def self.queue_name_by_id(queue_id)
       queue_id = queue_id.to_i
       if Skynet::CONFIG[:MESSAGE_QUEUES][queue_id]
         return Skynet::CONFIG[:MESSAGE_QUEUES][queue_id]
-      else     
+      else
         raise Skynet::Error("#{queue_id} is not a valid queue_id")
       end
     end
-    
+
     def self.logfile_location
       if skynet_log_file.is_a?(String) and skynet_log_dir
         skynet_log_dir.sub(/\/$/,'') + "/" + skynet_log_file.sub(/^\//,'')
@@ -203,22 +203,22 @@ class Skynet
         skynet_pid_dir
       end
     end
-    
+
     def manager_statfile_location
       if skynet_log_dir.is_a?(String) and skynet_log_dir
         skynet_log_dir.sub(/\/$/,'') + "/" + skynet_manager_stats_file.sub(/^\//,'')
       else
         skynet_log_dir
       end
-    end    
+    end
     def method_missing(name,*args)
       if self.class.respond_to?(name)
         self.class.send(name,*args)
-      else        
+      else
         self.class.method_missing(name,*args)
       end
-    end                               
-    
+    end
+
     def self.method_missing(name, *args)
       name = name.to_s.upcase.to_sym
       if name.to_s =~ /^(.*)=$/

@@ -1,4 +1,4 @@
-class UserMailer < ActionMailer::Base  
+class UserMailer < ActionMailer::Base
   class Error < StandardError; end
 
   def welcome(user)

@@ -1,9 +1,9 @@
-# Skynet Configuration File.  Should be in APP_ROOT/config/skynet_config.rb  
-# Start skynet from within your app root with 
+# Skynet Configuration File.  Should be in APP_ROOT/config/skynet_config.rb
+# Start skynet from within your app root with
 # > skynet start
 
 require 'rubygems'
-require 'skynet'         
+require 'skynet'
 
 # Load your rails app
 if not defined?(RAILS_GEM_VERSION)
